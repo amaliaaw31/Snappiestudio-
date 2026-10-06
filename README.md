@@ -1,34 +1,44 @@
 # Snappie Studio 📸 — Web Photo Booth (Vite)
 
 Aplikasi web photo booth: ambil foto dari **kamera** atau **galeri**, pilih
-**filter** (18) & **bingkai** (26 tema), tambah **stiker/emoji/teks**, lalu
-**unduh PNG** atau **bagikan ke sosmed**. Tanpa backend — semua diproses di browser.
+**filter** (18) & **bingkai** (22 tema), atur **frame & warna custom**, tambah
+**stiker/emoji/teks**, lalu **unduh PNG** atau **bagikan ke sosmed**.
+Tanpa backend — semua diproses di browser. Mendukung **16 bahasa**.
 
 ## Fitur
 - Kamera: ganti depan/belakang, toggle mirror, hitung mundur (0/3/5/10 dtk), flash & suara on/off
 - Tata letak 1 / 3 / 4 / 6 foto; urutkan dengan drag; hapus / jepret ulang satu foto
 - Impor dari galeri (bisa menimpa slot tertentu)
 - Filter: 18 pilihan (modal grid + preview), **per-foto** — pilih thumbnail lalu ganti filternya
-- 26 tema bingkai (pastel, film, neon, Y2K, chrome, manga, ulang tahun, wisuda, wedding, lebaran, dll) — dipilih lewat modal grid 4×4 dengan preview
+- 22 tema bingkai (pastel, cream, confetti, floral, neon, Y2K, film, midnight, chrome, scrapbook, digicam, coquette, aero, doodle, minimal, ulang tahun, wedding, lebaran, natal, valentine, baby shower, custom)
+- **Frame custom**: warna background/gradien, outline, border slot, pattern, **palet rekomendasi**, input kode warna (HEX/RGB/CMYK) + **eyedropper**
+- **Font kustom** (10) untuk caption & tanggal; spasi antar-huruf & tinggi baris otomatis per font
 - Stiker karakter & emoji dengan **gestur jari** (1 jari pindah, 2 jari zoom+putar, tahan untuk hapus)
 - Text box bisa dipindah (multi), tanggal opsional, watermark
-- Toggle "Mode Mobile Responsive"
-- Preferensi tersimpan di localStorage
+- Bahasa: ID, EN, MS, AR, ES, FR, DE, PT, RU, JA, KO, ZH, HI, VI, TH, TR
+- Mode gelap, toggle "Mode Mobile Responsive", preferensi tersimpan di localStorage
 - Bagikan: Web Share API + Instagram/WhatsApp/Facebook/TikTok
+- PWA (installable), SEO lengkap (meta/OG, sitemap, robots)
 
 ## Struktur
 ```
 vite-app/
-├── index.html          # entry HTML (meta/OG + favicon inline SVG)
-├── vite.config.js      # base './' + vite-plugin-singlefile (output 1 file)
-├── eslint.config.js    # flat config ESLint
+├── index.html            # entry HTML (meta/OG + favicon logo)
+├── vite.config.js        # base './' + vite-plugin-singlefile (output 1 file)
+├── eslint.config.js      # flat config ESLint
 ├── package.json
+├── public/               # aset statis: logo.png, icon.svg, og.png,
+│                         #   manifest.webmanifest, robots.txt, sitemap.xml
 ├── src/
-│   ├── main.js         # logika aplikasi (kamera, galeri, filter, stiker, share)
-│   ├── style.css       # styling + tema bingkai + mode mobile
-│   ├── data.js         # filter, tema, karakter, caption, util
-│   └── composer.js     # komposer canvas untuk unduh PNG
-└── test/               # unit test (node:test)
+│   ├── main.js           # logika aplikasi (kamera, galeri, filter, frame, stiker, share)
+│   ├── style.css         # styling + tema bingkai + mode mobile
+│   ├── data.js           # filter, tema, karakter, caption, util
+│   ├── i18n.js           # terjemahan (16 bahasa)
+│   ├── composer.js       # komposer canvas untuk unduh PNG
+│   ├── assets/           # gambar (bg-start.svg, filter-sample.svg, bac.jpg)
+│   └── fonts/            # font kustom (.ttf/.otf)
+├── test/                 # unit test (node:test)
+└── .github/workflows/    # CI (lint, test, build)
 ```
 
 ## Perintah
@@ -43,5 +53,6 @@ npm test           # unit test (node --test)
 
 ## Catatan
 - Kamera butuh secure context: HTTPS, `localhost`, atau `file://` di Chrome.
-- `dist/` **di-`.gitignore`** — dihasilkan lewat `npm run build`; hasilnya satu file `index.html` yang bisa dibuka langsung.
+- `dist/` **di-`.gitignore`** — dihasilkan lewat `npm run build`; hasilnya satu file `index.html` (+ aset di `public/` disalin ke `dist/`).
+- Logo/favicon: `public/logo.png`.
 - Karakter stiker adalah gambar orisinal (SVG), bukan karakter berhak cipta.
