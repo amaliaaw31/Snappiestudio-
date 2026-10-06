@@ -22,6 +22,7 @@ export const FILTERS = [
 ];
 
 export const THEMES = [
+  { id: 'custom',   name: 'Custom Frame' },
   { id: 'pastel',   name: 'Princess Pastel' },
   { id: 'cream',    name: 'Aesthetic Cream' },
   { id: 'confetti', name: 'Cute Confetti' },
@@ -63,6 +64,48 @@ export function filterCss(id) {
   return f ? f.css : 'none';
 }
 
+/* Jarak antar-huruf per font (dalam em) supaya spasi teks konsisten
+   antara preview HTML dan PNG hasil unduhan. Font tak dikenal = 0. */
+export const FONT_TRACKING = {
+  'Matcha Iced': 0,
+  'The Magic Cookie': 0.01,
+  'Orange Lovely': 0,
+  'Quicksand': 0.005,
+  'Fredoka': 0,
+  'Always Classy': 0,
+  'Melon Tea': 0.01,
+  'Smart Water': 0.02,
+  'Stay With Me': 0.01,
+  'Streat Coffee': 0,
+  'Super Waffles': 0.01,
+  'Anak Bijak': 0.005,
+};
+export function fontTracking(font) {
+  const v = FONT_TRACKING[font];
+  return typeof v === 'number' ? v : 0;
+}
+
+/* Tinggi baris per font (kelipatan font-size) agar jarak antar baris caption
+   & tanggal pas — font berswa/script butuh ruang lebih. Default 1.2. */
+export const FONT_LINE_HEIGHT = {
+  'Matcha Iced': 1.2,
+  'The Magic Cookie': 1.45,
+  'Orange Lovely': 1.4,
+  'Quicksand': 1.2,
+  'Fredoka': 1.2,
+  'Always Classy': 1.7,
+  'Melon Tea': 1.25,
+  'Smart Water': 1.3,
+  'Stay With Me': 1.4,
+  'Streat Coffee': 1.3,
+  'Super Waffles': 1.35,
+  'Anak Bijak': 1.3,
+};
+export function fontLineHeight(font) {
+  const v = FONT_LINE_HEIGHT[font];
+  return typeof v === 'number' ? v : 1.2;
+}
+
 const DATE_FORMATS = {
   id: 'DD·MM·YYYY', en: 'MM/DD/YYYY', ms: 'DD/MM/YYYY', ar: 'DD/MM/YYYY',
   es: 'DD/MM/YYYY', fr: 'DD/MM/YYYY', de: 'DD.MM.YYYY', pt: 'DD/MM/YYYY',
@@ -87,6 +130,7 @@ export const EMOJI_STICKERS = [
 ];
 
 export const CAPTIONS = {
+  custom:   { main: '✧ my style ✧', sub: '' },
   pastel:   { main: '✦ my magical day ✦', sub: '' },
   cream:    { main: 'Aesthetic', main2: 'Moments', sub: '' },
   confetti: { main: 'have fun!!', sub: '' },

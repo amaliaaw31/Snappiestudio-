@@ -10,6 +10,7 @@ export default [
         navigator: 'readonly',
         localStorage: 'readonly',
         Image: 'readonly',
+        Event: 'readonly',
         File: 'readonly',
         Blob: 'readonly',
         URL: 'readonly',

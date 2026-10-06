@@ -2,7 +2,7 @@
    Redraws the framed photo strip on a <canvas> so the downloaded file
    matches the on-screen HTML preview. */
 
-import { CHARS, CHAR_SVG, filterCss, dateLine } from './data.js';
+import { CHARS, CHAR_SVG, filterCss, dateLine, fontTracking } from './data.js';
 import { getLang } from './i18n.js';
 
 let charImgs = null;
@@ -52,17 +52,18 @@ const DATE_COLORS = {
 };
 
 /** Compose the final framed strip. Returns a <canvas>. */
-export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '', showFrame = true, captionFont = 'Matcha Iced') {
+export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '', showFrame = true, captionFont = 'Matcha Iced', customFrame = null, captionFit = null, dateFont = 'Matcha Iced') {
   await loadCharImgs();
   if (document.fonts && document.fonts.load) {
-    await Promise.all([
-      document.fonts.load('34px "Matcha Iced"'),
-      document.fonts.load('700 34px "Matcha Iced"'),
-      document.fonts.load('34px "The Magic Cookie"'),
-      document.fonts.load('34px "Orange Lovely"'),
-      document.fonts.load('700 34px "Quicksand"'),
-      document.fonts.load('700 34px "Fredoka"'),
-    ]).catch(() => {});
+    const families = [
+      'Matcha Iced', 'The Magic Cookie', 'Orange Lovely', 'Quicksand', 'Fredoka',
+      'Always Classy', 'Melon Tea', 'Smart Water', 'Stay With Me', 'Streat Coffee',
+      'Super Waffles', 'Anak Bijak',
+    ];
+    await Promise.all(families.flatMap(f => [
+      document.fonts.load('34px "' + f + '"'),
+      document.fonts.load('700 34px "' + f + '"'),
+    ])).catch(() => {});
   }
   /* Geometri disamakan dengan preview HTML (.frame-outer / .frame / .slot).
      Semua ukuran preview (px) dikalikan `scale` agar slot foto tetap 640x480,
@@ -87,13 +88,20 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
   if (showFrame && layout === 1) padB = (outer + 0.19 * (baseW - 2 * outer)) * scale;   // polaroid: margin bawah lebar
 
   const hasCaption = showFrame && (customText || showDate);
-  const capFont = Math.max(1, Math.round(12 * scale));         // .frame-date font-size (12px)
-  const capLine = Math.round(capFont * 1.2);                   // line-height ~1.2
+  const capFit = (captionFit && captionFit.cap) ? captionFit.cap : null;
+  const dateFit = (captionFit && captionFit.date) ? captionFit.date : null;
+  const capCssSize = capFit ? capFit.size : 12;
+  const capLineH = capFit ? capFit.lineHeight : 1.2;
+  const dateCssSize = dateFit ? dateFit.size : 12;
+  const dateLineH = dateFit ? dateFit.lineHeight : 1.2;
+  const capFont = Math.max(1, Math.round(capCssSize * scale));         // .frame-date font-size (px CSS -> canvas)
+  const dateFontPx = Math.max(1, Math.round(dateCssSize * scale));
   /* Area caption SELALU disediakan (samakan dengan .frame-captions:
      min-height 48px + padding-top 12px, box-sizing border-box) sehingga
      ukuran bingkai tetap walau tanpa tanggal/caption — sama seperti preview. */
   const capPadTop = showFrame ? 12 * scale : 0;
-  const capH = showFrame ? 48 * scale : 0;
+  const capAreaCss = 12 + (customText ? capCssSize * capLineH : 0) + (showDate ? dateCssSize * dateLineH : 0);
+  const capH = showFrame ? Math.max(48, capAreaCss) * scale : 0;
 
   const photosH = rows * slotH + (rows - 1) * gap;
   const W = Math.round(padX * 2 + cols * slotW + (cols - 1) * gap);
@@ -272,6 +280,39 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     x.font = '40px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
     x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillText('☁️', 46, 46); x.fillText('🍼', W - 46, 46);
+  } else if (t === 'custom') {
+    const cf = customFrame || {};
+    const bg = cf.bg || '#ffffff';
+    const bg2 = cf.bg2 || bg;
+    const outline = cf.outline || '#d63384';
+    const pattern = cf.pattern || 'none';
+    if (cf.gradient === false) {
+      x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    } else {
+      const g = x.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, bg); g.addColorStop(1, bg2);
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+    }
+    if (pattern !== 'none') {
+      /* Batasi motif ke area dalam bingkai (di dalam padding .frame-outer). */
+      x.save();
+      x.beginPath();
+      x.rect(outer * scale, outer * scale, W - 2 * outer * scale, H - 2 * outer * scale);
+      x.clip();
+      if (pattern === 'dots') {
+        x.fillStyle = 'rgba(0,0,0,.10)';
+        const step = 22 * scale, r = 2 * scale;
+        for (let yy = step; yy < H; yy += step) {
+          for (let xx = step; xx < W; xx += step) { x.beginPath(); x.arc(xx, yy, r, 0, Math.PI * 2); x.fill(); }
+        }
+      } else if (pattern === 'stripes') {
+        x.strokeStyle = 'rgba(0,0,0,.07)'; x.lineWidth = 10 * scale;
+        for (let d = -H; d < W; d += 20 * scale) { x.beginPath(); x.moveTo(d, 0); x.lineTo(d + H, H); x.stroke(); }
+      }
+      x.restore();
+    }
+    x.lineWidth = 4 * scale; x.strokeStyle = outline;
+    x.strokeRect(x.lineWidth / 2, x.lineWidth / 2, W - x.lineWidth, H - x.lineWidth);
   }
   }
 
@@ -285,11 +326,12 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     x.filter = fcss;                                                  // filter per foto
     coverDraw(x, canvas, X, Y, slotW, slotH, photo.zoom, photo.ox, photo.oy);
     x.restore();
-    if (showFrame) {
+    if (showFrame && !(customFrame && customFrame.slotBorder === false)) {
     let slotStroke = '#ffffff';
     if (t === 'neon') slotStroke = '#00f0ff';
     else if (t === 'film' || t === 'minimal') slotStroke = '#111111';
     else if (t === 'lebaran') slotStroke = '#e6c766';
+    else if (t === 'custom' && customFrame) slotStroke = customFrame.slot || '#ffffff';
     x.lineWidth = (t === 'cream' || t === 'film' || t === 'minimal') ? 7 : 10;
     x.strokeStyle = slotStroke;
     rr(x, X, Y, slotW, slotH, 18); x.stroke();
@@ -359,24 +401,30 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
   });
 
   if (hasCaption) {
-  let capY = padTop + photosH + capPadTop + capLine / 2;
-  const capFontCss = '700 ' + capFont + 'px "' + captionFont + '", "Trebuchet MS", sans-serif';
-  /* optional custom text */
+  const capColor = (t === 'custom' && customFrame && customFrame.text) ? customFrame.text : (DATE_COLORS[t] || '#8f8fb0');
+  let top = padTop + photosH + capPadTop;
+  /* caption (nama/ucapan) — font terpisah dari tanggal */
   if (customText) {
+    const h = capCssSize * capLineH * scale;
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.font = capFontCss;
-    x.fillStyle = DATE_COLORS[t] || '#8f8fb0';
-    x.fillText(customText, W / 2, capY);
-    capY += capLine;
+    x.font = '700 ' + capFont + 'px "' + captionFont + '", "Trebuchet MS", sans-serif';
+    x.letterSpacing = (((capFit && capFit.spacing) || 0) * scale) + 'px';
+    x.fillStyle = capColor;
+    x.fillText(customText, W / 2, top + h / 2);
+    top += h;
   }
 
-  /* optional date stamp */
+  /* tanggal — font sendiri */
   if (showDate) {
+    const h = dateCssSize * dateLineH * scale;
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.font = capFontCss;
-    x.fillStyle = DATE_COLORS[t] || '#8f8fb0';
-    x.fillText(dateLine(getLang()), W / 2, capY);
+    x.font = '700 ' + dateFontPx + 'px "' + dateFont + '", "Trebuchet MS", sans-serif';
+    x.letterSpacing = (((dateFit && dateFit.spacing) || 0) * scale) + 'px';
+    x.fillStyle = capColor;
+    x.fillText(dateLine(getLang()), W / 2, top + h / 2);
+    top += h;
   }
+  x.letterSpacing = '0px';
   }
 
   /* user added custom stickers */
@@ -402,7 +450,9 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
         }
       } else if (st.type === 'text') {
         const fontSize = Math.round(W * 0.045 * sc);
-        x.font = '700 ' + fontSize + 'px "' + (st.font || 'Matcha Iced') + '", "Trebuchet MS", sans-serif';
+        const stickerFont = st.font || 'Matcha Iced';
+        x.font = '700 ' + fontSize + 'px "' + stickerFont + '", "Trebuchet MS", sans-serif';
+        x.letterSpacing = (fontTracking(stickerFont) * fontSize) + 'px';
         x.textAlign = 'center';
         x.textBaseline = 'middle';
         x.lineJoin = 'round';

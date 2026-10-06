@@ -1,6 +1,6 @@
 /* Photo Booth — app logic: camera, filters, countdown, capture, result, stickers. */
 
-import { FILTERS, THEMES, CHARS, EMOJI_STICKERS, dateLine, filterCss } from './data.js';
+import { FILTERS, THEMES, CHARS, EMOJI_STICKERS, dateLine, filterCss, fontTracking, fontLineHeight } from './data.js';
 import { compose } from './composer.js';
 import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
 import bacUrl from './assets/bac.jpg';
@@ -23,6 +23,11 @@ const state = {
   frame: true,
   customText: '',
   captionFont: 'Matcha Iced',
+  dateFont: 'Matcha Iced',
+  customFrame: {
+    bg: '#ffffff', bg2: '#ffe6f2', gradient: true,
+    outline: '#d63384', slot: '#ffffff', slotBorder: true, text: '#8a5b7e', pattern: 'none',
+  },
   replaceIndex: null,
   facing: 'user',
   mirror: true,
@@ -42,7 +47,8 @@ function savePrefs() {
     localStorage.setItem(PREFS_KEY, JSON.stringify({
       filter: state.filter, layout: state.layout, theme: state.theme,
       showDate: state.showDate, frame: state.frame,
-      captionFont: state.captionFont, mirror: state.mirror, facing: state.facing,
+      captionFont: state.captionFont, dateFont: state.dateFont, customFrame: state.customFrame,
+      mirror: state.mirror, facing: state.facing,
       countdown: state.countdown, flash: state.flash, sound: state.sound,
       dark: document.body.classList.contains('dark-mode'),
     }));
@@ -57,6 +63,8 @@ function loadPrefs() {
   if (typeof p.showDate === 'boolean') state.showDate = p.showDate;
   if (typeof p.frame === 'boolean') state.frame = p.frame;
   if (typeof p.captionFont === 'string') state.captionFont = p.captionFont;
+  if (typeof p.dateFont === 'string') state.dateFont = p.dateFont;
+  if (p.customFrame && typeof p.customFrame === 'object') state.customFrame = { ...state.customFrame, ...p.customFrame };
   if (typeof p.mirror === 'boolean') state.mirror = p.mirror;
   if (p.facing === 'user' || p.facing === 'environment') state.facing = p.facing;
   if ([0, 3, 5, 10].includes(p.countdown)) state.countdown = p.countdown;
@@ -266,6 +274,117 @@ function syncThemePickers() {
     x.classList.toggle('sel', x.dataset.id === state.theme);
   });
 }
+
+/* ---------- custom frame: gaya + warna + motif ---------- */
+const CUSTOM_PRESETS = [
+  { id: 'plain',    key: 'cf.presetPlain',    gradient: false, pattern: 'none',    bg: '#ffffff', bg2: '#ffffff', outline: '#d63384', slot: '#ffffff', text: '#8a5b7e' },
+  { id: 'gradient', key: 'cf.presetGradient', gradient: true,  pattern: 'none',    bg: '#ffe6f2', bg2: '#e9dcff', outline: '#ffffff', slot: '#ffffff', text: '#8a5b7e' },
+  { id: 'dots',     key: 'cf.presetDots',     gradient: false, pattern: 'dots',    bg: '#fff7e6', bg2: '#fff7e6', outline: '#f5a623', slot: '#ffffff', text: '#8a6a3c' },
+  { id: 'stripes',  key: 'cf.presetStripes',  gradient: true,  pattern: 'stripes', bg: '#e9f7ff', bg2: '#d6ecff', outline: '#0a6bb0', slot: '#ffffff', text: '#0a6bb0' },
+  { id: 'neon',     key: 'cf.presetNeon',     gradient: true,  pattern: 'stripes', bg: '#1a0933', bg2: '#0d0f1a', outline: '#00f0ff', slot: '#ff007f', text: '#00f0ff' },
+  { id: 'mono',     key: 'cf.presetMono',     gradient: false, pattern: 'none',    bg: '#111111', bg2: '#111111', outline: '#ffffff', slot: '#ffffff', text: '#ffffff' },
+];
+function lighten(hex, f) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const mix = v => Math.round(v + (255 - v) * f);
+  return '#' + [mix((n >> 16) & 255), mix((n >> 8) & 255), mix(n & 255)]
+    .map(v => v.toString(16).padStart(2, '0')).join('');
+}
+function paintColor(id, color) {
+  const el = $(id);
+  if (el) { el.dataset.color = color; el.style.background = color; }
+}
+function presetMatches(f, p) {
+  return !!f.gradient === p.gradient && f.pattern === p.pattern &&
+    String(f.bg).toLowerCase() === p.bg.toLowerCase() &&
+    String(f.outline).toLowerCase() === p.outline.toLowerCase() &&
+    String(f.slot).toLowerCase() === p.slot.toLowerCase() &&
+    String(f.text).toLowerCase() === p.text.toLowerCase();
+}
+function updateCustomFrameUI() {
+  const f = state.customFrame;
+  paintColor('cf-bg', f.bg);
+  paintColor('cf-outline', f.outline);
+  paintColor('cf-slot', f.slot);
+  paintColor('cf-text', f.text);
+  const g = $('cf-gradient');
+  if (g) g.checked = !!f.gradient;
+  const showSlotBorder = f.slotBorder !== false;
+  const so = $('cf-slot-off');
+  if (so) so.checked = showSlotBorder;
+  const sbt = $('toggle-slot-border');
+  if (sbt) sbt.checked = showSlotBorder;
+  document.querySelectorAll('#cf-patterns .cf-pat').forEach(b => b.classList.toggle('sel', b.dataset.pat === f.pattern));
+  document.querySelectorAll('#cf-styles .cf-style').forEach(b => {
+    const p = CUSTOM_PRESETS.find(x => x.id === b.dataset.preset);
+    b.classList.toggle('sel', !!p && presetMatches(f, p));
+  });
+}
+function rerenderCustom() {
+  updateCustomFrameUI();
+  if (currentScreen === 'scr-result') renderResult();
+  else if (currentScreen === 'scr-preview') renderPreview();
+  savePrefs();
+}
+function applyCustomPreset(p) {
+  const f = state.customFrame;
+  f.gradient = p.gradient; f.pattern = p.pattern;
+  f.bg = p.bg; f.bg2 = p.bg2; f.outline = p.outline; f.slot = p.slot; f.text = p.text;
+  rerenderCustom();
+}
+function buildCustomStyles() {
+  const wrap = $('cf-styles');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  CUSTOM_PRESETS.forEach(p => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cf-style';
+    b.dataset.preset = p.id;
+    const bg = p.gradient ? 'linear-gradient(180deg,' + p.bg + ',' + p.bg2 + ')' : p.bg;
+    const pat = p.pattern !== 'none' ? ' cf-prev-' + p.pattern : '';
+    b.innerHTML = '<span class="cf-style-prev' + pat + '" style="--p-bg:' + bg +
+      ';--p-outline:' + p.outline + ';--p-slot:' + p.slot + '"></span>' +
+      '<span class="cf-style-name">' + tr(p.key) + '</span>';
+    b.onclick = () => applyCustomPreset(p);
+    wrap.appendChild(b);
+  });
+}
+function buildCustomPanel() {
+  if (!$('customframe-modal')) return;
+  buildCustomStyles();
+  const pats = $('cf-patterns');
+  if (pats) {
+    pats.innerHTML = '';
+    [['none', 'cf.patNone'], ['dots', 'cf.patDots'], ['stripes', 'cf.patStripes']].forEach(([id, key]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cf-pat';
+      b.dataset.pat = id;
+      b.textContent = tr(key);
+      b.onclick = () => { state.customFrame.pattern = id; rerenderCustom(); };
+      pats.appendChild(b);
+    });
+  }
+  ['cf-bg', 'cf-outline', 'cf-slot', 'cf-text'].forEach(id => {
+    const el = $(id);
+    if (el) el.onclick = () => openColorPicker(id);
+  });
+  const grad = $('cf-gradient');
+  if (grad) grad.onchange = () => { state.customFrame.gradient = grad.checked; rerenderCustom(); };
+  const slotOff = $('cf-slot-off');
+  if (slotOff) slotOff.onchange = () => { state.customFrame.slotBorder = slotOff.checked; rerenderCustom(); };
+  const stk = $('cf-add-sticker');
+  if (stk) stk.onclick = () => { closeModal('customframe-modal'); openModal('sticker-modal'); };
+  const done = $('cf-done');
+  if (done) done.onclick = () => closeModal('customframe-modal');
+  if ($('btn-close-customframe')) $('btn-close-customframe').onclick = () => closeModal('customframe-modal');
+  const cfModal = $('customframe-modal');
+  if (cfModal) cfModal.onclick = (e) => { if (e.target === cfModal) closeModal('customframe-modal'); };
+  updateCustomFrameUI();
+}
 function buildThemePicker() {
   const grid = $('theme-grid');
   if (!grid) return;
@@ -280,12 +399,15 @@ function buildThemePicker() {
       state.theme = t.id;
       syncThemePickers();
       closeModal('theme-modal');
+      updateCustomFrameUI();
+      if (t.id === 'custom') openModal('customframe-modal');
       if (currentScreen === 'scr-result') renderResult();
       else if (currentScreen === 'scr-preview') renderPreview();
       savePrefs();
     };
     grid.appendChild(b);
   });
+  buildCustomPanel();
   ['themepick', 'themepick2'].forEach(id => {
     const btn = $(id);
     if (!btn) return;
@@ -309,6 +431,7 @@ function refreshPickers() {
   });
   syncFilterPicker();
   syncThemePickers();
+  if (typeof buildCustomPanel === 'function') buildCustomPanel();
   if (typeof buildCountdownPicker === 'function') buildCountdownPicker();
 }
 
@@ -635,8 +758,59 @@ function slotMedia(p, i, gesture) {
     '" style="' + style + '" src="' + p.canvas.toDataURL('image/jpeg', .85) + '">';
 }
 
-function captionFontStyle() {
-  return "font-family:'" + (state.captionFont || 'Matcha Iced') + "', 'Trebuchet MS', sans-serif";
+/* Ukur lebar teks untuk auto-fit caption (nilai dipakai preview & PNG). */
+const _measureCanvas = document.createElement('canvas');
+const _measureCtx = _measureCanvas.getContext('2d');
+function measureTextWidth(text, family, size) {
+  _measureCtx.font = '700 ' + size + 'px "' + family + '", "Trebuchet MS", sans-serif';
+  return _measureCtx.measureText(String(text)).width;
+}
+/* Ukuran + letter-spacing satu baris teks agar muat di bingkai (per font). */
+function lineLayout(text, font, innerW) {
+  const base = 12;
+  const lineHeight = fontLineHeight(font);
+  let size = base;
+  let spacing = fontTracking(font) * base;
+  if (text) {
+    const w = measureTextWidth(text, font, base);
+    const maxW = innerW - 16;
+    if (w > maxW && w > 0) {
+      const k = maxW / w;
+      size = Math.max(7, base * k);
+      spacing = fontTracking(font) * size;
+    }
+  }
+  return { font, size, spacing, lineHeight, height: size * lineHeight };
+}
+/* Layout caption dan tanggal terpisah (font bisa berbeda). */
+function captionLayout() {
+  const innerW = (state.layout === 1 || state.layout === 3) ? 240 : 380;   // lebar dalam bingkai (px CSS)
+  const cap = lineLayout(state.customText || '', state.captionFont || 'Matcha Iced', innerW);
+  const date = lineLayout(state.showDate ? dateLine(getLang()) : '', state.dateFont || 'Matcha Iced', innerW);
+  return { cap, date };
+}
+function lineStyleString(L) {
+  return "font-family:'" + L.font + "', 'Trebuchet MS', sans-serif;font-size:" +
+    L.size.toFixed(2) + 'px;letter-spacing:' + L.spacing.toFixed(2) + 'px;line-height:' +
+    L.lineHeight;
+}
+function captionAreaMinHeight(L) {
+  let h = 12;
+  if (state.customText) h += L.cap.height;
+  if (state.showDate) h += L.date.height;
+  return Math.max(48, h);
+}
+
+/* Atribut bingkai custom: variabel warna + kelas motif. */
+function customFrameAttr() {
+  if (!state.frame || state.theme !== 'custom') return { cls: '', style: '' };
+  const f = state.customFrame;
+  const bg = f.gradient ? 'linear-gradient(180deg,' + f.bg + ',' + f.bg2 + ')' : f.bg;
+  const pat = (f.pattern && f.pattern !== 'none') ? ' cf-pat-' + f.pattern : '';
+  return {
+    cls: pat,
+    style: ' style="--cf-bg:' + bg + ';--cf-outline:' + f.outline + ';--cf-slot:' + f.slot + ';--cf-text:' + f.text + '"',
+  };
 }
 
 function frameHTML() {
@@ -646,12 +820,16 @@ function frameHTML() {
   state.photos.forEach((p, i) => {
     slots += '<div class="slot">' + slotMedia(p, i, false) + '</div>';
   });
-  const fs = captionFontStyle();
-  const customHTML = state.customText ? '<div class="frame-date" style="' + fs + '">' + esc(state.customText) + '</div>' : '';
-  const dateHTML = state.showDate ? '<div class="frame-date" style="' + fs + '">' + dateLine(getLang()) + '</div>' : '';
-  const captionsHTML = '<div class="frame-captions">' + customHTML + dateHTML + '</div>';
+  const L = captionLayout();
+  const fsCap = lineStyleString(L.cap);
+  const fsDate = lineStyleString(L.date);
+  const customHTML = state.customText ? '<div class="frame-date" style="' + fsCap + '">' + esc(state.customText) + '</div>' : '';
+  const dateHTML = state.showDate ? '<div class="frame-date" style="' + fsDate + '">' + dateLine(getLang()) + '</div>' : '';
+  const captionsHTML = '<div class="frame-captions" style="min-height:' + captionAreaMinHeight(L).toFixed(1) + 'px">' + customHTML + dateHTML + '</div>';
   const th = state.frame ? 'th-' + state.theme : 'noframe';
-  return '<div class="frame-outer ' + th + ' ' + lay + '">' +
+  const cf = customFrameAttr();
+  const noSlot = (state.frame && state.customFrame.slotBorder === false) ? ' no-slot-border' : '';
+  return '<div class="frame-outer ' + th + cf.cls + noSlot + ' ' + lay + '"' + cf.style + '>' +
     '<div class="frame"><div class="' + cls + '">' + slots + '</div>' +
     (state.frame ? captionsHTML : '') + '</div>' +
     '<div class="sticker-layer"></div></div>';
@@ -706,12 +884,16 @@ function previewHTML() {
         '<button type="button" class="slot-btn" data-act="retake" data-i="' + i + '" aria-label="Jepret ulang" title="Jepret ulang"><span class="ms">refresh</span></button>' +
       '</div></div>';
   });
-  const fs = captionFontStyle();
-  const customHTML = state.customText ? '<div class="frame-date" style="' + fs + '">' + esc(state.customText) + '</div>' : '';
-  const dateHTML = state.showDate ? '<div class="frame-date" style="' + fs + '">' + dateLine(getLang()) + '</div>' : '';
-  const captionsHTML = '<div class="frame-captions">' + customHTML + dateHTML + '</div>';
+  const L = captionLayout();
+  const fsCap = lineStyleString(L.cap);
+  const fsDate = lineStyleString(L.date);
+  const customHTML = state.customText ? '<div class="frame-date" style="' + fsCap + '">' + esc(state.customText) + '</div>' : '';
+  const dateHTML = state.showDate ? '<div class="frame-date" style="' + fsDate + '">' + dateLine(getLang()) + '</div>' : '';
+  const captionsHTML = '<div class="frame-captions" style="min-height:' + captionAreaMinHeight(L).toFixed(1) + 'px">' + customHTML + dateHTML + '</div>';
   const th = state.frame ? 'th-' + state.theme : 'noframe';
-  return '<div class="frame-outer ' + th + ' ' + lay + '">' +
+  const cf = customFrameAttr();
+  const noSlot = (state.frame && state.customFrame.slotBorder === false) ? ' no-slot-border' : '';
+  return '<div class="frame-outer ' + th + cf.cls + noSlot + ' ' + lay + '"' + cf.style + '>' +
     '<div class="frame"><div class="' + cls + '">' + slots + '</div>' +
     (state.frame ? captionsHTML : '') + '</div>' +
     '<div class="sticker-layer"></div></div>';
@@ -799,7 +981,12 @@ function refitFrames() {
   else if (currentScreen === 'scr-result') fitFrame('result-holder');
 }
 window.addEventListener('resize', () => { measureBoxAspect(); refitFrames(); });
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measureBoxAspect(); refitFrames(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
+  measureBoxAspect(); refitFrames();
+  /* ukur ulang caption setelah semua font selesai dimuat */
+  if (currentScreen === 'scr-preview') renderPreview();
+  else if (currentScreen === 'scr-result') renderResult();
+});
 
 function onPreviewAction(act, i) {
   if (act === 'del') {
@@ -846,6 +1033,18 @@ if (frameToggle) {
   };
 }
 
+const slotBorderToggle = $('toggle-slot-border');
+if (slotBorderToggle) {
+  slotBorderToggle.checked = state.customFrame.slotBorder !== false;
+  slotBorderToggle.onchange = () => {
+    state.customFrame.slotBorder = slotBorderToggle.checked;
+    updateCustomFrameUI();
+    if (currentScreen === 'scr-preview') renderPreview();
+    else if (currentScreen === 'scr-result') renderResult();
+    savePrefs();
+  };
+}
+
 const customInput = $('custom-text');
 if (customInput) {
   customInput.value = state.customText;
@@ -864,6 +1063,188 @@ if (captionFontSel) {
     savePrefs();
   };
 }
+
+const dateFontSel = $('date-font');
+if (dateFontSel) {
+  dateFontSel.value = state.dateFont || 'Matcha Iced';
+  dateFontSel.onchange = () => {
+    state.dateFont = dateFontSel.value;
+    if (currentScreen === 'scr-result') renderResult();
+    savePrefs();
+  };
+}
+
+/* ============ pemilih font: tampilkan contoh bentuk + nama font ============ */
+const FONT_LABELS = {
+  'Matcha Iced': 'Matcha Iced',
+  'The Magic Cookie': 'The Magic Cookie',
+  'Orange Lovely': 'Orange Lovely',
+  'Quicksand': 'Quicksand',
+  'Fredoka': 'Fredoka',
+  'Always Classy': 'Always Classy',
+  'Melon Tea': 'Melon Tea',
+  'Smart Water': 'Smart Water',
+  'Stay With Me': 'Stay With Me',
+  'Streat Coffee': 'Streat Coffee',
+  'Super Waffles': 'Super Waffles',
+  'Anak Bijak': 'Anak Bijak',
+};
+const fontLabel = v => FONT_LABELS[v] || v;
+const fontCss = v => '"' + v + '", "Quicksand", sans-serif';
+
+function closeFontPickers(except) {
+  document.querySelectorAll('.font-picker.open').forEach(p => {
+    if (p === except) return;
+    if (typeof p._fpClose === 'function') p._fpClose();
+    else p.classList.remove('open');
+  });
+}
+
+function buildFontPicker(select) {
+  if (!select || select.dataset.fpReady) return;
+  select.dataset.fpReady = '1';
+  select.classList.add('font-select-native');
+
+  const wrap = document.createElement('div');
+  wrap.className = 'font-picker';
+  select.parentNode.insertBefore(wrap, select);
+  wrap.appendChild(select);
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'font-pick-toggle';
+  toggle.setAttribute('aria-haspopup', 'listbox');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-label', select.getAttribute('aria-label') || 'Font');
+  const tSample = document.createElement('span');
+  tSample.className = 'font-pick-sample';
+  tSample.textContent = 'Aa';
+  const tName = document.createElement('span');
+  tName.className = 'font-pick-name';
+  const caret = document.createElement('span');
+  caret.className = 'ms font-pick-caret';
+  caret.textContent = 'expand_more';
+  toggle.append(tSample, tName, caret);
+
+  /* Menu ditempel ke <body> (bukan di dalam modal) supaya tidak terpotong
+     overflow modal. Posisinya dihitung fixed mengikuti tombol. */
+  const menu = document.createElement('div');
+  menu.className = 'font-pick-menu';
+  menu.setAttribute('role', 'listbox');
+  menu.hidden = true;
+  document.body.appendChild(menu);
+
+  const opts = Array.from(select.options).map(o => ({ value: o.value, label: fontLabel(o.value) }));
+
+  function sync() {
+    const cur = select.value || (opts[0] && opts[0].value);
+    const css = fontCss(cur);
+    tSample.style.fontFamily = css;
+    tName.style.fontFamily = css;
+    tName.textContent = fontLabel(cur);
+    menu.querySelectorAll('.font-pick-item').forEach(b => b.classList.toggle('sel', b.dataset.value === cur));
+  }
+
+  function place() {
+    const r = toggle.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight, gap = 6, pad = 8;
+    const width = Math.min(Math.max(r.width, 180), vw - pad * 2);
+    menu.style.width = width + 'px';
+    menu.style.left = Math.max(pad, Math.min(r.left, vw - pad - width)) + 'px';
+
+    menu.style.maxHeight = 'none';
+    const natural = menu.scrollHeight;
+    const below = vh - r.bottom - gap - pad;
+    const above = r.top - gap - pad;
+    if (below >= Math.min(natural, 240) || below >= above) {
+      menu.style.top = (r.bottom + gap) + 'px';
+      menu.style.maxHeight = Math.max(120, below) + 'px';
+    } else {
+      menu.style.maxHeight = Math.max(120, above) + 'px';
+      menu.style.top = Math.max(pad, r.top - gap - menu.offsetHeight) + 'px';
+    }
+  }
+
+  const onScroll = (e) => {
+    if (!wrap.classList.contains('open')) return;
+    if (e.target === menu) return; /* jangan hitung ulang saat menggeser isi dropdown */
+    place();
+  };
+  const onResize = () => { if (wrap.classList.contains('open')) place(); };
+
+  function close() {
+    wrap.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
+    menu.hidden = true;
+    window.removeEventListener('scroll', onScroll, true);
+    window.removeEventListener('resize', onResize);
+  }
+  function open() {
+    closeFontPickers(wrap);
+    wrap.classList.add('open');
+    toggle.setAttribute('aria-expanded', 'true');
+    menu.hidden = false;
+    place();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onResize);
+  }
+  wrap._fpClose = close;
+
+  opts.forEach(o => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'font-pick-item';
+    item.dataset.value = o.value;
+    item.setAttribute('role', 'option');
+    const s = document.createElement('span');
+    s.className = 'font-pick-sample';
+    s.textContent = 'Aa';
+    s.style.fontFamily = fontCss(o.value);
+    const n = document.createElement('span');
+    n.className = 'font-pick-name';
+    n.textContent = o.label;
+    n.style.fontFamily = fontCss(o.value);
+    item.append(s, n);
+    item.onclick = () => {
+      select.value = o.value;
+      sync();
+      close();
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    menu.appendChild(item);
+  });
+
+  toggle.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (wrap.classList.contains('open')) close(); else open();
+  };
+
+  wrap.append(toggle);
+
+  /* Ikut tersinkron saat value diubah dari kode (mis. restore preferensi/undo). */
+  try {
+    const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(select), 'value');
+    if (desc && desc.get && desc.set) {
+      Object.defineProperty(select, 'value', {
+        configurable: true,
+        get() { return desc.get.call(this); },
+        set(v) { desc.set.call(this, v); try { sync(); } catch (err) { /* abaikan */ } },
+      });
+    }
+  } catch (e) { /* abaikan */ }
+
+  sync();
+}
+
+function initFontPickers() {
+  document.querySelectorAll('select[id$="-font"]').forEach(buildFontPicker);
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.font-picker') && !e.target.closest('.font-pick-menu')) closeFontPickers(null);
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFontPickers(null); });
+}
+initFontPickers();
 
 const darkToggle = $('toggle-dark');
 if (darkToggle) {
@@ -1000,7 +1381,8 @@ function renderUserStickers() {
       const fam = st.font || 'Matcha Iced';
       const col = st.color || '#23233a';
       innerContent = '<div class="text-inner' + (st.outline === false ? '' : ' has-outline') +
-        '" style="font-family:\'' + fam + '\', Quicksand, sans-serif;color:' + col + '">' +
+        '" style="font-family:\'' + fam + '\', Quicksand, sans-serif;color:' + col +
+        ';letter-spacing:' + fontTracking(fam) + 'em">' +
         esc(st.value) + '</div>';
     } else {
       innerContent = `<div class="sticker-inner">${st.value}</div>`;
@@ -1263,14 +1645,6 @@ function addSticker(type, value) {
 initStickerPicker();
 
 /* ============ pemilih warna modal ============ */
-const COLOR_PALETTE = [
-  '#23233a', '#000000', '#555555', '#9a9a9a', '#ffffff', '#f8e9d2',
-  '#d63384', '#e1306c', '#e0487b', '#ff8fab', '#ff6b9d', '#c2557e',
-  '#ff007f', '#c46998', '#9c27b0', '#7b68ee', '#b8c6db', '#d5a8ff',
-  '#ff8c1a', '#f5a623', '#ffd166', '#f0d98a', '#8a6a3c', '#9a7b4f',
-  '#0f6b3a', '#25d366', '#6fbf5f', '#a8e6cf', '#0a6bb0', '#1877f2',
-  '#4facfe', '#00f0ff', '#e6c766', '#ffb3c7', '#bfe3ff', '#111111',
-];
 let colorTargetId = 'sticker-color';
 
 function colorOf(id) {
@@ -1278,30 +1652,172 @@ function colorOf(id) {
   return (el && el.dataset.color) || '#23233a';
 }
 function setColor(id, color) {
-  const el = $(id);
-  if (!el) return;
-  el.dataset.color = color;
-  el.style.background = color;
+  paintColor(id, color);
+  if (id && id.indexOf('cf-') === 0) {
+    const f = state.customFrame;
+    if (id === 'cf-bg') { f.bg = color; f.bg2 = lighten(color, .6); }
+    else if (id === 'cf-outline') f.outline = color;
+    else if (id === 'cf-slot') f.slot = color;
+    else if (id === 'cf-text') f.text = color;
+    rerenderCustom();
+  }
 }
+/* ---------- palet rekomendasi ---------- */
+const RECOMMENDED_PALETTES = [
+  { name: 'Pastel Dream', colors: ['#ffd1e8', '#ffe6f2', '#e9dcff', '#c9e4ff', '#d5f5e3', '#fff3c4'] },
+  { name: 'Sunset Glow', colors: ['#ff9a8b', '#ff6a88', '#ff99ac', '#f9c74f', '#f8961e', '#f3722c'] },
+  { name: 'Neon Pop', colors: ['#ff007f', '#00f0ff', '#7b68ee', '#39ff14', '#ffea00', '#ff5e00'] },
+  { name: 'Earthy', colors: ['#8a6a3c', '#b08968', '#ddb892', '#e6ccb2', '#7f5539', '#9c6644'] },
+  { name: 'Ocean', colors: ['#0a6bb0', '#4facfe', '#00f0ff', '#3f9fe0', '#b8c6db', '#0f6b3a'] },
+  { name: 'Monokrom', colors: ['#111111', '#333333', '#555555', '#9a9a9a', '#cccccc', '#ffffff'] },
+  { name: 'Sweet Pink', colors: ['#d63384', '#e1306c', '#ff8fab', '#ffb3c7', '#f7c8d8', '#fff0f4'] },
+  { name: 'Fresh', colors: ['#25d366', '#a8e6cf', '#6fbf5f', '#0f6b3a', '#e6c766', '#4facfe'] },
+];
+
+/* ---------- konversi warna ---------- */
+function hsvToRgb(h, s, v) {
+  h = ((h % 360) + 360) % 360;
+  const c = v * s, xx = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = xx; } else if (h < 120) { r = xx; g = c; }
+  else if (h < 180) { g = c; b = xx; } else if (h < 240) { g = xx; b = c; }
+  else if (h < 300) { r = xx; b = c; } else { r = c; b = xx; }
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) {
+    if (max === r) h = 60 * (((g - b) / d) % 6);
+    else if (max === g) h = 60 * ((b - r) / d + 2);
+    else h = 60 * ((r - g) / d + 4);
+  }
+  if (h < 0) h += 360;
+  return [h, max ? d / max : 0, max];
+}
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+}
+function hexToRgb(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return [0, 0, 0];
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbToCmyk(r, g, b) {
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const k = 1 - Math.max(rn, gn, bn);
+  if (k >= 1) return [0, 0, 0, 100];
+  return [
+    Math.round((1 - rn - k) / (1 - k) * 100),
+    Math.round((1 - gn - k) / (1 - k) * 100),
+    Math.round((1 - bn - k) / (1 - k) * 100),
+    Math.round(k * 100),
+  ];
+}
+
+/* ---------- pemilih warna custom (bisa diseret) ---------- */
+let ccHsv = [330, 0.6, 1];
+function updateCustomColorUI() {
+  const [h, s, v] = ccHsv;
+  const rgb = hsvToRgb(h, s, v);
+  const hex = rgbToHex(rgb[0], rgb[1], rgb[2]);
+  const area = $('cc-area');
+  if (area) area.style.setProperty('--cc-h', String(Math.round(h)));
+  const cur = $('cc-cursor');
+  if (cur) {
+    cur.style.left = (s * 100) + '%';
+    cur.style.top = ((1 - v) * 100) + '%';
+    cur.style.background = hex;
+  }
+  const hue = $('cc-hue');
+  if (hue) hue.value = String(Math.round(h));
+  const prev = $('cc-preview');
+  if (prev) prev.style.background = hex;
+  if ($('cc-hex')) $('cc-hex').textContent = hex.toUpperCase();
+  if ($('cc-rgb')) $('cc-rgb').textContent = rgb[0] + ', ' + rgb[1] + ', ' + rgb[2];
+  if ($('cc-cmyk')) {
+    const c = rgbToCmyk(rgb[0], rgb[1], rgb[2]);
+    $('cc-cmyk').textContent = c[0] + '%, ' + c[1] + '%, ' + c[2] + '%, ' + c[3] + '%';
+  }
+}
+function setCustomFromHex(hex) {
+  const [r, g, b] = hexToRgb(hex);
+  ccHsv = rgbToHsv(r, g, b);
+  updateCustomColorUI();
+}
+/* Pilih warna dari palet: tampilkan kode HEX/RGB/CMYK dulu, terapkan lewat "Pakai Warna". */
+function selectColorChoice(hex) {
+  setCustomFromHex(hex);
+  const low = String(hex).toLowerCase();
+  document.querySelectorAll('#color-modal .color-swatch').forEach(x => {
+    x.classList.toggle('sel', String(x.dataset.color).toLowerCase() === low);
+  });
+}
+function bindCustomColorPicker() {
+  const area = $('cc-area');
+  if (area) {
+    const pick = (e) => {
+      const rect = area.getBoundingClientRect();
+      const s = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      const v = 1 - Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+      ccHsv = [ccHsv[0], s, v];
+      updateCustomColorUI();
+    };
+    let dragging = false;
+    area.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      try { area.setPointerCapture(e.pointerId); } catch (err) { /* abaikan */ }
+      pick(e); e.preventDefault();
+    });
+    area.addEventListener('pointermove', (e) => { if (dragging) pick(e); });
+    const end = (e) => { dragging = false; try { area.releasePointerCapture(e.pointerId); } catch (err) { /* abaikan */ } };
+    area.addEventListener('pointerup', end);
+    area.addEventListener('pointercancel', end);
+  }
+  const hue = $('cc-hue');
+  if (hue) hue.addEventListener('input', () => { ccHsv = [Number(hue.value), ccHsv[1], ccHsv[2]]; updateCustomColorUI(); });
+  const apply = $('cc-apply');
+  if (apply) apply.onclick = () => {
+    const rgb = hsvToRgb(ccHsv[0], ccHsv[1], ccHsv[2]);
+    setColor(colorTargetId, rgbToHex(rgb[0], rgb[1], rgb[2]));
+    closeModal('color-modal');
+  };
+  updateCustomColorUI();
+}
+
 function buildColorPicker() {
   const modal = $('color-modal');
-  const grid = $('color-grid');
-  if (!modal || !grid) return;
-  grid.innerHTML = '';
-  COLOR_PALETTE.forEach(c => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'color-swatch';
-    b.style.background = c;
-    b.dataset.color = c;
-    b.setAttribute('aria-label', c);
-    b.onclick = () => {
-      setColor(colorTargetId, c);
-      grid.querySelectorAll('.color-swatch').forEach(x => x.classList.toggle('sel', x.dataset.color === c));
-      closeModal('color-modal');
-    };
-    grid.appendChild(b);
-  });
+  if (!modal) return;
+
+  const pal = $('color-palettes');
+  if (pal) {
+    pal.innerHTML = '';
+    RECOMMENDED_PALETTES.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'palette-row';
+      const name = document.createElement('div');
+      name.className = 'palette-name';
+      name.textContent = p.name;
+      const sw = document.createElement('div');
+      sw.className = 'palette-swatches';
+      p.colors.forEach(c => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'color-swatch';
+        b.style.background = c;
+        b.dataset.color = c;
+        b.setAttribute('aria-label', c);
+        b.onclick = () => selectColorChoice(c);
+        sw.appendChild(b);
+      });
+      row.append(name, sw);
+      pal.appendChild(row);
+    });
+  }
+
+  bindCustomColorPicker();
   if ($('btn-close-color')) $('btn-close-color').onclick = () => closeModal('color-modal');
   modal.onclick = (e) => { if (e.target === modal) closeModal('color-modal'); };
 }
@@ -1309,9 +1825,7 @@ buildColorPicker();
 
 function openColorPicker(targetId) {
   colorTargetId = targetId;
-  const cur = colorOf(targetId);
-  const grid = $('color-grid');
-  if (grid) grid.querySelectorAll('.color-swatch').forEach(x => x.classList.toggle('sel', x.dataset.color === cur));
+  selectColorChoice(colorOf(targetId));
   openModal('color-modal');
 }
 ['sticker-color', 'edit-color'].forEach(id => {
@@ -1392,27 +1906,49 @@ document.addEventListener('keydown', (e) => {
 
 /* ============ social share ============ */
 async function getWatermarkedFile() {
-  const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont);
+  const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont);
   const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
   const d = new Date(), p = n => String(n).padStart(2, '0');
   const fileName = 'snappie-studio-' + state.theme + '-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.png';
   return new File([blob], fileName, { type: 'image/png' });
 }
 
-function downloadFile(file) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(file);
-  a.download = file.name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+/* Toast singkat untuk notifikasi (mis. caption & link berhasil disalin). */
+let toastTimer = null;
+function showToast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* Teks bagikan: caption + URL halaman ini. */
+const shareCaption = () => tr('share.caption');
+const shareUrl = () => window.location.href;
+
+/* Salin caption & URL ke clipboard otomatis setiap kali user membagikan. */
+async function copyShareText(prefix) {
+  const text = (prefix ? prefix + '\n' : '') + shareCaption() + '\n' + shareUrl();
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(tr('toast.copied'));
+    return true;
+  } catch (e) {
+    showToast(tr('toast.copyFail'));
+    return false;
+  }
 }
 
 /* Buka aplikasi sosmed yang terpasang di perangkat lewat skema URL.
    Kalau ada 2 varian (mis. WhatsApp & WhatsApp Business), sistem Android yang menanya. */
-function launchApp(scheme, copyText) {
-  if (copyText) navigator.clipboard.writeText(copyText).catch(() => {});
+function launchApp(scheme) {
   offerAnotherSession();
   window.location.href = scheme;
 }
@@ -1422,14 +1958,13 @@ function initShareButtons() {
   const ig = $('share-ig'), wa = $('share-wa'), fb = $('share-fb'), tt = $('share-tt');
   if (!ig || !wa || !fb || !tt) return;
 
-  const captionText = tr('share.caption');
-
-  /* Coba kirim foto langsung lewat Web Share; kalau tidak didukung, baru unduh.
+  /* Kirim foto lewat share sheet (Web Share API). Tidak mengunduh file otomatis.
      Return: 'shared' | 'cancelled' | 'unsupported'. */
   const sharePhoto = async (file) => {
     if (!navigator.share) return 'unsupported';
+    if (navigator.canShare && !navigator.canShare({ files: [file] })) return 'unsupported';
     try {
-      await navigator.share({ title: 'Snappie Studio', text: captionText, files: [file] });
+      await navigator.share({ title: 'Snappie Studio', text: shareCaption() + '\n' + shareUrl(), files: [file] });
       return 'shared';
     } catch (e) {
       if (e && e.name === 'AbortError') return 'cancelled';
@@ -1446,29 +1981,35 @@ function initShareButtons() {
 
   if ($('ig-feed')) $('ig-feed').onclick = async () => {
     closeModal('ig-modal');
+    copyShareText();
     try {
-      downloadFile(await getWatermarkedFile());
-      launchApp('instagram://app', captionText);
+      const file = await getWatermarkedFile();
+      const r = await sharePhoto(file);
+      if (r === 'shared') { offerAnotherSession(); }
+      else if (r === 'unsupported') launchApp('instagram://app');
     } catch (e) { /* batal — abaikan */ }
   };
 
   if ($('ig-story')) $('ig-story').onclick = async () => {
     closeModal('ig-modal');
+    copyShareText();
     try {
-      downloadFile(await getWatermarkedFile());
-      launchApp('instagram://story-camera', captionText);
+      const file = await getWatermarkedFile();
+      const r = await sharePhoto(file);
+      if (r === 'shared') { offerAnotherSession(); }
+      else if (r === 'unsupported') launchApp('instagram://story-camera');
     } catch (e) { /* batal — abaikan */ }
   };
 
   // WhatsApp — lewat share sheet agar foto ikut
   wa.onclick = async () => {
+    copyShareText();
     try {
       const file = await getWatermarkedFile();
       const r = await sharePhoto(file);
       if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') {
-        downloadFile(file);
-        const waText = encodeURIComponent(captionText + '\n' + window.location.href);
+        const waText = encodeURIComponent(shareCaption() + '\n' + shareUrl());
         launchApp('whatsapp://send?text=' + waText);
       }
     } catch (e) { /* batal — abaikan */ }
@@ -1476,17 +2017,21 @@ function initShareButtons() {
 
   // Facebook
   fb.onclick = async () => {
+    copyShareText();
     try {
-      downloadFile(await getWatermarkedFile());
-      launchApp('fb://');
+      const r = await sharePhoto(await getWatermarkedFile());
+      if (r === 'shared') { offerAnotherSession(); }
+      else if (r === 'unsupported') launchApp('fb://');
     } catch (e) { /* batal — abaikan */ }
   };
 
   // TikTok
   tt.onclick = async () => {
+    copyShareText('#SnappieStudio #yourlittlephotomoment');
     try {
-      downloadFile(await getWatermarkedFile());
-      launchApp('snssdk1233://camera', captionText + ' #SnappieStudio #yourlittlephotomoment');
+      const r = await sharePhoto(await getWatermarkedFile());
+      if (r === 'shared') { offerAnotherSession(); }
+      else if (r === 'unsupported') launchApp('snssdk1233://camera');
     } catch (e) { /* batal — abaikan */ }
   };
 }
@@ -1522,7 +2067,7 @@ $('btn-download').onclick = async () => {
   if (label) label.textContent = 'Bikin PNG...';
   if (ico) ico.classList.add('spin');
   try {
-    const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont);
+    const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont);
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     const a = document.createElement('a');
     const d = new Date(), p = n => String(n).padStart(2, '0');
@@ -1552,6 +2097,7 @@ function snapshotState() {
     stickers: state.stickers.map(s => ({ ...s })),
     theme: state.theme, layout: state.layout, showDate: state.showDate,
     frame: state.frame, customText: state.customText, captionFont: state.captionFont,
+    dateFont: state.dateFont, customFrame: { ...state.customFrame },
   };
 }
 function stateKey() {
@@ -1559,7 +2105,7 @@ function stateKey() {
     p: state.photos.map(p => [p.id, p.filter, p.zoom || 1, p.ox || 0, p.oy || 0]),
     s: state.stickers,
     t: state.theme, l: state.layout, d: state.showDate, f: state.frame, c: state.customText,
-    ff: state.captionFont,
+    ff: state.captionFont, df: state.dateFont, cf: state.customFrame,
   });
 }
 function updateUndoUI() {
@@ -1586,13 +2132,17 @@ function applySnapshot(s) {
   state.stickers = s.stickers.map(x => ({ ...x }));
   state.theme = s.theme; state.layout = s.layout; state.showDate = s.showDate;
   state.frame = s.frame; state.customText = s.customText; state.captionFont = s.captionFont || 'Matcha Iced';
+  state.dateFont = s.dateFont || 'Matcha Iced';
+  if (s.customFrame) state.customFrame = { ...state.customFrame, ...s.customFrame };
   setLayout(state.layout);
   syncThemePickers();
+  updateCustomFrameUI();
   syncFilterPicker();
   if ($('toggle-date')) $('toggle-date').checked = state.showDate;
   if ($('toggle-frame')) $('toggle-frame').checked = state.frame;
   if ($('custom-text')) $('custom-text').value = state.customText;
   if ($('caption-font')) $('caption-font').value = state.captionFont;
+  if ($('date-font')) $('date-font').value = state.dateFont;
   renderDots(); renderThumbs();
   if (currentScreen === 'scr-preview') renderPreview();
   else if (currentScreen === 'scr-result') renderResult();
@@ -1648,7 +2198,7 @@ function saveDraft() {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({
       v: 1, layout: state.layout, theme: state.theme, showDate: state.showDate,
       frame: state.frame, customText: state.customText, captionFont: state.captionFont,
-      stickers: state.stickers, photos,
+      dateFont: state.dateFont, customFrame: state.customFrame, stickers: state.stickers, photos,
     }));
   } catch (e) { /* penyimpanan penuh — abaikan */ }
 }
