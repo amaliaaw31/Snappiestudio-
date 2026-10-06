@@ -608,10 +608,24 @@ function frameHTML() {
     '<div class="sticker-layer"></div></div>';
 }
 
+function fitFrame(holderId) {
+  const holder = $(holderId);
+  if (!holder) return;
+  const frame = holder.querySelector('.frame-outer');
+  if (!frame) return;
+  frame.style.transform = 'none';
+  const fw = frame.offsetWidth, fh = frame.offsetHeight;
+  const aw = holder.clientWidth, ah = holder.clientHeight;
+  if (!fw || !fh || !aw || !ah) return;
+  const s = Math.min(1, aw / fw, ah / fh);
+  frame.style.transform = s < 1 ? 'scale(' + s.toFixed(4) + ')' : 'none';
+}
+
 function renderResult() {
   $('result-holder').innerHTML = frameHTML();
   syncThemePickers();
   renderUserStickers();
+  fitFrame('result-holder');
 }
 
 function previewHTML() {
@@ -643,7 +657,15 @@ function renderPreview() {
   if (!holder) return;
   holder.innerHTML = previewHTML();
   renderUserStickers();
+  fitFrame('preview-holder');
 }
+
+function refitFrames() {
+  if (currentScreen === 'scr-preview') fitFrame('preview-holder');
+  else if (currentScreen === 'scr-result') fitFrame('result-holder');
+}
+window.addEventListener('resize', refitFrames);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(refitFrames);
 
 function onPreviewAction(act, i) {
   if (act === 'del') {
@@ -691,7 +713,7 @@ if (customInput) {
 const darkToggle = $('toggle-dark');
 if (darkToggle) {
   const syncDarkIcon = () => {
-    darkToggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+    darkToggle.textContent = document.body.classList.contains('dark-mode') ? '🌙' : '☀️';
   };
   syncDarkIcon();
   darkToggle.onclick = () => {
