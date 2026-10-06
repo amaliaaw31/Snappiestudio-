@@ -555,6 +555,29 @@ function shouldScreenFlash() {
   return false;
 }
 
+/* ---- Lampu (torch) kamera belakang ---- */
+function videoTrack() {
+  return (state.stream && state.stream.getVideoTracks) ? state.stream.getVideoTracks()[0] : null;
+}
+function trackSupportsTorch() {
+  const track = videoTrack();
+  if (!track || typeof track.getCapabilities !== 'function') return false;
+  try { return !!track.getCapabilities().torch; } catch (e) { return false; }
+}
+async function setTorch(on) {
+  const track = videoTrack();
+  if (!track || typeof track.applyConstraints !== 'function') return false;
+  try { await track.applyConstraints({ advanced: [{ torch: !!on }] }); return true; }
+  catch (e) { return false; }
+}
+/* Pakai lampu hanya untuk kamera belakang + mode flash yang minta cahaya. */
+function shouldUseTorch() {
+  if (state.facing !== 'environment') return false;
+  if (state.flash === 'off') return false;
+  if (state.flash === 'auto' && !ambientIsDark()) return false;
+  return trackSupportsTorch();
+}
+
 async function startCamera() {
   if (state.stream) state.stream.getTracks().forEach(t => t.stop());
   const camerr = $('camerr');
@@ -594,6 +617,7 @@ $('btn-start').onclick = async () => {
 const switchCamBtn = $('btn-switch-cam');
 if (switchCamBtn) {
   switchCamBtn.onclick = async () => {
+    await setTorch(false);   // matikan lampu sebelum ganti kamera
     state.facing = state.facing === 'user' ? 'environment' : 'user';
     switchCamBtn.disabled = true;
     await startCamera();
@@ -655,8 +679,14 @@ $('shutter').onclick = async () => {
     }
     cd.style.display = 'none';
   }
+  const useTorch = shouldUseTorch();
+  if (useTorch) {
+    await setTorch(true);
+    await sleep(700);   // beri waktu sensor menyesuaikan exposure agar hasil cerah
+  }
   capture();
-  if (shouldScreenFlash()) doFlash();
+  if (useTorch) { setTimeout(() => setTorch(false), 500); }   // matikan setelah jepret
+  else if (shouldScreenFlash()) doFlash();
   if (state.sound) beep();
   state.busy = false; $('shutter').disabled = false;
   if (replacing || state.photos.length >= state.layout) { await sleep(400); goPreview(); }
