@@ -95,8 +95,19 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
   const capH = showFrame ? Math.max(48, capAreaCss) * scale : 0;
 
   const photosH = rows * slotH + (rows - 1) * gap;
-  const W = Math.round(padX * 2 + cols * slotW + (cols - 1) * gap);
-  const H = Math.round(padTop + photosH + capH + padB);
+  /* Ukuran konten (foto + caption). */
+  const Wc = Math.round(padX * 2 + cols * slotW + (cols - 1) * gap);
+  const Hc = Math.round(padTop + photosH + capH + padB);
+  /* Layout 3/4/6: hasil keseluruhan dibuat 9:16 (portrait HP) tanpa crop —
+     foto tetap, bingkai/latar mengisi sisanya; konten ditengahkan. */
+  let W = Wc, H = Hc, offX = 0, offY = 0;
+  if (layout === 3 || layout === 4 || layout === 6) {
+    const target = 9 / 16;
+    if (Wc / Hc > target) { W = Wc; H = Math.round(Wc / target); }
+    else { H = Hc; W = Math.round(Hc * target); }
+    offX = Math.round((W - Wc) / 2);
+    offY = Math.round((H - Hc) / 2);
+  }
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const x = cv.getContext('2d');
@@ -319,7 +330,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     const canvas = photo.canvas || photo;                             // dukung canvas mentah
     const fcss = filterCss(photo.filter);
     const cx = i % cols, cy = Math.floor(i / cols);
-    const X = padX + cx * (slotW + gap), Y = padTop + cy * (slotH + gap);
+    const X = offX + padX + cx * (slotW + gap), Y = offY + padTop + cy * (slotH + gap);
     x.save(); rr(x, X, Y, slotW, slotH, 18); x.clip();
     x.filter = fcss;                                                  // filter per foto
     coverDraw(x, canvas, X, Y, slotW, slotH, photo.zoom, photo.ox, photo.oy);
@@ -401,7 +412,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
   if (hasCaption) {
   const capColor = captionColor || DATE_COLORS[t] || '#8f8fb0';
   const dateColorFinal = dateColor || DATE_COLORS[t] || '#8f8fb0';
-  let top = padTop + photosH + capPadTop;
+  let top = offY + padTop + photosH + capPadTop;
   /* caption (nama/ucapan) — font terpisah dari tanggal */
   if (customText) {
     const h = capCssSize * capLineH * scale;

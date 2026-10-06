@@ -69,6 +69,9 @@
   font-style: normal;
   font-display: swap;
 }
+/* Opt-out dari "auto dark" browser (mis. Chrome Android): warna tetap persis
+   seperti yang dipilih; mode gelap aplikasi diatur sendiri lewat .dark-mode. */
+:root { color-scheme: only light; }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { --page-bg: #fdf3ff; font-family: 'Matcha Iced', 'Quicksand', 'Trebuchet MS', Verdana, sans-serif; background: #fdf3ff; color: #3a3a5c;
   min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
@@ -322,6 +325,11 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .frame { position: relative; border-radius: 2px; padding: 22px 18px 24px; }
 .frame-outer.single { width: 300px; } .frame-outer.strip { width: 300px; }
 .frame-outer.grid4 { width: 440px; } .frame-outer.grid6 { width: 440px; }
+/* 3–6 foto: seluruh bingkai 9:16 (portrait HP), foto tetap utuh & ditengahkan. */
+.frame-outer.strip, .frame-outer.grid4, .frame-outer.grid6 {
+  aspect-ratio: 9 / 16; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.frame-outer.strip .frame { width: 72%; }
 .photos-single { display: flex; flex-direction: column; gap: 12px; }
 /* Layout 1 foto: gaya polaroid besar — ruang putih lebar di bawah foto */
 .frame-outer.single .frame { padding-bottom: 19%; }

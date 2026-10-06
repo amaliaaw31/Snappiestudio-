@@ -501,6 +501,30 @@ function resetPhotos() {
   renderDots(); renderThumbs();
 }
 
+/* Sesi baru = bingkai balik ke default/original (bukan bingkai user sebelumnya). */
+function resetFrameSettings() {
+  state.theme = 'pastel';
+  state.customFrame = {
+    bg: '#ffffff', bg2: '#ffe6f2', gradient: true,
+    outline: '#d63384', outlineOn: true, slot: '#ffffff', slotBorder: true, pattern: 'none',
+  };
+  state.captionFont = 'Matcha Iced';
+  state.dateFont = 'Matcha Iced';
+  state.captionColor = '';
+  state.dateColor = '';
+  state.showDate = false;
+  state.frame = true;
+  state.customText = '';
+  if ($('caption-font')) $('caption-font').value = state.captionFont;
+  if ($('date-font')) $('date-font').value = state.dateFont;
+  if ($('custom-text')) $('custom-text').value = '';
+  if ($('toggle-date')) $('toggle-date').checked = false;
+  if ($('toggle-frame')) $('toggle-frame').checked = true;
+  if (typeof syncTextColorsUI === 'function') syncTextColorsUI();
+  if (typeof updateCustomFrameUI === 'function') updateCustomFrameUI();
+  if (typeof syncThemePickers === 'function') syncThemePickers();
+}
+
 /* ============ camera ============ */
 function applyMirror() {
   const v = $('video');
@@ -560,6 +584,7 @@ async function startCamera() {
 $('btn-start').onclick = async () => {
   if (await startCamera()) {
     resetPhotos();                 // sesi baru: pastikan tidak ada foto user sebelumnya
+    resetFrameSettings();          // sesi baru: bingkai balik ke original
     try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* abaikan */ }
     applyMirror();
     show('scr-cam');
@@ -732,6 +757,7 @@ if (fileInput) {
       if (files.length) {
         setLayout(layoutForCount(files.length));
         resetPhotos();
+        resetFrameSettings();
         savePrefs();
       }
     }
@@ -2172,12 +2198,14 @@ if ($('btn-close-again')) $('btn-close-again').onclick = () => closeModal('again
 if ($('btn-again-no')) $('btn-again-no').onclick = () => {
   closeModal('again-modal');
   resetPhotos();
+  resetFrameSettings();
   try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* abaikan */ }
   show('scr-start');
 };
 if ($('btn-again-yes')) $('btn-again-yes').onclick = () => {
   closeModal('again-modal');
   resetPhotos();
+  resetFrameSettings();
   show('scr-cam');
 };
 
