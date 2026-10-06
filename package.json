@@ -15,5 +15,8 @@
     "eslint": "^10.11.0",
     "vite": "^6.3.5",
     "vite-plugin-singlefile": "^2.3.3"
+  },
+  "dependencies": {
+    "heic2any": "^0.0.4"
   }
 }

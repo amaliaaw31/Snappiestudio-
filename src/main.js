@@ -685,13 +685,38 @@ function capture() {
 }
 
 /* ============ gallery import ============ */
+const IMG_EXT = /\.(jpe?g|png|gif|webp|bmp|heic|heif|avif)$/i;
+/* Sebagian Android mengembalikan file galeri dengan MIME type kosong —
+   jangan sampai ikut tersaring keluar. */
+function isImageFile(f) {
+  if (f.type) return f.type.startsWith('image/');
+  return IMG_EXT.test(f.name || '') || true;
+}
+/* HEIC/HEIF: Chrome Android tak bisa decode sendiri → konversi ke JPEG dulu. */
+function isHeic(f) {
+  const t = (f.type || '').toLowerCase();
+  if (t === 'image/heic' || t === 'image/heif') return true;
+  return /\.(heic|heif)$/i.test(f.name || '');
+}
+async function heicToJpeg(file) {
+  const mod = await import('heic2any');
+  const heic2any = mod.default || mod;
+  const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+  const blob = Array.isArray(out) ? out[0] : out;
+  const name = (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
+  return new File([blob], name, { type: 'image/jpeg' });
+}
 async function fileToCanvas(file) {
+  let f = file;
+  if (isHeic(file)) {
+    try { f = await heicToJpeg(file); } catch (e) { f = file; }
+  }
   let src = null, objectUrl = null;
   if (window.createImageBitmap) {
-    try { src = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { src = null; }
+    try { src = await createImageBitmap(f, { imageOrientation: 'from-image' }); } catch (e) { src = null; }
   }
   if (!src) {
-    objectUrl = URL.createObjectURL(file);
+    objectUrl = URL.createObjectURL(f);
     src = await new Promise((res, rej) => {
       const img = new Image();
       img.onload = () => res(img);
@@ -712,7 +737,7 @@ async function fileToCanvas(file) {
 }
 
 async function handleFiles(files) {
-  const list = Array.from(files || []).filter(f => f.type.startsWith('image/'));
+  const list = Array.from(files || []).filter(isImageFile);
   let added = 0;
   const make = async (f) => ({ id: Date.now() + Math.random(), canvas: await fileToCanvas(f), filter: state.filter, zoom: 1, ox: 0, oy: 0 });
   for (const f of list) {
@@ -753,7 +778,7 @@ function setLayout(n) {
 if (fileInput) {
   fileInput.onchange = async () => {
     if (galleryIntent === 'start') {
-      const files = Array.from(fileInput.files || []).filter(f => f.type.startsWith('image/'));
+      const files = Array.from(fileInput.files || []).filter(isImageFile);
       if (files.length) {
         setLayout(layoutForCount(files.length));
         resetPhotos();
@@ -761,9 +786,13 @@ if (fileInput) {
         savePrefs();
       }
     }
+    const picked = Array.from(fileInput.files || []);
     const added = await handleFiles(fileInput.files);
     fileInput.value = '';
-    if (!added) return;
+    if (!added) {
+      if (picked.length) alert('Foto tidak bisa dibuka. Coba pilih foto lain ya.');
+      return;
+    }
     if (galleryIntent === 'preview') {
       if (currentScreen === 'scr-preview') renderPreview();
       else show('scr-preview');
@@ -873,11 +902,24 @@ function fitFrame(holderId) {
   const frame = holder.querySelector('.frame-outer');
   if (!frame) return;
   frame.style.transform = 'none';
+  holder.style.minHeight = '0';   // batalkan reservasi 66vh agar tidak ada jarak kosong
+  holder.style.height = '';
   const fw = frame.offsetWidth, fh = frame.offsetHeight;
-  const aw = holder.clientWidth, ah = holder.clientHeight;
-  if (!fw || !fh || aw < 20 || ah < 20) return;
+  const aw = holder.clientWidth;
+  /* Tinggi yang tersedia = viewport - (padding + tinggi elemen lain di screen ini). */
+  const screenEl = holder.closest('.screen');
+  let used = 16;
+  if (screenEl) {
+    const cs = getComputedStyle(screenEl);
+    used += (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    [...screenEl.children].forEach(ch => { if (ch !== holder) used += ch.offsetHeight; });
+  }
+  const ah = Math.max(220, window.innerHeight - used);
+  if (!fw || !fh || aw < 20) return;
   const s = Math.max(0.05, Math.min((aw - 8) / fw, (ah - 8) / fh));
   frame.style.transform = 'scale(' + s.toFixed(4) + ')';
+  /* Rapatkan tinggi holder ke tinggi bingkai setelah di-scale. */
+  holder.style.height = Math.ceil(fh * s + 8) + 'px';
 }
 
 function renderResult() {
