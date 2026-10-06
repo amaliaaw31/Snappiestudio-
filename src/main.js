@@ -39,7 +39,7 @@ function savePrefs() {
       filter: state.filter, layout: state.layout, theme: state.theme,
       showDate: state.showDate, mirror: state.mirror, facing: state.facing,
       countdown: state.countdown, flash: state.flash, sound: state.sound,
-      mobile: document.body.classList.contains('mobile-mode'),
+      dark: document.body.classList.contains('dark-mode'),
     }));
   } catch (e) { /* storage tak tersedia — abaikan */ }
 }
@@ -55,16 +55,50 @@ function loadPrefs() {
   if ([0, 3, 5, 10].includes(p.countdown)) state.countdown = p.countdown;
   if (typeof p.flash === 'boolean') state.flash = p.flash;
   if (typeof p.sound === 'boolean') state.sound = p.sound;
-  if (p.mobile) document.body.classList.add('mobile-mode');
+  if (p.dark) document.body.classList.add('dark-mode');
   return p;
 }
 loadPrefs();
 
-function show(id) {
+let currentScreen = 'scr-start';
+let historyWorks = true;
+
+function activateScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  $(id).classList.add('active');
+  const el = $(id);
+  if (!el) return;
+  el.classList.add('active');
   window.scrollTo(0, 0);
+  currentScreen = id;
+  if (id === 'scr-start' && state.stream) {
+    state.stream.getTracks().forEach(t => t.stop());
+    state.stream = null;
+  }
+  if (id === 'scr-cam') {
+    renderDots(); renderThumbs();
+    if (!state.stream) startCamera().then(ok => { if (ok) applyMirror(); });
+  }
+  if (id === 'scr-preview') renderPreview();
+  else if (id === 'scr-result') renderResult();
 }
+
+function show(id, push = true) {
+  if (id === currentScreen) return;
+  activateScreen(id);
+  if (push && historyWorks) {
+    try { window.history.pushState({ screen: id }, ''); } catch (e) { historyWorks = false; }
+  }
+}
+
+function goPreview() {
+  if (!state.photos.length) { show('scr-cam'); return; }
+  show('scr-preview');
+}
+
+window.addEventListener('popstate', (e) => {
+  const id = (e.state && e.state.screen) ? e.state.screen : 'scr-start';
+  activateScreen(id);
+});
 
 function openModal(id) {
   const m = $(id);
@@ -161,7 +195,8 @@ function buildThemePicker() {
       state.theme = t.id;
       syncThemePickers();
       closeModal('theme-modal');
-      if (state.photos.length === state.layout) renderResult();
+      if (currentScreen === 'scr-result') renderResult();
+      else if (currentScreen === 'scr-preview') renderPreview();
       savePrefs();
     };
     grid.appendChild(b);
@@ -331,6 +366,9 @@ function renderThumbs() {
 
   const tb = $('theme-block');
   if (tb) tb.hidden = state.photos.length === 0;
+
+  const pv = $('btn-to-preview');
+  if (pv) pv.style.display = state.photos.length ? '' : 'none';
 }
 
 const thumbsBar = $('thumbs');
@@ -386,6 +424,7 @@ function beep() {
 $('shutter').onclick = async () => {
   if (state.busy || !state.stream) return;
   if (state.photos.length >= state.layout && state.replaceIndex == null) return;
+  const replacing = state.replaceIndex != null;
   state.busy = true; $('shutter').disabled = true;
   const cd = $('countdown');
   if (state.countdown > 0) {
@@ -405,7 +444,7 @@ $('shutter').onclick = async () => {
   }
   if (state.sound) beep();
   state.busy = false; $('shutter').disabled = false;
-  if (state.photos.length >= state.layout) { await sleep(500); renderResult(); show('scr-result'); }
+  if (replacing || state.photos.length >= state.layout) { await sleep(400); goPreview(); }
 };
 
 function capture() {
@@ -476,16 +515,28 @@ async function handleFiles(files) {
 }
 
 const fileInput = $('file-input');
-const openGallery = () => { if (fileInput) fileInput.click(); };
-if ($('btn-gallery')) $('btn-gallery').onclick = openGallery;
-if ($('btn-gallery-start')) $('btn-gallery-start').onclick = openGallery;
+let galleryIntent = 'cam';
+const openGallery = (intent) => {
+  galleryIntent = intent || 'cam';
+  if (fileInput) fileInput.click();
+};
+if ($('btn-gallery')) $('btn-gallery').onclick = () => openGallery('cam');
+if ($('btn-gallery-start')) $('btn-gallery-start').onclick = () => openGallery('start');
+if ($('btn-to-preview')) $('btn-to-preview').onclick = () => goPreview();
+if ($('btn-preview-fix')) $('btn-preview-fix').onclick = () => show('scr-result');
 if (fileInput) {
   fileInput.onchange = async () => {
     const added = await handleFiles(fileInput.files);
     fileInput.value = '';
     if (!added) return;
-    if (state.photos.length >= state.layout) { await sleep(150); renderResult(); show('scr-result'); }
-    else show('scr-cam');
+    if (galleryIntent === 'preview') {
+      if (currentScreen === 'scr-preview') renderPreview();
+      else show('scr-preview');
+    } else if (galleryIntent === 'start') {
+      await sleep(150); show('scr-preview');
+    } else if (state.photos.length >= state.layout) {
+      await sleep(150); show('scr-preview');
+    }
   };
 }
 
@@ -500,11 +551,12 @@ function frameHTML() {
   });
   const customHTML = state.customText ? '<div class="frame-date">' + esc(state.customText) + '</div>' : '';
   const dateHTML = state.showDate ? '<div class="frame-date">' + dateLine() + '</div>' : '';
-  const watermarkHTML = '<div class="frame-watermark"><span class="wm-title">📸 Snappie Studio</span><span class="wm-tagline">your little photo moment</span></div>';
+  const captionsHTML = (customHTML || dateHTML)
+    ? '<div class="frame-captions">' + customHTML + dateHTML + '</div>' : '';
   return '<div class="frame-outer th-' + state.theme + ' ' + lay + '">' +
     '<div class="frame"><div class="' + cls + '">' + slots + '</div>' +
-    customHTML + dateHTML + watermarkHTML + '</div>' +
-    '<div id="user-stickers-layer"></div></div>';
+    captionsHTML + '</div>' +
+    '<div class="sticker-layer"></div></div>';
 }
 
 function renderResult() {
@@ -512,14 +564,68 @@ function renderResult() {
   syncThemePickers();
   renderUserStickers();
 }
-$('btn-retake').onclick = () => { resetPhotos(); show('scr-cam'); };
+
+function previewHTML() {
+  const lay = state.layout === 1 ? 'single' : state.layout === 3 ? 'strip' : 'grid' + state.layout;
+  const cls = state.layout === 1 ? 'photos-single' : state.layout === 3 ? 'photos-strip' : 'photos-grid';
+  let slots = '';
+  state.photos.forEach((p, i) => {
+    slots += '<div class="slot preview-slot">' +
+      '<img alt="Foto ' + (i + 1) + '" style="filter:' + filterCss(p.filter)
+        + '" src="' + p.canvas.toDataURL('image/jpeg', .85) + '">' +
+      '<div class="slot-actions">' +
+        '<button type="button" class="slot-btn" data-act="del" data-i="' + i + '" aria-label="Buang foto" title="Buang">🗑</button>' +
+        '<button type="button" class="slot-btn" data-act="retake" data-i="' + i + '" aria-label="Jepret ulang" title="Jepret ulang">↻</button>' +
+        '<button type="button" class="slot-btn" data-act="gallery" data-i="' + i + '" aria-label="Ganti dari galeri" title="Ganti dari galeri">🖼</button>' +
+      '</div></div>';
+  });
+  const customHTML = state.customText ? '<div class="frame-date">' + esc(state.customText) + '</div>' : '';
+  const dateHTML = state.showDate ? '<div class="frame-date">' + dateLine() + '</div>' : '';
+  const captionsHTML = (customHTML || dateHTML)
+    ? '<div class="frame-captions">' + customHTML + dateHTML + '</div>' : '';
+  return '<div class="frame-outer th-' + state.theme + ' ' + lay + '">' +
+    '<div class="frame"><div class="' + cls + '">' + slots + '</div>' +
+    captionsHTML + '</div>' +
+    '<div class="sticker-layer"></div></div>';
+}
+
+function renderPreview() {
+  const holder = $('preview-holder');
+  if (!holder) return;
+  holder.innerHTML = previewHTML();
+  renderUserStickers();
+}
+
+function onPreviewAction(act, i) {
+  if (act === 'del') {
+    state.photos.splice(i, 1);
+    state.selectedPhotoIndex = null;
+    renderThumbs();
+    if (!state.photos.length) { show('scr-cam'); return; }
+    renderPreview();
+  } else if (act === 'retake') {
+    state.replaceIndex = i;
+    show('scr-cam');
+  } else if (act === 'gallery') {
+    state.replaceIndex = i;
+    openGallery('preview');
+  }
+}
+
+if ($('preview-holder')) {
+  $('preview-holder').addEventListener('click', (e) => {
+    const btn = e.target.closest('.slot-btn');
+    if (!btn) return;
+    onPreviewAction(btn.dataset.act, +btn.dataset.i);
+  });
+}
 
 const dateToggle = $('toggle-date');
 if (dateToggle) {
   dateToggle.checked = state.showDate;
   dateToggle.onchange = () => {
     state.showDate = dateToggle.checked;
-    if (state.photos.length === state.layout) renderResult();
+    if (currentScreen === 'scr-result') renderResult();
     savePrefs();
   };
 }
@@ -529,15 +635,15 @@ if (customInput) {
   customInput.value = state.customText;
   customInput.oninput = () => {
     state.customText = customInput.value.trim();
-    if (state.photos.length === state.layout) renderResult();
+    if (currentScreen === 'scr-result') renderResult();
   };
 }
 
-const mobileToggle = $('toggle-mobile');
-if (mobileToggle) {
-  mobileToggle.checked = document.body.classList.contains('mobile-mode');
-  mobileToggle.onchange = () => {
-    document.body.classList.toggle('mobile-mode', mobileToggle.checked);
+const darkToggle = $('toggle-dark');
+if (darkToggle) {
+  darkToggle.checked = document.body.classList.contains('dark-mode');
+  darkToggle.onchange = () => {
+    document.body.classList.toggle('dark-mode', darkToggle.checked);
     savePrefs();
   };
 }
@@ -570,7 +676,8 @@ function updateStickerTransform(el, st, isDragging = false) {
 }
 
 function renderUserStickers() {
-  const layer = $('user-stickers-layer');
+  const active = document.querySelector('.screen.active');
+  const layer = active ? active.querySelector('.sticker-layer') : null;
   if (!layer) return;
   layer.innerHTML = '';
   const frameOuter = layer.closest('.frame-outer');   // frame hasil (bukan preview tema)
@@ -626,7 +733,7 @@ function attachStickerGestures(el, st, frameOuter) {
   const rectOf = () => (frameOuter ? frameOuter.getBoundingClientRect() : el.getBoundingClientRect());
 
   const select = () => {
-    const l = $('user-stickers-layer');
+    const l = el.parentElement;
     if (l) l.querySelectorAll('.user-sticker').forEach(x => { x.classList.remove('selected'); x.style.zIndex = ''; });
     el.classList.add('selected');
     el.style.zIndex = 99;
@@ -733,7 +840,7 @@ function attachStickerGestures(el, st, frameOuter) {
 }
 
 document.addEventListener('pointerdown', (e) => {
-  if (!e.target.closest('.user-sticker') && !e.target.closest('#btn-add-sticker') && !e.target.closest('#sticker-modal')) {
+  if (!e.target.closest('.user-sticker') && !e.target.closest('#btn-add-sticker') && !e.target.closest('#btn-preview-sticker') && !e.target.closest('#sticker-modal')) {
     if (state.selectedStickerId !== null) {
       state.selectedStickerId = null;
       renderUserStickers();
@@ -748,11 +855,11 @@ function initStickerPicker() {
   const charGrid = $('char-sticker-grid');
   const emojiGrid = $('emoji-sticker-grid');
 
-  if (!btnOpen || !modal) return;
+  if (!modal) return;
 
-  btnOpen.onclick = () => {
-    openModal('sticker-modal');
-  };
+  if (btnOpen) btnOpen.onclick = () => openModal('sticker-modal');
+  const btnPreviewSticker = $('btn-preview-sticker');
+  if (btnPreviewSticker) btnPreviewSticker.onclick = () => openModal('sticker-modal');
 
   btnClose.onclick = () => {
     closeModal('sticker-modal');
@@ -895,7 +1002,7 @@ document.addEventListener('keydown', (e) => {
   }
   if (used) {
     e.preventDefault();
-    const el = document.querySelector('#user-stickers-layer [data-id="' + id + '"]');
+    const el = document.querySelector('.screen.active .sticker-layer [data-id="' + id + '"]');
     if (el) updateStickerTransform(el, st);
   }
 });
@@ -927,6 +1034,15 @@ function showToast(msg) {
   setTimeout(() => { toast.style.display = 'none'; }, 4000);
 }
 
+/* Buka aplikasi sosmed yang terpasang di perangkat lewat skema URL.
+   Kalau ada 2 varian (mis. WhatsApp & WhatsApp Business), sistem Android yang menanya. */
+function launchApp(scheme, copyText) {
+  if (copyText) navigator.clipboard.writeText(copyText).catch(() => {});
+  closeModal('share-modal');
+  offerAnotherSession();
+  window.location.href = scheme;
+}
+
 function initShareModal() {
   const modal = $('share-modal');
   const btnOpen = $('btn-open-share');
@@ -948,25 +1064,29 @@ function initShareModal() {
 
   const captionText = 'Jepretan foto di Snappie Studio — your little photo moment 📸✨';
 
+  /* Coba kirim foto langsung lewat Web Share; kalau tidak didukung, baru unduh.
+     Return: 'shared' | 'cancelled' | 'unsupported'. */
+  const sharePhoto = async (file) => {
+    if (!navigator.share) return 'unsupported';
+    try {
+      await navigator.share({ title: 'Snappie Studio', text: captionText, files: [file] });
+      return 'shared';
+    } catch (e) {
+      if (e && e.name === 'AbortError') return 'cancelled';
+      return 'unsupported';
+    }
+  };
+
   // General Web Share API
   $('share-native').onclick = async () => {
     try {
       const file = await getWatermarkedFile();
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: 'Snappie Studio 📸',
-          text: captionText,
-          files: [file]
-        });
-      } else if (navigator.share) {
-        await navigator.share({
-          title: 'Snappie Studio 📸',
-          text: captionText,
-          url: window.location.href
-        });
-      } else {
+      const r = await sharePhoto(file);
+      if (r === 'shared') { closeModal('share-modal'); offerAnotherSession(); }
+      else if (r === 'unsupported') {
         downloadFile(file);
-        showToast('Foto watermarked berhasil diunduh! 📸');
+        closeModal('share-modal');
+        offerAnotherSession();
       }
     } catch (e) {
       /* User cancelled share */
@@ -976,36 +1096,21 @@ function initShareModal() {
   // Instagram Share
   $('share-ig').onclick = async () => {
     try {
-      const file = await getWatermarkedFile();
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: 'Snappie Studio',
-          text: captionText,
-          files: [file]
-        });
-      } else {
-        downloadFile(file);
-        try { await navigator.clipboard.writeText(captionText); } catch (err) {}
-        showToast('Foto watermarked diunduh! Buka Instagram untuk posting di Story/Feed ✨');
-      }
+      downloadFile(await getWatermarkedFile());
+      launchApp('instagram://app', captionText);
     } catch (e) {}
   };
 
-  // WhatsApp Share
+  // WhatsApp Share — lewat share sheet agar foto ikut
   $('share-wa').onclick = async () => {
     try {
       const file = await getWatermarkedFile();
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: 'Snappie Studio',
-          text: captionText,
-          files: [file]
-        });
-      } else {
+      const r = await sharePhoto(file);
+      if (r === 'shared') { closeModal('share-modal'); offerAnotherSession(); }
+      else if (r === 'unsupported') {
         downloadFile(file);
         const waText = encodeURIComponent(captionText + '\n' + window.location.href);
-        window.open('https://api.whatsapp.com/send?text=' + waText, '_blank');
-        showToast('Foto watermarked diunduh untuk Status WA! 💬');
+        launchApp('whatsapp://send?text=' + waText);
       }
     } catch (e) {}
   };
@@ -1013,37 +1118,16 @@ function initShareModal() {
   // Facebook Share
   $('share-fb').onclick = async () => {
     try {
-      const file = await getWatermarkedFile();
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: 'Snappie Studio',
-          text: captionText,
-          files: [file]
-        });
-      } else {
-        downloadFile(file);
-        const fbUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(window.location.href);
-        window.open(fbUrl, '_blank');
-        showToast('Foto watermarked diunduh! Membuka Facebook... 🔷');
-      }
+      downloadFile(await getWatermarkedFile());
+      launchApp('fb://');
     } catch (e) {}
   };
 
   // TikTok Share
   $('share-tt').onclick = async () => {
     try {
-      const file = await getWatermarkedFile();
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: 'Snappie Studio',
-          text: captionText,
-          files: [file]
-        });
-      } else {
-        downloadFile(file);
-        try { await navigator.clipboard.writeText(captionText + ' #SnappieStudio #yourlittlephotomoment'); } catch (err) {}
-        showToast('Foto watermarked diunduh! Buka TikTok untuk upload foto strip kamu 🎵');
-      }
+      downloadFile(await getWatermarkedFile());
+      launchApp('snssdk1233://camera', captionText + ' #SnappieStudio #yourlittlephotomoment');
     } catch (e) {}
   };
 
@@ -1053,6 +1137,8 @@ function initShareModal() {
     try {
       await navigator.clipboard.writeText(textToCopy);
       showToast('Tautan & caption Snappie Studio berhasil disalin! 🔗');
+      closeModal('share-modal');
+      offerAnotherSession();
     } catch (e) {
       showToast('Gagal menyalin tautan.');
     }
@@ -1060,6 +1146,24 @@ function initShareModal() {
 }
 
 initShareModal();
+
+/* ============ tawaran lanjut sesi baru ============ */
+function offerAnotherSession() {
+  openModal('again-modal');
+}
+const againModal = $('again-modal');
+if (againModal) againModal.onclick = (e) => { if (e.target === againModal) closeModal('again-modal'); };
+if ($('btn-close-again')) $('btn-close-again').onclick = () => closeModal('again-modal');
+if ($('btn-again-no')) $('btn-again-no').onclick = () => {
+  closeModal('again-modal');
+  resetPhotos();
+  show('scr-start');
+};
+if ($('btn-again-yes')) $('btn-again-yes').onclick = () => {
+  closeModal('again-modal');
+  resetPhotos();
+  show('scr-cam');
+};
 
 /* ============ download ============ */
 $('btn-download').onclick = async () => {
@@ -1074,6 +1178,7 @@ $('btn-download').onclick = async () => {
     a.download = 'snappie-studio-' + state.theme + '-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.png';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    offerAnotherSession();
   } catch (e) {
     alert('Gagal bikin PNG. Coba lagi ya.');
   }

@@ -19,13 +19,10 @@ export async function loadCharImgs() {
   return charImgs;
 }
 
-function rr(x, X, Y, W, H, R) {
+function rr(x, X, Y, W, H) {
+  // sudut lancip: semua bingkai kotak (radius diabaikan)
   x.beginPath();
-  x.moveTo(X + R, Y);
-  x.arcTo(X + W, Y, X + W, Y + H, R);
-  x.arcTo(X + W, Y + H, X, Y + H, R);
-  x.arcTo(X, Y + H, X, Y, R);
-  x.arcTo(X, Y, X + W, Y, R);
+  x.rect(X, Y, W, H);
   x.closePath();
 }
 
@@ -39,17 +36,25 @@ function coverDraw(x, img, X, Y, W, H) {
 
 const DATE_COLORS = {
   pastel: '#c46998', cream: '#b39b74', confetti: '#8f8fb0', floral: '#6d9973',
-  neon: '#ff007f', y2k: '#7b68ee', film: '#f5a623', midnight: '#e0b94c', matcha: '#648839',
+  neon: '#ff007f', y2k: '#7b68ee', film: '#f5a623', midnight: '#e0b94c',
   chrome: '#4d5f80', scrap: '#8a6a3c', digi: '#ff8c1a', coquette: '#c2557e',
-  aero: '#0a6bb0', doodle: '#23233a', manga: '#111111', pixel: '#ffe600', minimal: '#111111',
-  birthday: '#e0487b', grad: '#e6c766', wedding: '#9a7b4f', lebaran: '#f0d98a',
-  natal: '#0f6b3a', newyear: '#ffd54a', valentine: '#d6336c', baby: '#5a8fc0',
+  aero: '#0a6bb0', doodle: '#23233a', minimal: '#111111',
+  birthday: '#e0487b', wedding: '#9a7b4f', lebaran: '#f0d98a',
+  natal: '#0f6b3a', valentine: '#d6336c', baby: '#5a8fc0',
 };
 
 /** Compose the final framed strip. Returns a <canvas>. */
 export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '') {
   await loadCharImgs();
-  const slotW = 640, slotH = 480, gap = 36, padX = 76, padTop = 150, capH = 200, padB = 80;
+  if (document.fonts && document.fonts.load) {
+    await Promise.all([
+      document.fonts.load('34px "Matcha Iced"'),
+      document.fonts.load('700 34px "Matcha Iced"'),
+    ]).catch(() => {});
+  }
+  const slotW = 640, slotH = 480, gap = 36, padX = 76, capH = 200, padB = 28;
+  const isSingle = layout === 1;
+  const padTop = isSingle ? 96 : 150;                 // polaroid: margin atas tipis
   const cols = (layout === 6 || layout === 4) ? 2 : 1;
   const rows = layout === 1 ? 1 : (layout === 4 ? 2 : 3);
   const W = padX * 2 + cols * slotW + (cols - 1) * gap;
@@ -120,13 +125,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     x.fillStyle = g; rr(x, 0, 0, W, H, 44); x.fill();
     x.lineWidth = 12; x.strokeStyle = '#ffffff'; rr(x, 18, 18, W - 36, H - 36, 34); x.stroke();
     x.lineWidth = 4; x.strokeStyle = '#e0b94c'; rr(x, 40, 40, W - 80, H - 80, 26); x.stroke();
-  } else if (t === 'matcha') {
-    const g = x.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#e3edd8'); g.addColorStop(.5, '#cfdd99'); g.addColorStop(1, '#b0c98b');
-    x.fillStyle = g; rr(x, 0, 0, W, H, 44); x.fill();
-    x.lineWidth = 12; x.strokeStyle = '#ffffff'; rr(x, 18, 18, W - 36, H - 36, 34); x.stroke();
-    x.lineWidth = 4; x.strokeStyle = '#88b04b'; rr(x, 40, 40, W - 80, H - 80, 26); x.stroke();
-  } else if (t === 'chrome') {
+  }  else if (t === 'chrome') {
     const g = x.createLinearGradient(0, 0, W, H);
     g.addColorStop(0, '#eef2f7'); g.addColorStop(.35, '#ffffff'); g.addColorStop(.55, '#c3ccdb');
     g.addColorStop(.75, '#f3f6fa'); g.addColorStop(1, '#aab6c8');
@@ -178,26 +177,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     [['✿', W * .12, H * .1], ['★', W * .88, H * .08], ['♡', W * .1, H * .45],
      ['☺', W * .9, H * .5], ['✿', W * .2, H * .9], ['★', W * .8, H * .92]]
       .forEach(d => x.fillText(d[0], d[1], d[2]));
-  } else if (t === 'manga') {
-    x.fillStyle = '#111111';
-    for (let yy = 0; yy < H; yy += 14)
-      for (let xx = 0; xx < W; xx += 14) {
-        x.beginPath(); x.arc(xx + (Math.floor(yy / 14) % 2 ? 7 : 0), yy, 2.2, 0, 7); x.fill();
-      }
-    x.fillStyle = '#ffffff'; x.fillRect(30, 30, W - 60, H - 60);
-    x.lineWidth = 10; x.strokeStyle = '#111111'; x.strokeRect(30, 30, W - 60, H - 60);
-  } else if (t === 'pixel') {
-    x.fillStyle = '#1b1b2f'; x.fillRect(0, 0, W, H);
-    const cs = 24;
-    for (let yy = 0; yy < H; yy += cs)
-      for (let xx = 0; xx < W; xx += cs) {
-        if (xx < cs || xx >= W - cs || yy < cs || yy >= H - cs) {
-          x.fillStyle = ((xx / cs + yy / cs) % 2) ? '#00f0ff' : '#ff007f';
-          x.fillRect(xx, yy, cs, cs);
-        }
-      }
-    x.fillStyle = '#12121f'; x.fillRect(cs, cs, W - cs * 2, H - cs * 2);
-  } else if (t === 'minimal') {
+  }   else if (t === 'minimal') {
     x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
     x.lineWidth = 8; x.strokeStyle = '#111111'; x.strokeRect(14, 14, W - 28, H - 28);
   } else if (t === 'birthday') {
@@ -209,15 +189,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     x.font = '44px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
     x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillText('🎈', 46, 46); x.fillText('🎈', W - 46, 46);
-  } else if (t === 'grad') {
-    const g = x.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#1b2a4a'); g.addColorStop(1, '#2c4270');
-    x.fillStyle = g; rr(x, 0, 0, W, H, 44); x.fill();
-    x.lineWidth = 10; x.strokeStyle = '#d4af37'; rr(x, 16, 16, W - 32, H - 32, 36); x.stroke();
-    x.font = '44px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-    x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText('🎓', 46, 46); x.fillText('🎓', W - 46, 46);
-  } else if (t === 'wedding') {
+  }  else if (t === 'wedding') {
     const g = x.createLinearGradient(0, 0, W, H);
     g.addColorStop(0, '#fdfbf7'); g.addColorStop(1, '#f3ede2');
     x.fillStyle = g; rr(x, 0, 0, W, H, 44); x.fill();
@@ -243,15 +215,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     x.font = '44px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
     x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillText('🎄', 46, 46); x.fillText('❄️', W - 46, 46);
-  } else if (t === 'newyear') {
-    const g = x.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#0a0e27'); g.addColorStop(1, '#1a1f4a');
-    x.fillStyle = g; rr(x, 0, 0, W, H, 44); x.fill();
-    x.lineWidth = 10; x.strokeStyle = '#ffd54a'; rr(x, 16, 16, W - 32, H - 32, 36); x.stroke();
-    x.font = '42px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-    x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText('🎆', 46, 46); x.fillText('✨', W - 46, 46);
-  } else if (t === 'valentine') {
+  }  else if (t === 'valentine') {
     const g = x.createLinearGradient(0, 0, W, H);
     g.addColorStop(0, '#ffe3ec'); g.addColorStop(1, '#ffc2d6');
     x.fillStyle = g; rr(x, 0, 0, W, H, 44); x.fill();
@@ -282,12 +246,10 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     coverDraw(x, canvas, X, Y, slotW, slotH);
     x.restore();
     let slotStroke = '#ffffff';
-    if (t === 'neon' || t === 'pixel') slotStroke = '#00f0ff';
-    else if (t === 'film' || t === 'manga' || t === 'minimal') slotStroke = '#111111';
-    else if (t === 'grad') slotStroke = '#d4af37';
+    if (t === 'neon') slotStroke = '#00f0ff';
+    else if (t === 'film' || t === 'minimal') slotStroke = '#111111';
     else if (t === 'lebaran') slotStroke = '#e6c766';
-    else if (t === 'newyear') slotStroke = '#ffd54a';
-    x.lineWidth = (t === 'cream' || t === 'film' || t === 'manga' || t === 'minimal') ? 7 : 10;
+    x.lineWidth = (t === 'cream' || t === 'film' || t === 'minimal') ? 7 : 10;
     x.strokeStyle = slotStroke;
     rr(x, X, Y, slotW, slotH, 18); x.stroke();
     if (t === 'pastel') {
@@ -314,10 +276,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
       x.lineWidth = 3; x.strokeStyle = '#e0b94c';
       rr(x, X - 4, Y - 4, slotW + 8, slotH + 8, 22); x.stroke();
     }
-    if (t === 'matcha') {
-      x.lineWidth = 4; x.strokeStyle = '#88b04b';
-      rr(x, X - 4, Y - 4, slotW + 8, slotH + 8, 22); x.stroke();
-    }
+    
     if (t === 'chrome') {
       x.lineWidth = 3; x.strokeStyle = '#b8c2d4';
       rr(x, X - 5, Y - 5, slotW + 10, slotH + 10, 24); x.stroke();
@@ -326,14 +285,8 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
       x.lineWidth = 3; x.strokeStyle = '#f7c8d8';
       rr(x, X - 5, Y - 5, slotW + 10, slotH + 10, 24); x.stroke();
     }
-    if (t === 'manga') {
-      x.lineWidth = 4; x.strokeStyle = '#111111';
-      rr(x, X - 5, Y - 5, slotW + 10, slotH + 10, 4); x.stroke();
-    }
-    if (t === 'pixel') {
-      x.lineWidth = 4; x.strokeStyle = '#ff007f';
-      rr(x, X - 5, Y - 5, slotW + 10, slotH + 10, 4); x.stroke();
-    }
+    
+    
     if (t === 'birthday') {
       x.lineWidth = 3; x.strokeStyle = '#ffb3c7';
       rr(x, X - 5, Y - 5, slotW + 10, slotH + 10, 24); x.stroke();
@@ -363,23 +316,23 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     }
   });
 
-  /* teks tema dihilangkan — bingkai bersih tanpa caption */
-  const capY = padTop + photosH + capH * .38;
+  /* area caption: jarak kotak ke caption = 170px */
+  const capY = padTop + photosH + 170;
 
   /* optional custom text */
   if (customText) {
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.font = 'italic 34px "Trebuchet MS", sans-serif';
+    x.font = '34px "Matcha Iced", "Trebuchet MS", sans-serif';
     x.fillStyle = DATE_COLORS[t] || '#8f8fb0';
-    x.fillText(customText, W / 2, capY + 58);
+    x.fillText(customText, W / 2, capY);
   }
 
   /* optional date stamp */
   if (showDate) {
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.font = '26px "Trebuchet MS", sans-serif';
+    x.font = '26px "Matcha Iced", "Trebuchet MS", sans-serif';
     x.fillStyle = DATE_COLORS[t] || '#8f8fb0';
-    x.fillText(dateLine(), W / 2, capY + 88);
+    x.fillText(dateLine(), W / 2, capY + 30);
   }
 
   /* user added custom stickers */
@@ -405,7 +358,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
         }
       } else if (st.type === 'text') {
         const fontSize = Math.round(W * 0.045 * sc);
-        x.font = '700 ' + fontSize + 'px "Trebuchet MS", sans-serif';
+        x.font = '700 ' + fontSize + 'px "Matcha Iced", "Trebuchet MS", sans-serif';
         x.textAlign = 'center';
         x.textBaseline = 'middle';
         x.lineJoin = 'round';
@@ -427,51 +380,6 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
       x.restore();
     });
   }
-
-  /* Snappie Studio watermark branding */
-  x.save();
-  x.textAlign = 'center';
-  x.textBaseline = 'middle';
-  const wmY = H - padB * 0.42;
-
-  let wmMainColor = '#9c3f6e';
-  let wmSubColor = '#d63384';
-
-  if (t === 'pastel') { wmMainColor = '#8a2b5c'; wmSubColor = '#c46998'; }
-  else if (t === 'cream') { wmMainColor = '#7a6544'; wmSubColor = '#a88f67'; }
-  else if (t === 'confetti') { wmMainColor = '#e0487b'; wmSubColor = '#7b7b9e'; }
-  else if (t === 'floral') { wmMainColor = '#48754e'; wmSubColor = '#6d9973'; }
-  else if (t === 'neon') { wmMainColor = '#00f0ff'; wmSubColor = '#ff007f'; }
-  else if (t === 'y2k') { wmMainColor = '#e61e72'; wmSubColor = '#6351d4'; }
-  else if (t === 'film') { wmMainColor = '#f5a623'; wmSubColor = '#aaaaaa'; }
-  else if (t === 'midnight') { wmMainColor = '#e0b94c'; wmSubColor = '#b89839'; }
-  else if (t === 'matcha') { wmMainColor = '#3e5c20'; wmSubColor = '#648839'; }
-  else if (t === 'chrome') { wmMainColor = '#4d5f80'; wmSubColor = '#7d8ba6'; }
-  else if (t === 'scrap') { wmMainColor = '#8a6a3c'; wmSubColor = '#a98a5c'; }
-  else if (t === 'digi') { wmMainColor = '#ff8c1a'; wmSubColor = '#b0b0b0'; }
-  else if (t === 'coquette') { wmMainColor = '#c2557e'; wmSubColor = '#e08aa8'; }
-  else if (t === 'aero') { wmMainColor = '#0a6bb0'; wmSubColor = '#3f9fe0'; }
-  else if (t === 'doodle') { wmMainColor = '#23233a'; wmSubColor = '#6a6a8a'; }
-  else if (t === 'manga') { wmMainColor = '#111111'; wmSubColor = '#555555'; }
-  else if (t === 'pixel') { wmMainColor = '#00f0ff'; wmSubColor = '#ff007f'; }
-  else if (t === 'minimal') { wmMainColor = '#111111'; wmSubColor = '#999999'; }
-  else if (t === 'birthday') { wmMainColor = '#e0487b'; wmSubColor = '#ff8fab'; }
-  else if (t === 'grad') { wmMainColor = '#d4af37'; wmSubColor = '#b8932e'; }
-  else if (t === 'wedding') { wmMainColor = '#9a7b4f'; wmSubColor = '#c0a577'; }
-  else if (t === 'lebaran') { wmMainColor = '#e6c766'; wmSubColor = '#cbb45a'; }
-  else if (t === 'natal') { wmMainColor = '#0f6b3a'; wmSubColor = '#b7172b'; }
-  else if (t === 'newyear') { wmMainColor = '#ffd54a'; wmSubColor = '#c9a83a'; }
-  else if (t === 'valentine') { wmMainColor = '#d6336c'; wmSubColor = '#ff6b9d'; }
-  else if (t === 'baby') { wmMainColor = '#5a8fc0'; wmSubColor = '#8fb8dc'; }
-
-  x.font = 'bold 26px "Trebuchet MS", sans-serif';
-  x.fillStyle = wmMainColor;
-  x.fillText('📸 Snappie Studio', W / 2, wmY - 14);
-
-  x.font = 'italic 16px "Trebuchet MS", sans-serif';
-  x.fillStyle = wmSubColor;
-  x.fillText('— your little photo moment —', W / 2, wmY + 16);
-  x.restore();
 
   return cv;
 }

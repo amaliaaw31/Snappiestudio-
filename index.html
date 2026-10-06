@@ -7,14 +7,17 @@
 <meta name="description" content="Snappie Studio — web photo booth: ambil foto atau pilih dari galeri, pilih filter & bingkai lucu, tambah stiker, lalu unduh atau bagikan. Semua diproses di perangkatmu.">
 <meta name="theme-color" content="#d63384">
 <meta name="color-scheme" content="light">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d63384'/%3E%3Crect x='10' y='20' width='44' height='30' rx='6' fill='%23fff'/%3E%3Ccircle cx='32' cy='35' r='9' fill='%23d63384'/%3E%3Crect x='24' y='13' width='16' height='8' rx='3' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d63384'/%3E%3Crect x='10' y='20' width='44' height='30' rx='6' fill='%23fff'/%3E%3Ccircle cx='32' cy='35' r='9' fill='%23d63384'/%3E%3Crect x='24' y='13' width='16' height='8' rx='3' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d63384'/%3E%3Crect x='15' y='10' width='34' height='44' rx='3' fill='%23ffffff'/%3E%3Crect x='19' y='14' width='26' height='24' rx='2' fill='%23ffd1e8'/%3E%3Cpath d='M32 31 C28.5 28 26 25.5 26 22.8 C26 20.4 28.2 19.2 30.4 20.8 C31.3 21.5 31.7 22.4 32 23.2 C32.3 22.4 32.7 21.5 33.6 20.8 C35.8 19.2 38 20.4 38 22.8 C38 25.5 35.5 28 32 31 Z' fill='%23d63384'/%3E%3Crect x='23' y='44' width='18' height='4' rx='2' fill='%23f5a9cd'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d63384'/%3E%3Crect x='15' y='10' width='34' height='44' rx='3' fill='%23ffffff'/%3E%3Crect x='19' y='14' width='26' height='24' rx='2' fill='%23ffd1e8'/%3E%3Cpath d='M32 31 C28.5 28 26 25.5 26 22.8 C26 20.4 28.2 19.2 30.4 20.8 C31.3 21.5 31.7 22.4 32 23.2 C32.3 22.4 32.7 21.5 33.6 20.8 C35.8 19.2 38 20.4 38 22.8 C38 25.5 35.5 28 32 31 Z' fill='%23d63384'/%3E%3Crect x='23' y='44' width='18' height='4' rx='2' fill='%23f5a9cd'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Snappie Studio 📸 — your little photo moment">
 <meta property="og:description" content="Web photo booth: filter, bingkai lucu, stiker, lalu unduh atau bagikan ke sosmed.">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Snappie Studio 📸">
 <meta name="twitter:description" content="Web photo booth: filter, bingkai lucu, stiker, lalu bagikan.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
@@ -31,15 +34,15 @@
 
 <!-- START -->
 <div class="screen active" id="scr-start">
-  <h1>📸 Snappie Studio</h1>
+  <h1>Snappie Studio</h1>
   <p class="tagline">"your little photo moment"</p>
   <p class="desc">Jepret foto kece pakai filter,<br>hias dengan stiker lucu, lalu bagikan ke sosmed!</p>
   <button class="btn" id="btn-start">Buka Kamera</button>
   <button class="btn ghost" id="btn-gallery-start" style="margin-top:12px;">🖼️ Pilih dari Galeri</button>
-  <label class="date-toggle" for="toggle-mobile" style="margin-top:18px;">
-    <input type="checkbox" id="toggle-mobile">
+  <label class="date-toggle" for="toggle-dark" style="margin-top:18px;">
+    <input type="checkbox" id="toggle-dark">
     <span class="track"><span class="thumb"></span></span>
-    <span class="date-toggle-label">📱 Mode Mobile Responsive</span>
+    <span class="date-toggle-label">🌙 Mode Gelap</span>
   </label>
   <p class="desc" style="margin-top:18px; font-size:12px;">Butuh izin kamera &amp; koneksi HTTPS.<br>Foto cuma diproses di perangkatmu.</p>
 </div>
@@ -99,8 +102,20 @@
     <button type="button" id="themepick" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
   </div>
   <button class="btn ghost" id="btn-gallery" style="margin-top:16px;">🖼️ Tambah dari Galeri</button>
+  <button class="btn" id="btn-to-preview" style="margin-top:12px; display:none;">✓ Preview / Selesai</button>
   <div class="dots" id="dots"></div>
   <div id="thumbs"></div>
+</div>
+
+<!-- PREVIEW -->
+<div class="screen" id="scr-preview">
+  <h1 style="margin-top:4px">Preview ✨</h1>
+  <p class="desc">Cek tiap foto — buang, jepret ulang, atau ganti dari galeri. Tambah stiker, lalu tekan Fix.</p>
+  <div id="preview-holder"></div>
+  <div class="btnrow">
+    <button class="btn ghost" id="btn-preview-sticker">➕ Add Sticker</button>
+    <button class="btn" id="btn-preview-fix">✓ Fix</button>
+  </div>
 </div>
 
 <!-- RESULT -->
@@ -108,7 +123,10 @@
   <h1 style="margin-top:4px">Hasilnya! 🎉</h1>
   <div id="result-holder"></div>
   <div class="label">GANTI TEMA</div>
-  <button type="button" id="themepick2" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
+  <div class="theme-pick-row">
+    <button type="button" id="themepick2" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
+    <button class="btn ghost" id="btn-add-sticker">➕ Sticker</button>
+  </div>
   <label class="date-toggle" for="toggle-date">
     <input type="checkbox" id="toggle-date">
     <span class="track"><span class="thumb"></span></span>
@@ -117,10 +135,8 @@
   <input type="text" id="custom-text" class="custom-text-input" maxlength="28"
     placeholder="✎ Tulis nama / ucapan (opsional)" autocomplete="off">
   <div class="btnrow">
-    <button class="btn ghost" id="btn-add-sticker">➕ Add Sticker</button>
     <button class="btn share-btn" id="btn-open-share">🚀 Bagikan ke Sosmed</button>
     <button class="btn" id="btn-download">⬇ Unduh PNG</button>
-    <button class="btn ghost" id="btn-retake">Foto Ulang</button>
   </div>
 </div>
 
@@ -201,7 +217,7 @@
         <span class="wm-icon">📸</span>
         <div>
           <strong>Watermark Otomatis:</strong>
-          <span>Snappie Studio • <em>your little photo moment</em></span>
+          <span>✨ Bikin foto strip lucu <strong>GRATIS</strong> di Snappie Studio</span>
         </div>
       </div>
 
@@ -249,6 +265,23 @@
       </div>
       
       <div id="share-toast" class="share-toast"></div>
+    </div>
+  </div>
+</div>
+
+<!-- AGAIN MODAL -->
+<div id="again-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="again-title">
+  <div class="modal-card again-card">
+    <div class="modal-header">
+      <h2 id="again-title">Mau jepret lagi? 📸</h2>
+      <button id="btn-close-again" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="again-text">Hasil fotomu sudah aman. Mau lanjut bikin sesi baru, atau selesai sampai di sini?</p>
+      <div class="btnrow">
+        <button class="btn ghost" id="btn-again-no">Tidak, selesai</button>
+        <button class="btn" id="btn-again-yes">Ya, jepret lagi</button>
+      </div>
     </div>
   </div>
 </div>
