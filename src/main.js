@@ -1,6 +1,6 @@
 /* Photo Booth — app logic: camera, filters, countdown, capture, result, stickers. */
 
-import { FILTERS, THEMES, CHARS, EMOJI_STICKERS, dateLine, filterCss, fontTracking, fontLineHeight } from './data.js';
+import { FILTERS, THEMES, CHARS, EMOJI_STICKERS, dateLine, filterCss, fontTracking, fontLineHeight, DATE_COLORS } from './data.js';
 import { compose } from './composer.js';
 import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
 import bacUrl from './assets/bac.jpg';
@@ -19,14 +19,17 @@ const state = {
   stickers: [],
   selectedStickerId: null,
   selectedPhotoIndex: null,
+  slotSelected: null,
   showDate: false,
   frame: true,
   customText: '',
   captionFont: 'Matcha Iced',
   dateFont: 'Matcha Iced',
+  captionColor: '',
+  dateColor: '',
   customFrame: {
     bg: '#ffffff', bg2: '#ffe6f2', gradient: true,
-    outline: '#d63384', slot: '#ffffff', slotBorder: true, text: '#8a5b7e', pattern: 'none',
+    outline: '#d63384', outlineOn: true, slot: '#ffffff', slotBorder: true, pattern: 'none',
   },
   replaceIndex: null,
   facing: 'user',
@@ -41,13 +44,15 @@ const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ============ preferences (localStorage) ============ */
+/* Catatan privasi: settingan BINGKAI (tema, warna, font, ukuran/caption frame)
+   sengaja TIDAK disimpan. Web ini dipakai banyak orang, jadi tiap kunjungan
+   selalu mulai dengan bingkai default/original. Hanya preferensi perangkat
+   (filter, jumlah foto, kamera, dsb.) yang diingat. */
 const PREFS_KEY = 'snappie-prefs-v1';
 function savePrefs() {
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify({
-      filter: state.filter, layout: state.layout, theme: state.theme,
-      showDate: state.showDate, frame: state.frame,
-      captionFont: state.captionFont, dateFont: state.dateFont, customFrame: state.customFrame,
+      filter: state.filter, layout: state.layout,
       mirror: state.mirror, facing: state.facing,
       countdown: state.countdown, flash: state.flash, sound: state.sound,
       dark: document.body.classList.contains('dark-mode'),
@@ -59,12 +64,6 @@ function loadPrefs() {
   try { p = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); } catch (e) { p = {}; }
   if (FILTERS.some(f => f.id === p.filter)) state.filter = p.filter;
   if (LAYOUT_AR[p.layout]) state.layout = +p.layout;
-  if (THEMES.some(t => t.id === p.theme)) state.theme = p.theme;
-  if (typeof p.showDate === 'boolean') state.showDate = p.showDate;
-  if (typeof p.frame === 'boolean') state.frame = p.frame;
-  if (typeof p.captionFont === 'string') state.captionFont = p.captionFont;
-  if (typeof p.dateFont === 'string') state.dateFont = p.dateFont;
-  if (p.customFrame && typeof p.customFrame === 'object') state.customFrame = { ...state.customFrame, ...p.customFrame };
   if (typeof p.mirror === 'boolean') state.mirror = p.mirror;
   if (p.facing === 'user' || p.facing === 'environment') state.facing = p.facing;
   if ([0, 3, 5, 10].includes(p.countdown)) state.countdown = p.countdown;
@@ -277,12 +276,12 @@ function syncThemePickers() {
 
 /* ---------- custom frame: gaya + warna + motif ---------- */
 const CUSTOM_PRESETS = [
-  { id: 'plain',    key: 'cf.presetPlain',    gradient: false, pattern: 'none',    bg: '#ffffff', bg2: '#ffffff', outline: '#d63384', slot: '#ffffff', text: '#8a5b7e' },
-  { id: 'gradient', key: 'cf.presetGradient', gradient: true,  pattern: 'none',    bg: '#ffe6f2', bg2: '#e9dcff', outline: '#ffffff', slot: '#ffffff', text: '#8a5b7e' },
-  { id: 'dots',     key: 'cf.presetDots',     gradient: false, pattern: 'dots',    bg: '#fff7e6', bg2: '#fff7e6', outline: '#f5a623', slot: '#ffffff', text: '#8a6a3c' },
-  { id: 'stripes',  key: 'cf.presetStripes',  gradient: true,  pattern: 'stripes', bg: '#e9f7ff', bg2: '#d6ecff', outline: '#0a6bb0', slot: '#ffffff', text: '#0a6bb0' },
-  { id: 'neon',     key: 'cf.presetNeon',     gradient: true,  pattern: 'stripes', bg: '#1a0933', bg2: '#0d0f1a', outline: '#00f0ff', slot: '#ff007f', text: '#00f0ff' },
-  { id: 'mono',     key: 'cf.presetMono',     gradient: false, pattern: 'none',    bg: '#111111', bg2: '#111111', outline: '#ffffff', slot: '#ffffff', text: '#ffffff' },
+  { id: 'plain',    key: 'cf.presetPlain',    gradient: false, pattern: 'none',    bg: '#ffffff', bg2: '#ffffff', outline: '#d63384', slot: '#ffffff' },
+  { id: 'gradient', key: 'cf.presetGradient', gradient: true,  pattern: 'none',    bg: '#ffe6f2', bg2: '#e9dcff', outline: '#ffffff', slot: '#ffffff' },
+  { id: 'dots',     key: 'cf.presetDots',     gradient: false, pattern: 'dots',    bg: '#fff7e6', bg2: '#fff7e6', outline: '#f5a623', slot: '#ffffff' },
+  { id: 'stripes',  key: 'cf.presetStripes',  gradient: true,  pattern: 'stripes', bg: '#e9f7ff', bg2: '#d6ecff', outline: '#0a6bb0', slot: '#ffffff' },
+  { id: 'neon',     key: 'cf.presetNeon',     gradient: true,  pattern: 'stripes', bg: '#1a0933', bg2: '#0d0f1a', outline: '#00f0ff', slot: '#ff007f' },
+  { id: 'mono',     key: 'cf.presetMono',     gradient: false, pattern: 'none',    bg: '#111111', bg2: '#111111', outline: '#ffffff', slot: '#ffffff' },
 ];
 function lighten(hex, f) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
@@ -300,17 +299,19 @@ function presetMatches(f, p) {
   return !!f.gradient === p.gradient && f.pattern === p.pattern &&
     String(f.bg).toLowerCase() === p.bg.toLowerCase() &&
     String(f.outline).toLowerCase() === p.outline.toLowerCase() &&
-    String(f.slot).toLowerCase() === p.slot.toLowerCase() &&
-    String(f.text).toLowerCase() === p.text.toLowerCase();
+    String(f.slot).toLowerCase() === p.slot.toLowerCase();
 }
 function updateCustomFrameUI() {
   const f = state.customFrame;
   paintColor('cf-bg', f.bg);
   paintColor('cf-outline', f.outline);
   paintColor('cf-slot', f.slot);
-  paintColor('cf-text', f.text);
   const g = $('cf-gradient');
   if (g) g.checked = !!f.gradient;
+  const oo = $('cf-outline-on');
+  if (oo) oo.checked = f.outlineOn !== false;
+  const fot = $('toggle-frame-outline');
+  if (fot) fot.checked = f.outlineOn !== false;
   const showSlotBorder = f.slotBorder !== false;
   const so = $('cf-slot-off');
   if (so) so.checked = showSlotBorder;
@@ -331,7 +332,7 @@ function rerenderCustom() {
 function applyCustomPreset(p) {
   const f = state.customFrame;
   f.gradient = p.gradient; f.pattern = p.pattern;
-  f.bg = p.bg; f.bg2 = p.bg2; f.outline = p.outline; f.slot = p.slot; f.text = p.text;
+  f.bg = p.bg; f.bg2 = p.bg2; f.outline = p.outline; f.slot = p.slot;
   rerenderCustom();
 }
 function buildCustomStyles() {
@@ -368,12 +369,14 @@ function buildCustomPanel() {
       pats.appendChild(b);
     });
   }
-  ['cf-bg', 'cf-outline', 'cf-slot', 'cf-text'].forEach(id => {
+  ['cf-bg', 'cf-outline', 'cf-slot'].forEach(id => {
     const el = $(id);
     if (el) el.onclick = () => openColorPicker(id);
   });
   const grad = $('cf-gradient');
   if (grad) grad.onchange = () => { state.customFrame.gradient = grad.checked; rerenderCustom(); };
+  const outlineOn = $('cf-outline-on');
+  if (outlineOn) outlineOn.onchange = () => { state.customFrame.outlineOn = outlineOn.checked; rerenderCustom(); };
   const slotOff = $('cf-slot-off');
   if (slotOff) slotOff.onchange = () => { state.customFrame.slotBorder = slotOff.checked; rerenderCustom(); };
   const stk = $('cf-add-sticker');
@@ -493,6 +496,7 @@ function resetPhotos() {
   state.stickers = [];
   state.selectedStickerId = null;
   state.selectedPhotoIndex = null;
+  state.slotSelected = null;
   state.replaceIndex = null;
   renderDots(); renderThumbs();
 }
@@ -754,7 +758,7 @@ function imgTransform(p) {
 
 function slotMedia(p, i, gesture) {
   const style = 'filter:' + filterCss(p.filter) + ';transform:' + imgTransform(p);
-  return '<img' + (gesture ? ' class="slot-img" data-i="' + i + '"' : '') + ' alt="Foto ' + (i + 1) +
+  return '<img' + (gesture ? ' class="slot-img" data-i="' + i + '"' : '') + ' draggable="false" alt="Foto ' + (i + 1) +
     '" style="' + style + '" src="' + p.canvas.toDataURL('image/jpeg', .85) + '">';
 }
 
@@ -789,10 +793,10 @@ function captionLayout() {
   const date = lineLayout(state.showDate ? dateLine(getLang()) : '', state.dateFont || 'Matcha Iced', innerW);
   return { cap, date };
 }
-function lineStyleString(L) {
+function lineStyleString(L, color) {
   return "font-family:'" + L.font + "', 'Trebuchet MS', sans-serif;font-size:" +
     L.size.toFixed(2) + 'px;letter-spacing:' + L.spacing.toFixed(2) + 'px;line-height:' +
-    L.lineHeight;
+    L.lineHeight + (color ? ';color:' + color : '');
 }
 function captionAreaMinHeight(L) {
   let h = 12;
@@ -809,7 +813,7 @@ function customFrameAttr() {
   const pat = (f.pattern && f.pattern !== 'none') ? ' cf-pat-' + f.pattern : '';
   return {
     cls: pat,
-    style: ' style="--cf-bg:' + bg + ';--cf-outline:' + f.outline + ';--cf-slot:' + f.slot + ';--cf-text:' + f.text + '"',
+    style: ' style="--cf-bg:' + bg + ';--cf-outline:' + f.outline + ';--cf-slot:' + f.slot + '"',
   };
 }
 
@@ -821,34 +825,22 @@ function frameHTML() {
     slots += '<div class="slot">' + slotMedia(p, i, false) + '</div>';
   });
   const L = captionLayout();
-  const fsCap = lineStyleString(L.cap);
-  const fsDate = lineStyleString(L.date);
+  const fsCap = lineStyleString(L.cap, state.captionColor);
+  const fsDate = lineStyleString(L.date, state.dateColor);
   const customHTML = state.customText ? '<div class="frame-date" style="' + fsCap + '">' + esc(state.customText) + '</div>' : '';
   const dateHTML = state.showDate ? '<div class="frame-date" style="' + fsDate + '">' + dateLine(getLang()) + '</div>' : '';
   const captionsHTML = '<div class="frame-captions" style="min-height:' + captionAreaMinHeight(L).toFixed(1) + 'px">' + customHTML + dateHTML + '</div>';
   const th = state.frame ? 'th-' + state.theme : 'noframe';
   const cf = customFrameAttr();
   const noSlot = (state.frame && state.customFrame.slotBorder === false) ? ' no-slot-border' : '';
-  return '<div class="frame-outer ' + th + cf.cls + noSlot + ' ' + lay + '"' + cf.style + '>' +
+  const noOutline = (state.frame && state.customFrame.outlineOn === false) ? ' no-frame-outline' : '';
+  return '<div class="frame-outer ' + th + cf.cls + noSlot + noOutline + ' ' + lay + '"' + cf.style + '>' +
     '<div class="frame"><div class="' + cls + '">' + slots + '</div>' +
     (state.frame ? captionsHTML : '') + '</div>' +
     '<div class="sticker-layer"></div></div>';
 }
 
-/* Ukuran kotak preview disamakan dengan bingkai 1 foto. */
-let boxAspect = 300 / 278;
-function measureBoxAspect() {
-  const probe = document.createElement('div');
-  probe.className = 'frame-outer single';
-  probe.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none;';
-  probe.innerHTML = '<div class="frame"><div class="photos-single"><div class="slot"></div></div><div class="frame-captions"></div></div>';
-  document.body.appendChild(probe);
-  const w = probe.offsetWidth, h = probe.offsetHeight;
-  probe.remove();
-  if (w > 0 && h > 0) boxAspect = w / h;
-}
-measureBoxAspect();
-
+/* Besarkan bingkai sebesar mungkin agar pas di area yang tersedia (boleh diperbesar). */
 function fitFrame(holderId) {
   const holder = $(holderId);
   if (!holder) return;
@@ -858,15 +850,14 @@ function fitFrame(holderId) {
   const fw = frame.offsetWidth, fh = frame.offsetHeight;
   const aw = holder.clientWidth, ah = holder.clientHeight;
   if (!fw || !fh || aw < 20 || ah < 20) return;
-  let tw = aw, th = aw / boxAspect;
-  if (th > ah) { th = ah; tw = ah * boxAspect; }
-  const s = Math.max(0.05, Math.min((tw - 8) / fw, (th - 8) / fh));
+  const s = Math.max(0.05, Math.min((aw - 8) / fw, (ah - 8) / fh));
   frame.style.transform = 'scale(' + s.toFixed(4) + ')';
 }
 
 function renderResult() {
   $('result-holder').innerHTML = frameHTML();
   syncThemePickers();
+  syncTextColorsUI();
   renderUserStickers();
   fitFrame('result-holder');
   scheduleDraft(); commitHistory();
@@ -877,30 +868,37 @@ function previewHTML() {
   const cls = state.layout === 1 ? 'photos-single' : state.layout === 3 ? 'photos-strip' : 'photos-grid';
   let slots = '';
   state.photos.forEach((p, i) => {
-    slots += '<div class="slot preview-slot">' +
+    slots += '<div class="slot preview-slot" data-i="' + i + '">' +
       slotMedia(p, i, true) +
       '<div class="slot-actions">' +
+        '<button type="button" class="slot-btn" data-act="retake" data-i="' + i + '" aria-label="Jepret ulang" title="Retake"><span class="ms">refresh</span></button>' +
         '<button type="button" class="slot-btn" data-act="del" data-i="' + i + '" aria-label="Buang foto" title="Buang"><span class="ms">delete</span></button>' +
-        '<button type="button" class="slot-btn" data-act="retake" data-i="' + i + '" aria-label="Jepret ulang" title="Jepret ulang"><span class="ms">refresh</span></button>' +
       '</div></div>';
   });
   const L = captionLayout();
-  const fsCap = lineStyleString(L.cap);
-  const fsDate = lineStyleString(L.date);
+  const fsCap = lineStyleString(L.cap, state.captionColor);
+  const fsDate = lineStyleString(L.date, state.dateColor);
   const customHTML = state.customText ? '<div class="frame-date" style="' + fsCap + '">' + esc(state.customText) + '</div>' : '';
   const dateHTML = state.showDate ? '<div class="frame-date" style="' + fsDate + '">' + dateLine(getLang()) + '</div>' : '';
   const captionsHTML = '<div class="frame-captions" style="min-height:' + captionAreaMinHeight(L).toFixed(1) + 'px">' + customHTML + dateHTML + '</div>';
   const th = state.frame ? 'th-' + state.theme : 'noframe';
   const cf = customFrameAttr();
   const noSlot = (state.frame && state.customFrame.slotBorder === false) ? ' no-slot-border' : '';
-  return '<div class="frame-outer ' + th + cf.cls + noSlot + ' ' + lay + '"' + cf.style + '>' +
+  const noOutline = (state.frame && state.customFrame.outlineOn === false) ? ' no-frame-outline' : '';
+  return '<div class="frame-outer ' + th + cf.cls + noSlot + noOutline + ' ' + lay + '"' + cf.style + '>' +
     '<div class="frame"><div class="' + cls + '">' + slots + '</div>' +
     (state.frame ? captionsHTML : '') + '</div>' +
     '<div class="sticker-layer"></div></div>';
 }
 
 /* Zoom/geser isi foto per slot (di layar Preview). */
-function attachSlotGestures(img, p) {
+function applySlotSelection() {
+  document.querySelectorAll('#preview-holder .preview-slot').forEach(el => {
+    el.classList.toggle('sel', state.slotSelected != null && +el.dataset.i === state.slotSelected);
+  });
+}
+
+function attachSlotGestures(img, p, index) {
   const pts = new Map();
   let start = null, pinch = null;
   const clampPan = () => {
@@ -912,6 +910,7 @@ function attachSlotGestures(img, p) {
 
   img.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.slot-btn')) return;
+    if (state.slotSelected !== index) { state.slotSelected = index; applySlotSelection(); }
     try { img.setPointerCapture(e.pointerId); } catch (err) { /* abaikan */ }
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.size === 1) {
@@ -932,8 +931,10 @@ function attachSlotGestures(img, p) {
     if (pts.size >= 2 && pinch) {
       const [a, b] = [...pts.values()];
       const d = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-      p.zoom = Math.max(1, Math.min(4, pinch.zoom * (d / pinch.dist)));
+      p.zoom = Math.max(1, Math.min(6, pinch.zoom * (d / pinch.dist)));
+      if (p.zoom <= 1.02) { p.zoom = 1; p.ox = 0; p.oy = 0; }   // zoom-out pas ke kolom frame
       clampPan(); apply();
+      e.preventDefault();
     } else if (pts.size === 1 && start) {
       p.ox = start.ox + (e.clientX - start.x) / r.width;
       p.oy = start.oy + (e.clientY - start.y) / r.height;
@@ -958,7 +959,8 @@ function attachSlotGestures(img, p) {
 
   img.addEventListener('wheel', (e) => {
     e.preventDefault();
-    p.zoom = Math.max(1, Math.min(4, (p.zoom || 1) * (e.deltaY < 0 ? 1.08 : 0.92)));
+    p.zoom = Math.max(1, Math.min(6, (p.zoom || 1) * (e.deltaY < 0 ? 1.08 : 0.92)));
+    if (p.zoom <= 1.02) { p.zoom = 1; p.ox = 0; p.oy = 0; }
     clampPan(); apply();
   }, { passive: false });
 }
@@ -969,8 +971,9 @@ function renderPreview() {
   holder.innerHTML = previewHTML();
   holder.querySelectorAll('.slot-img').forEach(img => {
     const p = state.photos[+img.dataset.i];
-    if (p) attachSlotGestures(img, p);
+    if (p) attachSlotGestures(img, p, +img.dataset.i);
   });
+  applySlotSelection();
   renderUserStickers();
   fitFrame('preview-holder');
   scheduleDraft(); commitHistory();
@@ -980,21 +983,20 @@ function refitFrames() {
   if (currentScreen === 'scr-preview') fitFrame('preview-holder');
   else if (currentScreen === 'scr-result') fitFrame('result-holder');
 }
-window.addEventListener('resize', () => { measureBoxAspect(); refitFrames(); });
+window.addEventListener('resize', refitFrames);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
-  measureBoxAspect(); refitFrames();
+  refitFrames();
   /* ukur ulang caption setelah semua font selesai dimuat */
   if (currentScreen === 'scr-preview') renderPreview();
   else if (currentScreen === 'scr-result') renderResult();
 });
 
+let replaceChoiceIndex = null;
 function onPreviewAction(act, i) {
   if (act === 'del') {
-    state.photos.splice(i, 1);
-    state.selectedPhotoIndex = null;
-    renderThumbs();
-    if (!state.photos.length) { show('scr-cam'); return; }
-    renderPreview();
+    /* "Buang": tanya mau retake atau buka galeri untuk ganti foto ini. */
+    replaceChoiceIndex = i;
+    openModal('replace-modal');
   } else if (act === 'retake') {
     state.replaceIndex = i;
     show('scr-cam');
@@ -1002,6 +1004,21 @@ function onPreviewAction(act, i) {
     state.replaceIndex = i;
     openGallery('preview');
   }
+}
+if ($('rp-retake')) $('rp-retake').onclick = () => {
+  const i = replaceChoiceIndex;
+  closeModal('replace-modal');
+  if (i != null) { state.replaceIndex = i; show('scr-cam'); }
+};
+if ($('rp-gallery')) $('rp-gallery').onclick = () => {
+  const i = replaceChoiceIndex;
+  closeModal('replace-modal');
+  if (i != null) { state.replaceIndex = i; openGallery('preview'); }
+};
+if ($('btn-close-replace')) $('btn-close-replace').onclick = () => closeModal('replace-modal');
+{
+  const rm = $('replace-modal');
+  if (rm) rm.onclick = (e) => { if (e.target === rm) closeModal('replace-modal'); };
 }
 
 if ($('preview-holder')) {
@@ -1027,6 +1044,19 @@ if (frameToggle) {
   frameToggle.checked = state.frame;
   frameToggle.onchange = () => {
     state.frame = frameToggle.checked;
+    if (currentScreen === 'scr-preview') renderPreview();
+    else if (currentScreen === 'scr-result') renderResult();
+    savePrefs();
+  };
+}
+
+/* Toggle "Garis Bingkai": tercentang = pakai garis bingkai, tidak dicentang = tanpa garis. */
+const frameOutlineToggle = $('toggle-frame-outline');
+if (frameOutlineToggle) {
+  frameOutlineToggle.checked = state.customFrame.outlineOn !== false;
+  frameOutlineToggle.onchange = () => {
+    state.customFrame.outlineOn = frameOutlineToggle.checked;
+    updateCustomFrameUI();
     if (currentScreen === 'scr-preview') renderPreview();
     else if (currentScreen === 'scr-result') renderResult();
     savePrefs();
@@ -1658,8 +1688,12 @@ function setColor(id, color) {
     if (id === 'cf-bg') { f.bg = color; f.bg2 = lighten(color, .6); }
     else if (id === 'cf-outline') f.outline = color;
     else if (id === 'cf-slot') f.slot = color;
-    else if (id === 'cf-text') f.text = color;
     rerenderCustom();
+  } else if (id === 'caption-color' || id === 'date-color') {
+    if (id === 'caption-color') state.captionColor = color; else state.dateColor = color;
+    if (currentScreen === 'scr-preview') renderPreview();
+    else if (currentScreen === 'scr-result') renderResult();
+    savePrefs();
   }
 }
 /* ---------- palet rekomendasi ---------- */
@@ -1718,6 +1752,21 @@ function rgbToCmyk(r, g, b) {
 }
 
 /* ---------- pemilih warna custom (bisa diseret) ---------- */
+/* Parse kode warna manual: #RGB, #RRGGBB, atau rgb(r,g,b). */
+function parseColorCode(str) {
+  const s = String(str || '').trim().toLowerCase();
+  if (!s) return null;
+  let m = /^#?([0-9a-f]{3})$/.exec(s);
+  if (m) { const h = m[1]; return '#' + h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; }
+  m = /^#?([0-9a-f]{6})$/.exec(s);
+  if (m) return '#' + m[1];
+  m = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/.exec(s);
+  if (m) {
+    const r = +m[1], g = +m[2], b = +m[3];
+    if (r < 256 && g < 256 && b < 256) return rgbToHex(r, g, b);
+  }
+  return null;
+}
 let ccHsv = [330, 0.6, 1];
 function updateCustomColorUI() {
   const [h, s, v] = ccHsv;
@@ -1741,6 +1790,8 @@ function updateCustomColorUI() {
     const c = rgbToCmyk(rgb[0], rgb[1], rgb[2]);
     $('cc-cmyk').textContent = c[0] + '%, ' + c[1] + '%, ' + c[2] + '%, ' + c[3] + '%';
   }
+  const code = $('cc-code-input');
+  if (code && document.activeElement !== code) code.value = hex.toUpperCase();
 }
 function setCustomFromHex(hex) {
   const [r, g, b] = hexToRgb(hex);
@@ -1784,24 +1835,52 @@ function bindCustomColorPicker() {
     setColor(colorTargetId, rgbToHex(rgb[0], rgb[1], rgb[2]));
     closeModal('color-modal');
   };
+  /* Input kode warna manual (HEX / RGB) */
+  const codeInput = $('cc-code-input');
+  if (codeInput) {
+    codeInput.addEventListener('input', () => {
+      const hex = parseColorCode(codeInput.value);
+      if (hex) setCustomFromHex(hex);
+    });
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const hex = parseColorCode(codeInput.value);
+      if (hex) { setCustomFromHex(hex); codeInput.blur(); }
+    });
+  }
+  /* Eyedropper: ambil warna dari mana saja di layar */
+  const drop = $('cc-eyedropper');
+  if (drop) drop.onclick = async () => {
+    if (!window.EyeDropper) { showToast(tr('toast.noEyedrop')); return; }
+    try {
+      const res = await new window.EyeDropper().open();
+      if (res && res.sRGBHex) setCustomFromHex(res.sRGBHex);
+    } catch (e) { /* dibatalkan user */ }
+  };
   updateCustomColorUI();
 }
 
-function buildColorPicker() {
-  const modal = $('color-modal');
-  if (!modal) return;
+/* Dropdown palet rekomendasi + swatch di bawahnya. */
+function buildPalettePicker() {
+  const picker = $('pal-picker');
+  const menu = $('pal-menu');
+  const toggle = $('pal-toggle');
+  const nameEl = $('pal-toggle-name');
+  const chipsEl = $('pal-toggle-chips');
+  const swatches = $('pal-swatches');
+  if (!picker || !menu || !toggle) return;
 
-  const pal = $('color-palettes');
-  if (pal) {
-    pal.innerHTML = '';
-    RECOMMENDED_PALETTES.forEach(p => {
-      const row = document.createElement('div');
-      row.className = 'palette-row';
-      const name = document.createElement('div');
-      name.className = 'palette-name';
-      name.textContent = p.name;
-      const sw = document.createElement('div');
-      sw.className = 'palette-swatches';
+  const chips = colors => colors.map(c => '<i style="background:' + c + '"></i>').join('');
+
+  function selectPalette(idx) {
+    const p = RECOMMENDED_PALETTES[idx];
+    if (!p) return;
+    toggle.dataset.idx = String(idx);
+    if (nameEl) nameEl.textContent = p.name;
+    if (chipsEl) chipsEl.innerHTML = chips(p.colors);
+    if (swatches) {
+      swatches.innerHTML = '';
       p.colors.forEach(c => {
         const b = document.createElement('button');
         b.type = 'button';
@@ -1810,12 +1889,50 @@ function buildColorPicker() {
         b.dataset.color = c;
         b.setAttribute('aria-label', c);
         b.onclick = () => selectColorChoice(c);
-        sw.appendChild(b);
+        swatches.appendChild(b);
       });
-      row.append(name, sw);
-      pal.appendChild(row);
-    });
+    }
+    menu.querySelectorAll('.pal-option').forEach(x => x.classList.toggle('sel', +x.dataset.i === idx));
   }
+  function closeMenu() {
+    menu.hidden = true;
+    picker.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+
+  menu.innerHTML = '';
+  RECOMMENDED_PALETTES.forEach((p, idx) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pal-option';
+    b.dataset.i = String(idx);
+    b.setAttribute('role', 'option');
+    b.innerHTML = '<span class="pal-option-name">' + p.name + '</span>' +
+      '<span class="pal-option-chips">' + chips(p.colors) + '</span>';
+    b.onclick = () => { selectPalette(idx); closeMenu(); };
+    menu.appendChild(b);
+  });
+
+  toggle.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const willOpen = menu.hidden;
+    menu.hidden = !willOpen;
+    picker.classList.toggle('open', willOpen);
+    toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  };
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.pal-picker')) closeMenu();
+  });
+
+  selectPalette(0);
+}
+
+function buildColorPicker() {
+  const modal = $('color-modal');
+  if (!modal) return;
+
+  buildPalettePicker();
 
   bindCustomColorPicker();
   if ($('btn-close-color')) $('btn-close-color').onclick = () => closeModal('color-modal');
@@ -1828,10 +1945,17 @@ function openColorPicker(targetId) {
   selectColorChoice(colorOf(targetId));
   openModal('color-modal');
 }
-['sticker-color', 'edit-color'].forEach(id => {
+['sticker-color', 'edit-color', 'caption-color', 'date-color'].forEach(id => {
   const el = $(id);
   if (el) el.onclick = () => openColorPicker(id);
 });
+
+/* Warna efektif caption/tanggal (mengikuti tema bila belum dipilih). */
+function syncTextColorsUI() {
+  const def = DATE_COLORS[state.theme] || '#8a5b7e';
+  paintColor('caption-color', state.captionColor || def);
+  paintColor('date-color', state.dateColor || def);
+}
 
 /* Editor teks inline (menggantikan prompt/confirm) */
 let editingTextId = null;
@@ -1906,7 +2030,7 @@ document.addEventListener('keydown', (e) => {
 
 /* ============ social share ============ */
 async function getWatermarkedFile() {
-  const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont);
+  const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont, state.captionColor, state.dateColor, state.customFrame.outlineOn);
   const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
   const d = new Date(), p = n => String(n).padStart(2, '0');
   const fileName = 'snappie-studio-' + state.theme + '-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.png';
@@ -2067,7 +2191,7 @@ $('btn-download').onclick = async () => {
   if (label) label.textContent = 'Bikin PNG...';
   if (ico) ico.classList.add('spin');
   try {
-    const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont);
+    const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont, state.captionColor, state.dateColor, state.customFrame.outlineOn);
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     const a = document.createElement('a');
     const d = new Date(), p = n => String(n).padStart(2, '0');
@@ -2097,7 +2221,8 @@ function snapshotState() {
     stickers: state.stickers.map(s => ({ ...s })),
     theme: state.theme, layout: state.layout, showDate: state.showDate,
     frame: state.frame, customText: state.customText, captionFont: state.captionFont,
-    dateFont: state.dateFont, customFrame: { ...state.customFrame },
+    dateFont: state.dateFont, captionColor: state.captionColor, dateColor: state.dateColor,
+    customFrame: { ...state.customFrame },
   };
 }
 function stateKey() {
@@ -2105,7 +2230,8 @@ function stateKey() {
     p: state.photos.map(p => [p.id, p.filter, p.zoom || 1, p.ox || 0, p.oy || 0]),
     s: state.stickers,
     t: state.theme, l: state.layout, d: state.showDate, f: state.frame, c: state.customText,
-    ff: state.captionFont, df: state.dateFont, cf: state.customFrame,
+    ff: state.captionFont, df: state.dateFont, cc: state.captionColor, dc: state.dateColor,
+    cf: state.customFrame,
   });
 }
 function updateUndoUI() {
@@ -2133,6 +2259,8 @@ function applySnapshot(s) {
   state.theme = s.theme; state.layout = s.layout; state.showDate = s.showDate;
   state.frame = s.frame; state.customText = s.customText; state.captionFont = s.captionFont || 'Matcha Iced';
   state.dateFont = s.dateFont || 'Matcha Iced';
+  state.captionColor = s.captionColor || '';
+  state.dateColor = s.dateColor || '';
   if (s.customFrame) state.customFrame = { ...state.customFrame, ...s.customFrame };
   setLayout(state.layout);
   syncThemePickers();
@@ -2198,7 +2326,8 @@ function saveDraft() {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({
       v: 1, layout: state.layout, theme: state.theme, showDate: state.showDate,
       frame: state.frame, customText: state.customText, captionFont: state.captionFont,
-      dateFont: state.dateFont, customFrame: state.customFrame, stickers: state.stickers, photos,
+      dateFont: state.dateFont, captionColor: state.captionColor, dateColor: state.dateColor,
+      customFrame: state.customFrame, stickers: state.stickers, photos,
     }));
   } catch (e) { /* penyimpanan penuh — abaikan */ }
 }

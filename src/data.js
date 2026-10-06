@@ -64,6 +64,17 @@ export function filterCss(id) {
   return f ? f.css : 'none';
 }
 
+/* Warna default caption/tanggal per tema (dipakai preview & composer). */
+export const DATE_COLORS = {
+  custom: '#8a5b7e',
+  pastel: '#c46998', cream: '#b39b74', confetti: '#8f8fb0', floral: '#6d9973',
+  neon: '#ff007f', y2k: '#7b68ee', film: '#f5a623', midnight: '#e0b94c',
+  chrome: '#4d5f80', scrap: '#8a6a3c', digi: '#ff8c1a', coquette: '#c2557e',
+  aero: '#0a6bb0', doodle: '#23233a', minimal: '#111111',
+  birthday: '#e0487b', wedding: '#9a7b4f', lebaran: '#f0d98a',
+  natal: '#0f6b3a', valentine: '#d6336c', baby: '#5a8fc0',
+};
+
 /* Jarak antar-huruf per font (dalam em) supaya spasi teks konsisten
    antara preview HTML dan PNG hasil unduhan. Font tak dikenal = 0. */
 export const FONT_TRACKING = {

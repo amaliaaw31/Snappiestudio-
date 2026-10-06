@@ -165,8 +165,13 @@
       <span class="track"><span class="thumb"></span></span>
       <span class="date-toggle-label"><span class="ms">filter_frames</span><span data-i18n="pv.frame">Bingkai</span></span>
     </label>
+    <label class="date-toggle" for="toggle-frame-outline">
+      <input type="checkbox" id="toggle-frame-outline" checked>
+      <span class="track"><span class="thumb"></span></span>
+      <span class="date-toggle-label"><span class="ms">crop_square</span><span data-i18n="pv.outline">Garis Bingkai</span></span>
+    </label>
     <label class="date-toggle" for="toggle-slot-border">
-      <input type="checkbox" id="toggle-slot-border">
+      <input type="checkbox" id="toggle-slot-border" checked>
       <span class="track"><span class="thumb"></span></span>
       <span class="date-toggle-label"><span class="ms">border_style</span><span data-i18n="pv.slotLine">Garis Foto</span></span>
     </label>
@@ -193,6 +198,7 @@
       <span class="date-toggle-label"><span class="ms">event</span><span data-i18n="rs.date">Tanggal</span></span>
     </label>
     <div class="setting result-font">
+      <span class="ms font-sym">text_fields</span>
       <select id="date-font" class="filter-select small" aria-label="Font">
         <option value="Matcha Iced">Matcha Iced</option>
         <option value="The Magic Cookie">The Magic Cookie</option>
@@ -207,11 +213,13 @@
         <option value="Super Waffles">Super Waffles</option>
         <option value="Anak Bijak">Anak Bijak</option>
       </select>
+      <button type="button" class="font-color" id="date-color" data-color="#8a5b7e" aria-label="Warna" title="Warna"></button>
     </div>
   </div>
   <input type="text" id="custom-text" class="custom-text-input" maxlength="28"
     data-i18n-ph="rs.namePh" placeholder="Tulis nama / ucapan (opsional)" autocomplete="off">
   <div class="setting result-font">
+    <span class="ms font-sym">text_fields</span>
     <select id="caption-font" class="filter-select small" aria-label="Font">
       <option value="Matcha Iced">Matcha Iced</option>
       <option value="The Magic Cookie">The Magic Cookie</option>
@@ -226,6 +234,7 @@
       <option value="Super Waffles">Super Waffles</option>
       <option value="Anak Bijak">Anak Bijak</option>
     </select>
+    <button type="button" class="font-color" id="caption-color" data-color="#8a5b7e" aria-label="Warna" title="Warna"></button>
   </div>
   <div class="btnrow">
     <button class="btn" id="btn-download"><span class="ms" id="download-ico">download</span><span id="download-label" data-i18n="rs.download">Unduh PNG</span></button>
@@ -306,10 +315,22 @@
         <div class="cf-item"><button type="button" class="cf-color" id="cf-bg" data-color="#ffffff" aria-label="Frame"></button><span data-i18n="cf.bg">Bingkai</span></div>
         <div class="cf-item"><button type="button" class="cf-color" id="cf-outline" data-color="#d63384" aria-label="Outline"></button><span data-i18n="cf.outline">Outline</span></div>
         <div class="cf-item"><button type="button" class="cf-color" id="cf-slot" data-color="#ffffff" aria-label="Photo border"></button><span data-i18n="cf.slot">Garis Foto</span></div>
-        <div class="cf-item"><button type="button" class="cf-color" id="cf-text" data-color="#8a5b7e" aria-label="Text"></button><span data-i18n="cf.text">Teks</span></div>
       </div>
-      <label class="cf-check"><input type="checkbox" id="cf-slot-off"><span data-i18n="cf.slotLine">Garis Foto</span></label>
-      <label class="cf-check"><input type="checkbox" id="cf-gradient" checked><span data-i18n="cf.gradient">Latar Gradasi</span></label>
+      <label class="cf-check date-toggle" for="cf-outline-on">
+        <input type="checkbox" id="cf-outline-on" checked>
+        <span class="track"><span class="thumb"></span></span>
+        <span class="date-toggle-label" data-i18n="cf.outlineOn">Outline</span>
+      </label>
+      <label class="cf-check date-toggle" for="cf-slot-off">
+        <input type="checkbox" id="cf-slot-off">
+        <span class="track"><span class="thumb"></span></span>
+        <span class="date-toggle-label" data-i18n="cf.slotLine">Garis Foto</span>
+      </label>
+      <label class="cf-check date-toggle" for="cf-gradient">
+        <input type="checkbox" id="cf-gradient" checked>
+        <span class="track"><span class="thumb"></span></span>
+        <span class="date-toggle-label" data-i18n="cf.gradient">Latar Gradasi</span>
+      </label>
       <div class="cf-subtitle" data-i18n="cf.pattern">Motif</div>
       <div class="cf-patterns" id="cf-patterns"></div>
       <div class="cf-actions">
@@ -400,12 +421,26 @@
             <span>RGB <b id="cc-rgb">0, 0, 0</b></span>
             <span>CMYK <b id="cc-cmyk">0%, 0%, 0%, 100%</b></span>
           </div>
+          <button type="button" class="cc-eyedrop" id="cc-eyedropper" aria-label="Ambil warna dari layar" title="Ambil warna dari layar"><span class="ms">colorize</span></button>
           <button type="button" class="btn" id="cc-apply"><span data-i18n="st.apply">Pakai Warna</span></button>
+        </div>
+        <div class="cc-manual">
+          <span class="ms">keyboard</span>
+          <input type="text" id="cc-code-input" class="cc-code-input" autocomplete="off" spellcheck="false"
+            data-i18n-ph="st.codePh" placeholder="#d63384 atau rgb(214,51,132)">
         </div>
       </div>
 
       <div class="cc-palettes-title" data-i18n="st.recommended">Rekomendasi Palet Warna</div>
-      <div class="color-palettes" id="color-palettes"></div>
+      <div class="pal-picker" id="pal-picker">
+        <button type="button" class="pal-toggle" id="pal-toggle" aria-haspopup="listbox" aria-expanded="false">
+          <span class="pal-toggle-name" id="pal-toggle-name">Pastel Dream</span>
+          <span class="pal-toggle-chips" id="pal-toggle-chips"></span>
+          <span class="ms pal-toggle-caret">expand_more</span>
+        </button>
+        <div class="pal-menu" id="pal-menu" role="listbox" hidden></div>
+      </div>
+      <div class="pal-swatches" id="pal-swatches"></div>
     </div>
   </div>
 </div>
@@ -445,6 +480,31 @@
           <span class="ms">auto_stories</span>
           <span class="ig-option-title" data-i18n="sh.igStory">Story</span>
           <span class="ig-option-sub" data-i18n="sh.igStorySub">Posting ke story</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REPLACE PHOTO MODAL -->
+<div id="replace-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="replace-title">
+  <div class="modal-card ig-card">
+    <div class="modal-header">
+      <h2 id="replace-title"><span class="ms">refresh</span><span data-i18n="rp.title">Ganti Foto</span></h2>
+      <button id="btn-close-replace" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="again-text" data-i18n="rp.text">Mau ganti foto ini dengan apa?</p>
+      <div class="ig-grid">
+        <button type="button" class="ig-option" id="rp-retake">
+          <span class="ms">photo_camera</span>
+          <span class="ig-option-title" data-i18n="rp.retake">Retake</span>
+          <span class="ig-option-sub" data-i18n="rp.retakeSub">Jepret ulang pakai kamera</span>
+        </button>
+        <button type="button" class="ig-option" id="rp-gallery">
+          <span class="ms">photo_library</span>
+          <span class="ig-option-title" data-i18n="rp.gallery">Buka Galeri</span>
+          <span class="ig-option-sub" data-i18n="rp.gallerySub">Pilih dari galeri</span>
         </button>
       </div>
     </div>

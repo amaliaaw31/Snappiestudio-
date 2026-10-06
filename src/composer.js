@@ -2,7 +2,7 @@
    Redraws the framed photo strip on a <canvas> so the downloaded file
    matches the on-screen HTML preview. */
 
-import { CHARS, CHAR_SVG, filterCss, dateLine, fontTracking } from './data.js';
+import { CHARS, CHAR_SVG, filterCss, dateLine, fontTracking, DATE_COLORS } from './data.js';
 import { getLang } from './i18n.js';
 
 let charImgs = null;
@@ -42,17 +42,8 @@ function coverDraw(x, img, X, Y, W, H, zoom = 1, ox = 0, oy = 0) {
   x.drawImage(img, dx, dy, cw, ch, X, Y, W, H);
 }
 
-const DATE_COLORS = {
-  pastel: '#c46998', cream: '#b39b74', confetti: '#8f8fb0', floral: '#6d9973',
-  neon: '#ff007f', y2k: '#7b68ee', film: '#f5a623', midnight: '#e0b94c',
-  chrome: '#4d5f80', scrap: '#8a6a3c', digi: '#ff8c1a', coquette: '#c2557e',
-  aero: '#0a6bb0', doodle: '#23233a', minimal: '#111111',
-  birthday: '#e0487b', wedding: '#9a7b4f', lebaran: '#f0d98a',
-  natal: '#0f6b3a', valentine: '#d6336c', baby: '#5a8fc0',
-};
-
 /** Compose the final framed strip. Returns a <canvas>. */
-export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '', showFrame = true, captionFont = 'Matcha Iced', customFrame = null, captionFit = null, dateFont = 'Matcha Iced') {
+export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '', showFrame = true, captionFont = 'Matcha Iced', customFrame = null, captionFit = null, dateFont = 'Matcha Iced', captionColor = '', dateColor = '', frameOutline = true) {
   await loadCharImgs();
   if (document.fonts && document.fonts.load) {
     const families = [
@@ -113,6 +104,10 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
 
   /* background + border per theme */
   if (showFrame) {
+  /* "Garis bingkai" (outline) mati: gambar latar/motif saja, jangan garis. */
+  const fo = frameOutline !== false;
+  const _stroke = x.stroke, _strokeRect = x.strokeRect;
+  if (!fo) { x.stroke = () => {}; x.strokeRect = () => {}; }
   if (t === 'pastel') {
     const g = x.createLinearGradient(0, 0, W, H);
     g.addColorStop(0, '#ffe6f2'); g.addColorStop(.4, '#ffd3e8'); g.addColorStop(1, '#e9dcff');
@@ -311,9 +306,12 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
       }
       x.restore();
     }
-    x.lineWidth = 4 * scale; x.strokeStyle = outline;
-    x.strokeRect(x.lineWidth / 2, x.lineWidth / 2, W - x.lineWidth, H - x.lineWidth);
+    if (cf.outlineOn !== false && fo) {
+      x.lineWidth = 4 * scale; x.strokeStyle = outline;
+      x.strokeRect(x.lineWidth / 2, x.lineWidth / 2, W - x.lineWidth, H - x.lineWidth);
+    }
   }
+  if (!fo) { x.stroke = _stroke; x.strokeRect = _strokeRect; }
   }
 
   /* photo slots */
@@ -401,7 +399,8 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
   });
 
   if (hasCaption) {
-  const capColor = (t === 'custom' && customFrame && customFrame.text) ? customFrame.text : (DATE_COLORS[t] || '#8f8fb0');
+  const capColor = captionColor || DATE_COLORS[t] || '#8f8fb0';
+  const dateColorFinal = dateColor || DATE_COLORS[t] || '#8f8fb0';
   let top = padTop + photosH + capPadTop;
   /* caption (nama/ucapan) — font terpisah dari tanggal */
   if (customText) {
@@ -420,7 +419,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     x.textAlign = 'center'; x.textBaseline = 'middle';
     x.font = '700 ' + dateFontPx + 'px "' + dateFont + '", "Trebuchet MS", sans-serif';
     x.letterSpacing = (((dateFit && dateFit.spacing) || 0) * scale) + 'px';
-    x.fillStyle = capColor;
+    x.fillStyle = dateColorFinal;
     x.fillText(dateLine(getLang()), W / 2, top + h / 2);
     top += h;
   }
