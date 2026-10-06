@@ -43,7 +43,7 @@ function coverDraw(x, img, X, Y, W, H, zoom = 1, ox = 0, oy = 0) {
 }
 
 /** Compose the final framed strip. Returns a <canvas>. */
-export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '', showFrame = true, captionFont = 'Matcha Iced', customFrame = null, captionFit = null, dateFont = 'Matcha Iced', captionColor = '', dateColor = '', frameOutline = true) {
+export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '', showFrame = true, captionFont = 'Matcha Iced', customFrame = null, captionFit = null, dateFont = 'Matcha Iced', captionColor = '', dateColor = '', frameOutline = true, customDate = '') {
   await loadCharImgs();
   if (document.fonts && document.fonts.load) {
     const families = [
@@ -426,7 +426,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     x.font = '700 ' + dateFontPx + 'px "' + dateFont + '", "Trebuchet MS", sans-serif';
     x.letterSpacing = (((dateFit && dateFit.spacing) || 0) * scale) + 'px';
     x.fillStyle = dateColorFinal;
-    x.fillText(dateLine(getLang()), W / 2, top + h / 2);
+    x.fillText(customDate || dateLine(getLang()), W / 2, top + h / 2);
     top += h;
   }
   x.letterSpacing = '0px';

@@ -1,6 +1,6 @@
 /* Photo Booth — app logic: camera, filters, countdown, capture, result, stickers. */
 
-import { FILTERS, THEMES, CHARS, EMOJI_STICKERS, dateLine, filterCss, fontTracking, fontLineHeight, DATE_COLORS } from './data.js';
+import { FILTERS, THEMES, CHARS, EMOJI_STICKERS, dateLine, formatDate, filterCss, fontTracking, fontLineHeight, DATE_COLORS } from './data.js';
 import { compose } from './composer.js';
 import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
 import bacUrl from './assets/bac.jpg';
@@ -23,6 +23,7 @@ const state = {
   showDate: false,
   frame: true,
   customText: '',
+  customDate: '',
   captionFont: 'Matcha Iced',
   dateFont: 'Matcha Iced',
   captionColor: '',
@@ -38,6 +39,7 @@ const state = {
   flash: 'on',
   sound: true
 };
+let dateWheel = null;
 const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = s => String(s).replace(/[&<>"']/g, c =>
@@ -515,9 +517,11 @@ function resetFrameSettings() {
   state.showDate = false;
   state.frame = true;
   state.customText = '';
+  state.customDate = '';
   if ($('caption-font')) $('caption-font').value = state.captionFont;
   if ($('date-font')) $('date-font').value = state.dateFont;
   if ($('custom-text')) $('custom-text').value = '';
+  if (dateWheel) dateWheel.set('');
   if ($('toggle-date')) $('toggle-date').checked = false;
   if ($('toggle-frame')) $('toggle-frame').checked = true;
   if (typeof syncTextColorsUI === 'function') syncTextColorsUI();
@@ -871,11 +875,14 @@ function lineLayout(text, font, innerW) {
   }
   return { font, size, spacing, lineHeight, height: size * lineHeight };
 }
+/* Teks tanggal: pakai tanggal kustom kalau diisi, kalau tidak otomatis hari ini. */
+function currentDateText() { return state.customDate ? formatDate(state.customDate, getLang()) : dateLine(getLang()); }
+
 /* Layout caption dan tanggal terpisah (font bisa berbeda). */
 function captionLayout() {
   const innerW = (state.layout === 1 || state.layout === 3) ? 240 : 380;   // lebar dalam bingkai (px CSS)
   const cap = lineLayout(state.customText || '', state.captionFont || 'Matcha Iced', innerW);
-  const date = lineLayout(state.showDate ? dateLine(getLang()) : '', state.dateFont || 'Matcha Iced', innerW);
+  const date = lineLayout(state.showDate ? currentDateText() : '', state.dateFont || 'Matcha Iced', innerW);
   return { cap, date };
 }
 function lineStyleString(L, color) {
@@ -913,7 +920,7 @@ function frameHTML() {
   const fsCap = lineStyleString(L.cap, state.captionColor);
   const fsDate = lineStyleString(L.date, state.dateColor);
   const customHTML = state.customText ? '<div class="frame-date" style="' + fsCap + '">' + esc(state.customText) + '</div>' : '';
-  const dateHTML = state.showDate ? '<div class="frame-date" style="' + fsDate + '">' + dateLine(getLang()) + '</div>' : '';
+  const dateHTML = state.showDate ? '<div class="frame-date" style="' + fsDate + '">' + esc(currentDateText()) + '</div>' : '';
   const captionsHTML = '<div class="frame-captions" style="min-height:' + captionAreaMinHeight(L).toFixed(1) + 'px">' + customHTML + dateHTML + '</div>';
   const th = state.frame ? 'th-' + state.theme : 'noframe';
   const cf = customFrameAttr();
@@ -957,6 +964,7 @@ function renderResult() {
   syncThemePickers();
   syncTextColorsUI();
   renderUserStickers();
+  updateDateButton();
   fitFrame('result-holder');
   scheduleDraft(); commitHistory();
 }
@@ -977,7 +985,7 @@ function previewHTML() {
   const fsCap = lineStyleString(L.cap, state.captionColor);
   const fsDate = lineStyleString(L.date, state.dateColor);
   const customHTML = state.customText ? '<div class="frame-date" style="' + fsCap + '">' + esc(state.customText) + '</div>' : '';
-  const dateHTML = state.showDate ? '<div class="frame-date" style="' + fsDate + '">' + dateLine(getLang()) + '</div>' : '';
+  const dateHTML = state.showDate ? '<div class="frame-date" style="' + fsDate + '">' + esc(currentDateText()) + '</div>' : '';
   const captionsHTML = '<div class="frame-captions" style="min-height:' + captionAreaMinHeight(L).toFixed(1) + 'px">' + customHTML + dateHTML + '</div>';
   const th = state.frame ? 'th-' + state.theme : 'noframe';
   const cf = customFrameAttr();
@@ -1181,6 +1189,109 @@ if (customInput) {
     if (currentScreen === 'scr-result') renderResult();
   };
 }
+
+/* ============ pemilih tanggal kustom (roda angka) ============ */
+function initDateWheel() {
+  const dayEl = $('dw-day'), monEl = $('dw-month'), yearEl = $('dw-year');
+  if (!dayEl || !monEl || !yearEl) return;
+  const ITEM = 40;
+  const now = new Date();
+  const yearMin = now.getFullYear() - 80;
+  const yearMax = now.getFullYear() + 10;
+  const pad = n => String(n).padStart(2, '0');
+  const range = (a, b) => { const r = []; for (let i = a; i <= b; i++) r.push(i); return r; };
+  const daysIn = (yy, mm) => new Date(yy, mm, 0).getDate();
+  const fill = (el, arr) => { el.innerHTML = arr.map(v => '<div class="dw-item">' + v + '</div>').join(''); };
+  const indexOf = el => Math.max(0, Math.min(el.children.length - 1, Math.round(el.scrollTop / ITEM)));
+  const scrollTo = (el, i) => { el.scrollTop = i * ITEM; };
+
+  let cur = { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() };
+  let settling = false, timer = null;
+
+  fill(yearEl, range(yearMin, yearMax));
+  fill(monEl, range(1, 12));
+  fill(dayEl, range(1, 31));
+
+  function rebuildDays() {
+    const n = daysIn(cur.y, cur.m);
+    if (cur.d > n) cur.d = n;
+    if (dayEl.children.length !== n) fill(dayEl, range(1, n));
+  }
+  function position() {
+    rebuildDays();
+    scrollTo(yearEl, cur.y - yearMin);
+    scrollTo(monEl, cur.m - 1);
+    scrollTo(dayEl, cur.d - 1);
+  }
+  function withGuard(fn) {
+    settling = true; fn();
+    setTimeout(() => { settling = false; }, 350);
+  }
+  function apply() {
+    state.customDate = cur.y + '-' + pad(cur.m) + '-' + pad(cur.d);
+    if (currentScreen === 'scr-preview') renderPreview();
+    else if (currentScreen === 'scr-result') renderResult();
+  }
+  function settle() {
+    cur.d = indexOf(dayEl) + 1;
+    cur.m = indexOf(monEl) + 1;
+    cur.y = yearMin + indexOf(yearEl);
+    withGuard(rebuildDays);
+    scrollTo(dayEl, cur.d - 1);
+    apply();
+  }
+  const onScroll = () => {
+    if (settling) return;
+    clearTimeout(timer);
+    timer = setTimeout(settle, 140);
+  };
+  [dayEl, monEl, yearEl].forEach(el => el.addEventListener('scroll', onScroll, { passive: true }));
+
+  dateWheel = {
+    set(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+      if (m) cur = { y: +m[1], m: +m[2], d: +m[3] };
+      else { const n = new Date(); cur = { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate() }; }
+    },
+    refresh() { withGuard(position); },
+  };
+  dateWheel.set(state.customDate);
+
+  const auto = $('dp-auto');
+  if (auto) auto.onclick = () => {
+    state.customDate = '';
+    dateWheel.set('');
+    dateWheel.refresh();
+    updateDateButton();
+    if (currentScreen === 'scr-preview') renderPreview();
+    else if (currentScreen === 'scr-result') renderResult();
+  };
+}
+initDateWheel();
+
+function updateDateButton() {
+  const lbl = $('date-edit-label');
+  if (lbl) lbl.textContent = currentDateText();
+  const btn = $('date-edit-btn');
+  if (btn) {
+    btn.disabled = !state.showDate;          // aktif hanya saat toggle tanggal menyala
+    btn.setAttribute('aria-disabled', String(!state.showDate));
+  }
+}
+updateDateButton();
+
+const dateEditBtn = $('date-edit-btn');
+if (dateEditBtn) {
+  dateEditBtn.onclick = () => {
+    openModal('date-modal');
+    if (dateWheel) dateWheel.set(state.customDate);
+    requestAnimationFrame(() => { if (dateWheel) dateWheel.refresh(); });
+  };
+}
+const dateModal = $('date-modal');
+if ($('btn-close-date')) $('btn-close-date').onclick = () => closeModal('date-modal');
+if ($('dp-done')) $('dp-done').onclick = () => closeModal('date-modal');
+if (dateModal) dateModal.onclick = (e) => { if (e.target === dateModal) closeModal('date-modal'); };
 
 const captionFontSel = $('caption-font');
 if (captionFontSel) {
@@ -2128,7 +2239,7 @@ document.addEventListener('keydown', (e) => {
 
 /* ============ social share ============ */
 async function getWatermarkedFile() {
-  const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont, state.captionColor, state.dateColor, state.customFrame.outlineOn);
+  const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont, state.captionColor, state.dateColor, state.customFrame.outlineOn, state.customDate ? currentDateText() : '');
   const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
   const d = new Date(), p = n => String(n).padStart(2, '0');
   const fileName = 'snappie-studio-' + state.theme + '-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.png';
@@ -2175,6 +2286,20 @@ function launchApp(scheme) {
   window.location.href = scheme;
 }
 
+/* Siapkan file PNG saat modal dibuka, agar navigator.share (butuh user
+   activation) tidak kehilangan aktivasi karena menunggu proses compose. */
+let shareFilePromise = null;
+function primeShareFile() {
+  shareFilePromise = getWatermarkedFile();
+  shareFilePromise.catch(() => { shareFilePromise = null; });
+  return shareFilePromise;
+}
+function takeShareFile() {
+  const p = shareFilePromise;
+  shareFilePromise = null;
+  return p || getWatermarkedFile();
+}
+
 /* Ikon sosmed di layar hasil langsung membagikan foto ke platform terkait. */
 function initShareButtons() {
   const ig = $('share-ig'), wa = $('share-wa'), fb = $('share-fb'), tt = $('share-tt');
@@ -2195,7 +2320,7 @@ function initShareButtons() {
   };
 
   // Instagram — pilih Feed atau Story
-  ig.onclick = () => openModal('ig-modal');
+  ig.onclick = () => { primeShareFile(); openModal('ig-modal'); };
 
   const igModal = $('ig-modal');
   if ($('btn-close-ig')) $('btn-close-ig').onclick = () => closeModal('ig-modal');
@@ -2205,7 +2330,7 @@ function initShareButtons() {
     closeModal('ig-modal');
     copyShareText();
     try {
-      const file = await getWatermarkedFile();
+      const file = await takeShareFile();
       const r = await sharePhoto(file);
       if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') launchApp('instagram://app');
@@ -2216,7 +2341,7 @@ function initShareButtons() {
     closeModal('ig-modal');
     copyShareText();
     try {
-      const file = await getWatermarkedFile();
+      const file = await takeShareFile();
       const r = await sharePhoto(file);
       if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') launchApp('instagram://story-camera');
@@ -2227,7 +2352,7 @@ function initShareButtons() {
   wa.onclick = async () => {
     copyShareText();
     try {
-      const file = await getWatermarkedFile();
+      const file = await takeShareFile();
       const r = await sharePhoto(file);
       if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') {
@@ -2237,25 +2362,41 @@ function initShareButtons() {
     } catch (e) { /* batal — abaikan */ }
   };
 
-  // Facebook
-  fb.onclick = async () => {
+  // Facebook — pilih Feed / Story / Reels
+  fb.onclick = () => { primeShareFile(); openModal('fb-modal'); };
+  const fbModal = $('fb-modal');
+  if ($('btn-close-fb')) $('btn-close-fb').onclick = () => closeModal('fb-modal');
+  if (fbModal) fbModal.onclick = (e) => { if (e.target === fbModal) closeModal('fb-modal'); };
+  const shareFacebook = async (fallbackScheme) => {
+    closeModal('fb-modal');
     copyShareText();
     try {
-      const r = await sharePhoto(await getWatermarkedFile());
+      const r = await sharePhoto(await takeShareFile());
       if (r === 'shared') { offerAnotherSession(); }
-      else if (r === 'unsupported') launchApp('fb://');
+      else if (r === 'unsupported') launchApp(fallbackScheme || 'fb://');
     } catch (e) { /* batal — abaikan */ }
   };
+  if ($('fb-feed')) $('fb-feed').onclick = () => shareFacebook('fb://');
+  if ($('fb-story')) $('fb-story').onclick = () => shareFacebook('fb://');
+  if ($('fb-reels')) $('fb-reels').onclick = () => shareFacebook('fb://');
 
-  // TikTok
-  tt.onclick = async () => {
+  // TikTok — pilih Video / Foto / Story
+  tt.onclick = () => { primeShareFile(); openModal('tt-modal'); };
+  const ttModal = $('tt-modal');
+  if ($('btn-close-tt')) $('btn-close-tt').onclick = () => closeModal('tt-modal');
+  if (ttModal) ttModal.onclick = (e) => { if (e.target === ttModal) closeModal('tt-modal'); };
+  const shareTiktok = async () => {
+    closeModal('tt-modal');
     copyShareText('#SnappieStudio #yourlittlephotomoment');
     try {
-      const r = await sharePhoto(await getWatermarkedFile());
+      const r = await sharePhoto(await takeShareFile());
       if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') launchApp('snssdk1233://camera');
     } catch (e) { /* batal — abaikan */ }
   };
+  if ($('tt-video')) $('tt-video').onclick = shareTiktok;
+  if ($('tt-photo')) $('tt-photo').onclick = shareTiktok;
+  if ($('tt-story')) $('tt-story').onclick = shareTiktok;
 }
 
 initShareButtons();
@@ -2291,7 +2432,7 @@ $('btn-download').onclick = async () => {
   if (label) label.textContent = 'Bikin PNG...';
   if (ico) ico.classList.add('spin');
   try {
-    const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont, state.captionColor, state.dateColor, state.customFrame.outlineOn);
+    const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont, state.captionColor, state.dateColor, state.customFrame.outlineOn, state.customDate ? currentDateText() : '');
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     const a = document.createElement('a');
     const d = new Date(), p = n => String(n).padStart(2, '0');
@@ -2320,7 +2461,7 @@ function snapshotState() {
     photos: state.photos.map(p => ({ ...p })),
     stickers: state.stickers.map(s => ({ ...s })),
     theme: state.theme, layout: state.layout, showDate: state.showDate,
-    frame: state.frame, customText: state.customText, captionFont: state.captionFont,
+    frame: state.frame, customText: state.customText, customDate: state.customDate, captionFont: state.captionFont,
     dateFont: state.dateFont, captionColor: state.captionColor, dateColor: state.dateColor,
     customFrame: { ...state.customFrame },
   };
@@ -2329,7 +2470,7 @@ function stateKey() {
   return JSON.stringify({
     p: state.photos.map(p => [p.id, p.filter, p.zoom || 1, p.ox || 0, p.oy || 0]),
     s: state.stickers,
-    t: state.theme, l: state.layout, d: state.showDate, f: state.frame, c: state.customText,
+    t: state.theme, l: state.layout, d: state.showDate, f: state.frame, c: state.customText, cd: state.customDate,
     ff: state.captionFont, df: state.dateFont, cc: state.captionColor, dc: state.dateColor,
     cf: state.customFrame,
   });
@@ -2357,7 +2498,7 @@ function applySnapshot(s) {
   state.photos = s.photos.map(p => ({ ...p }));
   state.stickers = s.stickers.map(x => ({ ...x }));
   state.theme = s.theme; state.layout = s.layout; state.showDate = s.showDate;
-  state.frame = s.frame; state.customText = s.customText; state.captionFont = s.captionFont || 'Matcha Iced';
+  state.frame = s.frame; state.customText = s.customText; state.customDate = s.customDate || ''; state.captionFont = s.captionFont || 'Matcha Iced';
   state.dateFont = s.dateFont || 'Matcha Iced';
   state.captionColor = s.captionColor || '';
   state.dateColor = s.dateColor || '';
@@ -2369,6 +2510,7 @@ function applySnapshot(s) {
   if ($('toggle-date')) $('toggle-date').checked = state.showDate;
   if ($('toggle-frame')) $('toggle-frame').checked = state.frame;
   if ($('custom-text')) $('custom-text').value = state.customText;
+  if (dateWheel) dateWheel.set(state.customDate);
   if ($('caption-font')) $('caption-font').value = state.captionFont;
   if ($('date-font')) $('date-font').value = state.dateFont;
   renderDots(); renderThumbs();
@@ -2425,7 +2567,7 @@ function saveDraft() {
     });
     localStorage.setItem(DRAFT_KEY, JSON.stringify({
       v: 1, layout: state.layout, theme: state.theme, showDate: state.showDate,
-      frame: state.frame, customText: state.customText, captionFont: state.captionFont,
+      frame: state.frame, customText: state.customText, customDate: state.customDate, captionFont: state.captionFont,
       dateFont: state.dateFont, captionColor: state.captionColor, dateColor: state.dateColor,
       customFrame: state.customFrame, stickers: state.stickers, photos,
     }));

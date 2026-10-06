@@ -229,6 +229,9 @@
       <button type="button" class="font-color" id="date-color" data-color="#8a5b7e" aria-label="Warna" title="Warna"></button>
     </div>
   </div>
+  <button type="button" id="date-edit-btn" class="date-edit-btn">
+    <span class="ms">edit_calendar</span><span id="date-edit-label">Tanggal</span>
+  </button>
   <input type="text" id="custom-text" class="custom-text-input" maxlength="28"
     data-i18n-ph="rs.namePh" placeholder="Tulis nama / ucapan (opsional)" autocomplete="off">
   <div class="setting result-font">
@@ -536,6 +539,85 @@
           <span class="ig-option-title" data-i18n="sh.igStory">Story</span>
           <span class="ig-option-sub" data-i18n="sh.igStorySub">Posting ke story</span>
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FACEBOOK SHARE MODAL -->
+<div id="fb-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="fb-title">
+  <div class="modal-card ig-card">
+    <div class="modal-header">
+      <h2 id="fb-title"><span class="ms">thumb_up</span><span data-i18n="sh.fbTitle">Bagikan ke Facebook</span></h2>
+      <button id="btn-close-fb" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="ig-grid">
+        <button type="button" class="ig-option" id="fb-feed">
+          <span class="ms">feed</span>
+          <span class="ig-option-title" data-i18n="sh.fbFeed">Feed</span>
+          <span class="ig-option-sub" data-i18n="sh.fbFeedSub">Posting ke beranda</span>
+        </button>
+        <button type="button" class="ig-option" id="fb-story">
+          <span class="ms">auto_stories</span>
+          <span class="ig-option-title" data-i18n="sh.fbStory">Story</span>
+          <span class="ig-option-sub" data-i18n="sh.fbStorySub">Posting ke story</span>
+        </button>
+        <button type="button" class="ig-option" id="fb-reels">
+          <span class="ms">movie</span>
+          <span class="ig-option-title" data-i18n="sh.fbReels">Reels</span>
+          <span class="ig-option-sub" data-i18n="sh.fbReelsSub">Posting sebagai Reels</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIKTOK SHARE MODAL -->
+<div id="tt-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tt-title">
+  <div class="modal-card ig-card">
+    <div class="modal-header">
+      <h2 id="tt-title"><span class="ms">music_note</span><span data-i18n="sh.ttTitle">Bagikan ke TikTok</span></h2>
+      <button id="btn-close-tt" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="ig-grid">
+        <button type="button" class="ig-option" id="tt-video">
+          <span class="ms">movie</span>
+          <span class="ig-option-title" data-i18n="sh.ttVideo">Video</span>
+          <span class="ig-option-sub" data-i18n="sh.ttVideoSub">Posting sebagai video</span>
+        </button>
+        <button type="button" class="ig-option" id="tt-photo">
+          <span class="ms">photo_library</span>
+          <span class="ig-option-title" data-i18n="sh.ttPhoto">Foto</span>
+          <span class="ig-option-sub" data-i18n="sh.ttPhotoSub">Posting sebagai foto / slide</span>
+        </button>
+        <button type="button" class="ig-option" id="tt-story">
+          <span class="ms">auto_stories</span>
+          <span class="ig-option-title" data-i18n="sh.ttStory">Story</span>
+          <span class="ig-option-sub" data-i18n="sh.ttStorySub">Posting ke story TikTok</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DATE PICKER MODAL -->
+<div id="date-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="date-title">
+  <div class="modal-card ig-card">
+    <div class="modal-header">
+      <h2 id="date-title"><span class="ms">calendar_month</span><span data-i18n="rs.dateTitle">Pilih Tanggal</span></h2>
+      <button id="btn-close-date" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="date-wheel-row" role="group" aria-label="Tanggal kustom">
+        <div class="date-wheel" id="dw-day" tabindex="0" aria-label="Tanggal"></div>
+        <div class="date-wheel" id="dw-month" tabindex="0" aria-label="Bulan"></div>
+        <div class="date-wheel" id="dw-year" tabindex="0" aria-label="Tahun"></div>
+      </div>
+      <div class="btnrow">
+        <button type="button" id="dp-auto" class="btn ghost" data-i18n="rs.dateAuto">Otomatis</button>
+        <button type="button" id="dp-done" class="btn" data-i18n="rs.dateDone">Selesai</button>
       </div>
     </div>
   </div>

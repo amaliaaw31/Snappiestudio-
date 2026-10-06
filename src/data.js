@@ -161,6 +161,14 @@ export function dateLine(lang = 'id') {
     .replace('DD', p(d.getDate()));
 }
 
+/* Format string tanggal ISO 'YYYY-MM-DD' sesuai format bahasa. */
+export function formatDate(iso, lang = 'id') {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if (!m) return '';
+  const fmt = DATE_FORMATS[lang] || DATE_FORMATS.id;
+  return fmt.replace('YYYY', m[1]).replace('MM', m[2]).replace('DD', m[3]);
+}
+
 export const EMOJI_STICKERS = [
   '💖', '✨', '🎀', '👑', '🕶️', '🌸', '⚡', '🍒',
   '🍕', '🌟', '🎈', '🎉', '🍿', '💋', '🐾', '🌈',

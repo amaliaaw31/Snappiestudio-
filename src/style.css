@@ -294,6 +294,31 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .custom-text-input { width: 100%; max-width: 360px; margin-top: 10px; padding: 11px 18px; border-radius: 999px;
   border: 2px solid #d9b8d0; background: #fff; color: #6a4a6a; font-family: inherit; font-size: 14px;
   text-align: center; outline: none; }
+/* Roda tanggal kustom (tanggal / bulan / tahun) */
+.date-wheel-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 10px 0 4px; }
+.date-wheel { height: 120px; width: 60px; overflow-y: auto; scroll-snap-type: y mandatory;
+  background: #fff; border: 2px solid #d9b8d0; border-radius: 14px; padding: 40px 0;
+  text-align: center; scrollbar-width: none; -ms-overflow-style: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 26%, #000 74%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 26%, #000 74%, transparent); }
+.date-wheel::-webkit-scrollbar { display: none; }
+.date-wheel .dw-item { height: 40px; line-height: 40px; scroll-snap-align: center;
+  font-weight: 700; color: #6a4a6a; font-size: 16px; }
+.date-wheel:focus-visible { outline: 2px solid #d63384; outline-offset: 2px; }
+.dp-auto { border: 2px solid #d9b8d0; background: #fff; color: #8a5b7e; border-radius: 999px;
+  padding: 8px 12px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.dark-mode .date-wheel { background: #2a2740; border-color: #4a4568; }
+.dark-mode .date-wheel .dw-item { color: #eee6f5; }
+.dark-mode .dp-auto { background: #2a2740; color: #eee6f5; border-color: #4a4568; }
+.date-edit-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 10px 0 4px; padding: 10px 18px; border: 2px solid #d9b8d0; background: #fff; color: #6a4a6a;
+  border-radius: 999px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.date-edit-btn .ms { font-size: 18px; color: #d63384; }
+.date-edit-btn:active { transform: scale(.97); }
+.date-edit-btn:disabled { opacity: .45; cursor: default; }
+.date-edit-btn:disabled:active { transform: none; }
+.date-edit-btn:disabled .ms { color: #b79ccb; }
+.dark-mode .date-edit-btn { background: #2a2740; color: #eee6f5; border-color: #4a4568; }
 .custom-text-input:focus { border-color: #d63384; }
 .custom-text-input::placeholder { color: #b39bbf; }
 .result-font { margin: 10px 0 2px; }
