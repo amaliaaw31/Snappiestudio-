@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snappie Studio 📸 — your little photo moment</title>
+<meta name="description" content="Snappie Studio — web photo booth: ambil foto atau pilih dari galeri, pilih filter & bingkai lucu, tambah stiker, lalu unduh atau bagikan. Semua diproses di perangkatmu.">
+<meta name="theme-color" content="#d63384">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d63384'/%3E%3Crect x='10' y='20' width='44' height='30' rx='6' fill='%23fff'/%3E%3Ccircle cx='32' cy='35' r='9' fill='%23d63384'/%3E%3Crect x='24' y='13' width='16' height='8' rx='3' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d63384'/%3E%3Crect x='10' y='20' width='44' height='30' rx='6' fill='%23fff'/%3E%3Ccircle cx='32' cy='35' r='9' fill='%23d63384'/%3E%3Crect x='24' y='13' width='16' height='8' rx='3' fill='%23fff'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Snappie Studio 📸 — your little photo moment">
+<meta property="og:description" content="Web photo booth: filter, bingkai lucu, stiker, lalu unduh atau bagikan ke sosmed.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Snappie Studio 📸">
+<meta name="twitter:description" content="Web photo booth: filter, bingkai lucu, stiker, lalu bagikan.">
+<link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+
+<!-- character sticker definitions -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="ch-bear" viewBox="0 0 48 48"><circle cx="11" cy="13" r="7.5" fill="#8a5a34"/><circle cx="37" cy="13" r="7.5" fill="#8a5a34"/><circle cx="11" cy="13" r="3.4" fill="#d9a06b"/><circle cx="37" cy="13" r="3.4" fill="#d9a06b"/><circle cx="24" cy="27" r="16" fill="#b07a4f"/><ellipse cx="24" cy="33" rx="8.5" ry="6.5" fill="#e8c9a0"/><circle cx="17" cy="24" r="2.6" fill="#23233a"/><circle cx="31" cy="24" r="2.6" fill="#23233a"/><ellipse cx="24" cy="30.5" rx="3" ry="2.4" fill="#23233a"/><path d="M24 33 v3 M24 36 q-3 3 -6 2 M24 36 q3 3 6 2" stroke="#23233a" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="ch-bunny" viewBox="0 0 48 48"><ellipse cx="16" cy="11" rx="5.5" ry="11" fill="#f4f4f8" stroke="#23233a" stroke-width="2"/><ellipse cx="32" cy="11" rx="5.5" ry="11" fill="#f4f4f8" stroke="#23233a" stroke-width="2"/><ellipse cx="16" cy="12" rx="2.4" ry="6.5" fill="#ffb3c7"/><ellipse cx="32" cy="12" rx="2.4" ry="6.5" fill="#ffb3c7"/><circle cx="24" cy="31" r="14.5" fill="#f4f4f8" stroke="#23233a" stroke-width="2"/><circle cx="18" cy="29" r="2.6" fill="#23233a"/><circle cx="30" cy="29" r="2.6" fill="#23233a"/><polygon points="24,33 21,36.5 27,36.5" fill="#ff8fab"/><rect x="22" y="37" width="4.4" height="4" fill="#fff" stroke="#23233a" stroke-width="1.4"/></symbol>
+<symbol id="ch-cat" viewBox="0 0 48 48"><polygon points="10,16 13,3 23,11" fill="#ff9f45" stroke="#23233a" stroke-width="2" stroke-linejoin="round"/><polygon points="38,16 35,3 25,11" fill="#ff9f45" stroke="#23233a" stroke-width="2" stroke-linejoin="round"/><circle cx="24" cy="28" r="15.5" fill="#ff9f45" stroke="#23233a" stroke-width="2"/><path d="M18 16 l-2 -4 M24 14.5 v-4.5 M30 16 l2 -4" stroke="#e07b28" stroke-width="2" stroke-linecap="round"/><circle cx="17.5" cy="26" r="2.6" fill="#23233a"/><circle cx="30.5" cy="26" r="2.6" fill="#23233a"/><polygon points="24,30 21.5,33.5 26.5,33.5" fill="#ff6b8f"/><path d="M14 32 l-6 -1 M14 35 l-6 1 M34 32 l6 -1 M34 35 l6 1" stroke="#23233a" stroke-width="1.4" stroke-linecap="round"/></symbol>
+<symbol id="ch-frog" viewBox="0 0 48 48"><circle cx="15" cy="12" r="7" fill="#6fbf5f" stroke="#23233a" stroke-width="2"/><circle cx="33" cy="12" r="7" fill="#6fbf5f" stroke="#23233a" stroke-width="2"/><circle cx="15" cy="12" r="4" fill="#fff"/><circle cx="33" cy="12" r="4" fill="#fff"/><circle cx="15" cy="13" r="2" fill="#23233a"/><circle cx="33" cy="13" r="2" fill="#23233a"/><ellipse cx="24" cy="30" rx="15.5" ry="13.5" fill="#6fbf5f" stroke="#23233a" stroke-width="2"/><circle cx="13" cy="31" r="3" fill="#ff9fb0" opacity=".8"/><circle cx="35" cy="31" r="3" fill="#ff9fb0" opacity=".8"/><path d="M17 32 Q24 38 31 32" stroke="#23233a" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="ch-chick" viewBox="0 0 48 48"><path d="M20 8 q1 -5 5 -5 M24 8 q2 -5 6 -4" stroke="#e0a92e" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="24" cy="27" r="15" fill="#ffd94d" stroke="#23233a" stroke-width="2"/><circle cx="18" cy="25" r="2.6" fill="#23233a"/><circle cx="30" cy="25" r="2.6" fill="#23233a"/><polygon points="24,28 18.5,33 29.5,33" fill="#ff8f3f" stroke="#23233a" stroke-width="1.6" stroke-linejoin="round"/><circle cx="14" cy="30" r="2.6" fill="#ff9fb0" opacity=".8"/><circle cx="34" cy="30" r="2.6" fill="#ff9fb0" opacity=".8"/></symbol>
+<symbol id="ch-star" viewBox="0 0 48 48"><polygon points="24,4 29,17 43,17 32,26 36,40 24,32 12,40 16,26 5,17 19,17" fill="#ffd166" stroke="#23233a" stroke-width="2.4" stroke-linejoin="round"/><circle cx="18.5" cy="22" r="2.4" fill="#23233a"/><circle cx="29.5" cy="22" r="2.4" fill="#23233a"/><path d="M19 29 Q24 33 29 29" stroke="#23233a" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<!-- START -->
+<div class="screen active" id="scr-start">
+  <h1>📸 Snappie Studio</h1>
+  <p class="tagline">"your little photo moment"</p>
+  <p class="desc">Jepret foto kece pakai filter,<br>hias dengan stiker lucu, lalu bagikan ke sosmed!</p>
+  <button class="btn" id="btn-start">Buka Kamera</button>
+  <button class="btn ghost" id="btn-gallery-start" style="margin-top:12px;">🖼️ Pilih dari Galeri</button>
+  <label class="date-toggle" for="toggle-mobile" style="margin-top:18px;">
+    <input type="checkbox" id="toggle-mobile">
+    <span class="track"><span class="thumb"></span></span>
+    <span class="date-toggle-label">📱 Mode Mobile Responsive</span>
+  </label>
+  <p class="desc" style="margin-top:18px; font-size:12px;">Butuh izin kamera &amp; koneksi HTTPS.<br>Foto cuma diproses di perangkatmu.</p>
+</div>
+
+<!-- CAMERA -->
+<div class="screen" id="scr-cam">
+  <div class="camstage">
+    <div class="camwrap" id="camwrap">
+      <video id="video" playsinline muted autoplay></video>
+      <div id="flash"></div>
+      <div id="countdown"></div>
+    </div>
+    <button id="shutter" aria-label="Jepret"></button>
+  </div>
+  <div class="cam-controls">
+    <button class="btn ghost small" id="btn-switch-cam" type="button">🔄 Ganti Kamera</button>
+    <label class="date-toggle" for="toggle-mirror" style="margin:0;">
+      <input type="checkbox" id="toggle-mirror" checked>
+      <span class="track"><span class="thumb"></span></span>
+      <span class="date-toggle-label">🪞 Mirror</span>
+    </label>
+  </div>
+  <div id="camerr">Kamera nggak bisa dibuka. Cek izin kamera / pakai HTTPS ya.</div>
+  <div class="label">FILTER</div>
+  <button type="button" id="filters" class="theme-select-btn" aria-haspopup="dialog" aria-controls="filter-modal"></button>
+  <div class="label">JUMLAH FOTO</div>
+  <div class="seg" id="layoutseg">
+    <button data-layout="1">1 foto</button>
+    <button data-layout="3" class="sel">3 foto</button>
+    <button data-layout="4">4 foto</button>
+    <button data-layout="6">6 foto</button>
+  </div>
+  <div class="label">PENGATURAN</div>
+  <div class="settings-row">
+    <label class="setting">
+      <span>⏱ Hitung mundur</span>
+      <select id="set-countdown" class="filter-select small" aria-label="Hitung mundur">
+        <option value="0">Tanpa</option>
+        <option value="3">3 dtk</option>
+        <option value="5">5 dtk</option>
+        <option value="10">10 dtk</option>
+      </select>
+    </label>
+    <label class="date-toggle" for="toggle-flash">
+      <input type="checkbox" id="toggle-flash" checked>
+      <span class="track"><span class="thumb"></span></span>
+      <span class="date-toggle-label">⚡ Flash</span>
+    </label>
+    <label class="date-toggle" for="toggle-sound">
+      <input type="checkbox" id="toggle-sound" checked>
+      <span class="track"><span class="thumb"></span></span>
+      <span class="date-toggle-label">🔔 Suara</span>
+    </label>
+  </div>
+  <div id="theme-block" class="theme-block" hidden>
+    <div class="label">TEMA BINGKAI</div>
+    <button type="button" id="themepick" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
+  </div>
+  <button class="btn ghost" id="btn-gallery" style="margin-top:16px;">🖼️ Tambah dari Galeri</button>
+  <div class="dots" id="dots"></div>
+  <div id="thumbs"></div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="scr-result">
+  <h1 style="margin-top:4px">Hasilnya! 🎉</h1>
+  <div id="result-holder"></div>
+  <div class="label">GANTI TEMA</div>
+  <button type="button" id="themepick2" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
+  <label class="date-toggle" for="toggle-date">
+    <input type="checkbox" id="toggle-date">
+    <span class="track"><span class="thumb"></span></span>
+    <span class="date-toggle-label">📅 Tambah Tanggal ke Bingkai</span>
+  </label>
+  <input type="text" id="custom-text" class="custom-text-input" maxlength="28"
+    placeholder="✎ Tulis nama / ucapan (opsional)" autocomplete="off">
+  <div class="btnrow">
+    <button class="btn ghost" id="btn-add-sticker">➕ Add Sticker</button>
+    <button class="btn share-btn" id="btn-open-share">🚀 Bagikan ke Sosmed</button>
+    <button class="btn" id="btn-download">⬇ Unduh PNG</button>
+    <button class="btn ghost" id="btn-retake">Foto Ulang</button>
+  </div>
+</div>
+
+<!-- STICKER MODAL -->
+<div id="sticker-modal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2>✨ Pilih Stiker / Add Sticker ✨</h2>
+      <button id="btn-close-sticker" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="sticker-section-title">Teks</div>
+      <div class="sticker-text-row">
+        <input type="text" id="sticker-text-input" class="custom-text-input" maxlength="40"
+          placeholder="Tulis teks, lalu Tambah (bisa dipindah)" autocomplete="off">
+        <button type="button" class="btn" id="btn-add-text">Tambah</button>
+      </div>
+      <div class="sticker-section-title">Karakter Lucu</div>
+      <div class="sticker-grid" id="char-sticker-grid"></div>
+      <div class="sticker-section-title">Emoji &amp; Simbol</div>
+      <div class="sticker-grid" id="emoji-sticker-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- THEME MODAL -->
+<div id="theme-modal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-card theme-modal-card">
+    <div class="modal-header">
+      <h2>✨ Pilih Tema Bingkai</h2>
+      <button id="btn-close-theme" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="theme-grid" id="theme-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER MODAL -->
+<div id="filter-modal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-card filter-modal-card">
+    <div class="modal-header">
+      <h2>🎨 Pilih Filter</h2>
+      <button id="btn-close-filter" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="theme-grid" id="filter-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TEXT EDIT MODAL -->
+<div id="text-edit-modal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-card text-edit-card">
+    <div class="modal-header">
+      <h2>✏️ Edit Teks</h2>
+      <button id="btn-close-text-edit" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="text-edit-input" class="custom-text-input" maxlength="40" autocomplete="off">
+      <div class="btnrow">
+        <button type="button" class="btn ghost" id="btn-cancel-text-edit">Batal</button>
+        <button type="button" class="btn" id="btn-save-text-edit">Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE MODAL -->
+<div id="share-modal" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-card share-card">
+    <div class="modal-header">
+      <h2>🚀 Bagikan ke Media Sosial ✨</h2>
+      <button id="btn-close-share" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body share-body">
+      <div class="share-wm-badge">
+        <span class="wm-icon">📸</span>
+        <div>
+          <strong>Watermark Otomatis:</strong>
+          <span>Snappie Studio • <em>your little photo moment</em></span>
+        </div>
+      </div>
+
+      <div class="share-grid">
+        <button class="share-item ig" id="share-ig">
+          <div class="share-icon">📸</div>
+          <div class="share-text">
+            <strong>Instagram</strong>
+            <span>Story / Feed</span>
+          </div>
+        </button>
+
+        <button class="share-item wa" id="share-wa">
+          <div class="share-icon">💬</div>
+          <div class="share-text">
+            <strong>WhatsApp</strong>
+            <span>Story / Chat</span>
+          </div>
+        </button>
+
+        <button class="share-item fb" id="share-fb">
+          <div class="share-icon">🔷</div>
+          <div class="share-text">
+            <strong>Facebook</strong>
+            <span>Post / Story</span>
+          </div>
+        </button>
+
+        <button class="share-item tt" id="share-tt">
+          <div class="share-icon">🎵</div>
+          <div class="share-text">
+            <strong>TikTok</strong>
+            <span>Video / Story</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="share-actions">
+        <button class="btn share-native-btn" id="share-native">
+          📲 Bagikan Langsung (Web Share API)
+        </button>
+        <button class="btn ghost share-copy-btn" id="share-copy-link">
+          🔗 Salin Caption &amp; Link
+        </button>
+      </div>
+      
+      <div id="share-toast" class="share-toast"></div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="image/*" multiple hidden>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
+
