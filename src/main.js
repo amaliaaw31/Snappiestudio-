@@ -3,10 +3,11 @@
 import { FILTERS, THEMES, CHARS, EMOJI_STICKERS, dateLine, filterCss } from './data.js';
 import { compose } from './composer.js';
 import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
+import bacUrl from './assets/bac.jpg';
 
 /* ============ state ============ */
-const LAYOUT_AR = { 1: '4 / 3', 3: '3 / 4', 4: '4 / 3', 6: '1 / 1' };
-const LAYOUT_ARN = { 1: 4 / 3, 3: 3 / 4, 4: 4 / 3, 6: 1 };
+const LAYOUT_AR = { 1: '4 / 3', 3: '4 / 3', 4: '4 / 3', 6: '4 / 3' };
+const LAYOUT_ARN = { 1: 4 / 3, 3: 4 / 3, 4: 4 / 3, 6: 4 / 3 };
 
 const state = {
   stream: null,
@@ -19,12 +20,14 @@ const state = {
   selectedStickerId: null,
   selectedPhotoIndex: null,
   showDate: false,
+  frame: true,
   customText: '',
+  captionFont: 'Matcha Iced',
   replaceIndex: null,
   facing: 'user',
   mirror: true,
   countdown: 3,
-  flash: true,
+  flash: 'on',
   sound: true
 };
 const $ = id => document.getElementById(id);
@@ -38,7 +41,8 @@ function savePrefs() {
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify({
       filter: state.filter, layout: state.layout, theme: state.theme,
-      showDate: state.showDate, mirror: state.mirror, facing: state.facing,
+      showDate: state.showDate, frame: state.frame,
+      captionFont: state.captionFont, mirror: state.mirror, facing: state.facing,
       countdown: state.countdown, flash: state.flash, sound: state.sound,
       dark: document.body.classList.contains('dark-mode'),
     }));
@@ -51,20 +55,26 @@ function loadPrefs() {
   if (LAYOUT_AR[p.layout]) state.layout = +p.layout;
   if (THEMES.some(t => t.id === p.theme)) state.theme = p.theme;
   if (typeof p.showDate === 'boolean') state.showDate = p.showDate;
+  if (typeof p.frame === 'boolean') state.frame = p.frame;
+  if (typeof p.captionFont === 'string') state.captionFont = p.captionFont;
   if (typeof p.mirror === 'boolean') state.mirror = p.mirror;
   if (p.facing === 'user' || p.facing === 'environment') state.facing = p.facing;
   if ([0, 3, 5, 10].includes(p.countdown)) state.countdown = p.countdown;
-  if (typeof p.flash === 'boolean') state.flash = p.flash;
+  if (typeof p.flash === 'string' && ['on', 'auto', 'off'].includes(p.flash)) state.flash = p.flash;
+  else if (typeof p.flash === 'boolean') state.flash = p.flash ? 'on' : 'off';
   if (typeof p.sound === 'boolean') state.sound = p.sound;
   if (p.dark) document.body.classList.add('dark-mode');
   return p;
 }
 loadPrefs();
+document.body.classList.add('on-start');
 
 let currentScreen = 'scr-start';
 let historyWorks = true;
+let updateFilterEdges = () => {};
 
 function activateScreen(id) {
+  if ((id === 'scr-preview' || id === 'scr-result') && !state.photos.length) id = 'scr-start';
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = $(id);
   if (!el) return;
@@ -77,6 +87,7 @@ function activateScreen(id) {
   }
   if (id === 'scr-cam') {
     renderDots(); renderThumbs();
+    requestAnimationFrame(updateFilterEdges);
     if (!state.stream) startCamera().then(ok => { if (ok) applyMirror(); });
   }
   if (id === 'scr-preview') renderPreview();
@@ -97,7 +108,17 @@ function goPreview() {
 }
 
 window.addEventListener('popstate', (e) => {
-  const id = (e.state && e.state.screen) ? e.state.screen : 'scr-start';
+  const openModals = document.querySelectorAll('.modal-overlay.open');
+  if (openModals.length) {
+    openModals.forEach(m => m.classList.remove('open'));
+    if (historyWorks) { try { window.history.pushState({ screen: currentScreen }, ''); } catch (err) { /* abaikan */ } }
+    return;
+  }
+  let id = (e.state && e.state.screen) ? e.state.screen : 'scr-start';
+  if ((id === 'scr-preview' || id === 'scr-result') && !state.photos.length) {
+    id = 'scr-start';
+    if (historyWorks) { try { window.history.replaceState({ screen: id }, ''); } catch (err) { /* abaikan */ } }
+  }
   activateScreen(id);
 });
 
@@ -129,7 +150,44 @@ function syncFilterPicker() {
   document.querySelectorAll('#filter-grid .filter-option').forEach(x => {
     x.classList.toggle('sel', x.dataset.id === state.filter);
   });
-  $('video').style.filter = filterCss(state.filter);
+  document.querySelectorAll('#filter-strip .filter-chip').forEach(x => {
+    x.classList.toggle('sel', x.dataset.id === state.filter);
+  });
+  const v = $('video');
+  if (v) v.style.filter = filterCss(state.filter);
+}
+
+/* Strip horizontal: bisa digeser kiri-kanan (drag dengan mouse, swipe dengan layar sentuh). */
+function makeDraggableScroll(el) {
+  let down = false, startX = 0, startLeft = 0, moved = 0;
+  el.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse') return;           // sentuh: pakai scroll native
+    down = true; moved = 0; startX = e.clientX; startLeft = el.scrollLeft;
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!down) return;
+    const dx = e.clientX - startX;
+    moved = Math.max(moved, Math.abs(dx));
+    if (moved > 6) {
+      el.classList.add('dragging');
+      el.scrollLeft = startLeft - dx;
+      e.preventDefault();
+    }
+  });
+  const up = () => { down = false; el.classList.remove('dragging'); };
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  el.addEventListener('pointerleave', up);
+  // Cegah filter ikut terpilih saat pengguna selesai menggeser.
+  el.addEventListener('click', (e) => {
+    if (moved > 6) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+  // roda mouse: ubah gulir vertikal jadi horizontal
+  el.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    el.scrollLeft += e.deltaY;
+    e.preventDefault();
+  }, { passive: false });
 }
 function chooseFilter(id) {
   state.filter = id;
@@ -143,25 +201,51 @@ function chooseFilter(id) {
 }
 function buildFilterPicker() {
   const grid = $('filter-grid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  FILTERS.forEach(f => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'filter-option' + (f.id === state.filter ? ' sel' : '');
-    b.dataset.id = f.id;
-    b.innerHTML = '<span class="filter-sample" style="filter:' + f.css + '"></span>' +
-      '<span class="filter-option-name">' + tr('filter.' + f.id) + '</span>';
-    b.onclick = () => { chooseFilter(f.id); closeModal('filter-modal'); };
-    grid.appendChild(b);
-  });
+  if (grid) {
+    grid.innerHTML = '';
+    FILTERS.forEach(f => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'filter-option' + (f.id === state.filter ? ' sel' : '');
+      b.dataset.id = f.id;
+      b.innerHTML = '<span class="filter-sample" style="filter:' + f.css + '"></span>' +
+        '<span class="filter-option-name">' + tr('filter.' + f.id) + '</span>';
+      b.onclick = () => { chooseFilter(f.id); closeModal('filter-modal'); };
+      grid.appendChild(b);
+    });
+  }
+  const strip = $('filter-strip');
+  if (strip) {
+    strip.innerHTML = '';
+    FILTERS.forEach(f => {
+      const c = document.createElement('button');
+      c.type = 'button';
+      c.className = 'filter-chip' + (f.id === state.filter ? ' sel' : '');
+      c.dataset.id = f.id;
+      c.innerHTML = '<span class="filter-sample" style="filter:' + f.css + '"></span>' +
+        '<span class="filter-option-name">' + tr('filter.' + f.id) + '</span>';
+      c.onclick = () => chooseFilter(f.id);
+      strip.appendChild(c);
+    });
+    makeDraggableScroll(strip);
+    const wrap = $('filter-strip-wrap');
+    updateFilterEdges = () => {
+      if (!wrap) return;
+      const max = strip.scrollWidth - strip.clientWidth;
+      wrap.classList.toggle('can-left', strip.scrollLeft > 2);
+      wrap.classList.toggle('can-right', max > 2 && strip.scrollLeft < max - 2);
+    };
+    strip.addEventListener('scroll', updateFilterEdges, { passive: true });
+    window.addEventListener('resize', updateFilterEdges);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateFilterEdges);
+  }
   const btn = $('filters');
   if (btn) {
     filterBtns.push(btn);
     btn.onclick = () => { syncFilterPicker(); openModal('filter-modal'); };
   }
   if ($('btn-close-filter')) $('btn-close-filter').onclick = () => closeModal('filter-modal');
-  filterModal.onclick = (e) => { if (e.target === filterModal) closeModal('filter-modal'); };
+  if (filterModal) filterModal.onclick = (e) => { if (e.target === filterModal) closeModal('filter-modal'); };
   syncFilterPicker();
 }
 buildFilterPicker();
@@ -215,7 +299,7 @@ function buildThemePicker() {
 buildThemePicker();
 
 function refreshPickers() {
-  document.querySelectorAll('#filter-grid .filter-option').forEach(x => {
+  document.querySelectorAll('#filter-grid .filter-option, #filter-strip .filter-chip').forEach(x => {
     const n = x.querySelector('.filter-option-name');
     if (n) n.textContent = tr('filter.' + x.dataset.id);
   });
@@ -225,6 +309,7 @@ function refreshPickers() {
   });
   syncFilterPicker();
   syncThemePickers();
+  if (typeof buildCountdownPicker === 'function') buildCountdownPicker();
 }
 
 function applyLang(code) {
@@ -295,6 +380,30 @@ function applyMirror() {
   if (v) v.style.transform = state.mirror ? 'scaleX(-1)' : 'none';
 }
 
+function doFlash() {
+  const f = $('flash');
+  if (!f) return;
+  f.style.transition = 'none'; f.style.opacity = '.85';
+  requestAnimationFrame(() => { f.style.transition = 'opacity .4s'; f.style.opacity = '0'; });
+}
+function ambientIsDark() {
+  const v = $('video');
+  if (!v || !v.videoWidth) return false;
+  const c = document.createElement('canvas');
+  c.width = 32; c.height = 24;
+  const x = c.getContext('2d');
+  try { x.drawImage(v, 0, 0, 32, 24); } catch (e) { return false; }
+  const d = x.getImageData(0, 0, 32, 24).data;
+  let sum = 0;
+  for (let i = 0; i < d.length; i += 4) sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+  return (sum / (d.length / 4)) < 90;
+}
+function shouldScreenFlash() {
+  if (state.flash === 'on') return true;
+  if (state.flash === 'auto') return ambientIsDark();
+  return false;
+}
+
 async function startCamera() {
   if (state.stream) state.stream.getTracks().forEach(t => t.stop());
   const camerr = $('camerr');
@@ -322,7 +431,12 @@ async function startCamera() {
 }
 
 $('btn-start').onclick = async () => {
-  if (await startCamera()) { applyMirror(); show('scr-cam'); }
+  if (await startCamera()) {
+    resetPhotos();                 // sesi baru: pastikan tidak ada foto user sebelumnya
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* abaikan */ }
+    applyMirror();
+    show('scr-cam');
+  }
 };
 
 const switchCamBtn = $('btn-switch-cam');
@@ -337,125 +451,29 @@ if (switchCamBtn) {
 }
 
 const mirrorToggle = $('toggle-mirror');
+function syncMirrorBtn() {
+  if (!mirrorToggle) return;
+  mirrorToggle.setAttribute('aria-pressed', String(state.mirror));
+  mirrorToggle.classList.toggle('active', state.mirror);
+}
 if (mirrorToggle) {
-  mirrorToggle.checked = state.mirror;
-  mirrorToggle.onchange = () => { state.mirror = mirrorToggle.checked; applyMirror(); savePrefs(); };
+  mirrorToggle.onclick = () => { state.mirror = !state.mirror; applyMirror(); syncMirrorBtn(); savePrefs(); };
+  syncMirrorBtn();
   applyMirror();
 }
 
 function renderDots() {
-  const d = $('dots'); d.innerHTML = '';
-  for (let i = 0; i < state.layout; i++) {
-    const s = document.createElement('span');
-    s.className = 'dot' + (i < state.photos.length ? ' full' : '');
-    d.appendChild(s);
-  }
-}
-let dragThumb = null;
-function initThumbDrag(el) {
-  el.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('.thumb-btn')) return;
-    dragThumb = el;
-    el.classList.add('dragging');
-    try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-  });
+  const sc = $('shot-count');
+  if (sc) sc.textContent = state.photos.length + ' / ' + state.layout;
 }
 
+/* Layar kamera tidak menampilkan thumbnail foto — cukup indikator jumlah. */
 function renderThumbs() {
-  const t = $('thumbs'); t.innerHTML = '';
-  state.photos.forEach((p, i) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'thumb'
-      + (state.replaceIndex === i ? ' retake' : '')
-      + (state.selectedPhotoIndex === i ? ' sel' : '');
-    wrap.dataset.index = i;
-
-    const img = document.createElement('img');
-    img.src = p.canvas.toDataURL('image/jpeg', .82);
-    img.alt = 'Foto ' + (i + 1);
-    img.style.filter = filterCss(p.filter);
-    img.draggable = false;
-    wrap.appendChild(img);
-
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'thumb-btn thumb-del';
-    del.textContent = '✕';
-    del.title = 'Hapus foto';
-    del.onclick = (e) => {
-      e.stopPropagation();
-      state.photos.splice(i, 1);
-      if (state.replaceIndex != null) {
-        if (state.replaceIndex === i || state.replaceIndex >= state.photos.length) state.replaceIndex = null;
-        else if (state.replaceIndex > i) state.replaceIndex--;
-      }
-      if (state.selectedPhotoIndex != null) {
-        if (state.selectedPhotoIndex === i || state.selectedPhotoIndex >= state.photos.length) state.selectedPhotoIndex = null;
-        else if (state.selectedPhotoIndex > i) state.selectedPhotoIndex--;
-      }
-      renderDots(); renderThumbs();
-    };
-    wrap.appendChild(del);
-
-    const re = document.createElement('button');
-    re.type = 'button';
-    re.className = 'thumb-btn thumb-retake';
-    re.textContent = '↻';
-    re.title = 'Jepret ulang foto ini';
-    re.onclick = (e) => {
-      e.stopPropagation();
-      state.replaceIndex = state.replaceIndex === i ? null : i;
-      renderThumbs();
-    };
-    wrap.appendChild(re);
-
-    initThumbDrag(wrap);
-    t.appendChild(wrap);
-  });
-
-  const tb = $('theme-block');
-  if (tb) tb.hidden = state.photos.length === 0;
-
   const pv = $('btn-to-preview');
   if (pv) pv.style.display = state.photos.length ? '' : 'none';
+  renderDots();
+  scheduleDraft(); commitHistory();
 }
-
-const thumbsBar = $('thumbs');
-thumbsBar.addEventListener('pointermove', (e) => {
-  if (!dragThumb) return;
-  let target = null;
-  for (const o of [...thumbsBar.children]) {
-    if (o === dragThumb) continue;
-    const r = o.getBoundingClientRect();
-    if (e.clientX < r.left + r.width / 2) { target = o; break; }
-  }
-  if (target) thumbsBar.insertBefore(dragThumb, target);
-  else thumbsBar.appendChild(dragThumb);
-});
-function endThumbDrag() {
-  if (!dragThumb) return;
-  const order = [...thumbsBar.children].map(c => +c.dataset.index);
-  const changed = order.some((v, idx) => v !== idx);
-  const tapped = +dragThumb.dataset.index;
-  dragThumb.classList.remove('dragging');
-  dragThumb = null;
-  if (changed) {
-    state.photos = order.map(i => state.photos[i]);
-    state.replaceIndex = null;
-    state.selectedPhotoIndex = null;
-    renderThumbs();
-  } else {
-    // tap tanpa geser = pilih/batal pilih foto (untuk atur filter per-foto)
-    state.selectedPhotoIndex = state.selectedPhotoIndex === tapped ? null : tapped;
-    if (state.selectedPhotoIndex != null && state.photos[tapped]) {
-      state.filter = state.photos[tapped].filter;
-      syncFilterPicker();
-    }
-    renderThumbs();
-  }
-}
-thumbsBar.addEventListener('pointerup', endThumbDrag);
-thumbsBar.addEventListener('pointercancel', endThumbDrag);
 
 renderDots();
 
@@ -486,11 +504,7 @@ $('shutter').onclick = async () => {
     cd.style.display = 'none';
   }
   capture();
-  if (state.flash) {
-    const f = $('flash');
-    f.style.transition = 'none'; f.style.opacity = '.85';
-    requestAnimationFrame(() => { f.style.transition = 'opacity .4s'; f.style.opacity = '0'; });
-  }
+  if (shouldScreenFlash()) doFlash();
   if (state.sound) beep();
   state.busy = false; $('shutter').disabled = false;
   if (replacing || state.photos.length >= state.layout) { await sleep(400); goPreview(); }
@@ -508,7 +522,7 @@ function capture() {
   const x = c.getContext('2d');
   if (state.mirror) { x.translate(cw, 0); x.scale(-1, 1); }   // mirror like preview
   x.drawImage(v, sx, sy, cw, ch, 0, 0, cw, ch);
-  const photo = { canvas: c, filter: state.filter };         // filter disimpan per foto
+  const photo = { id: Date.now() + Math.random(), canvas: c, filter: state.filter, zoom: 1, ox: 0, oy: 0 };   // filter + crop per foto
   if (state.replaceIndex != null && state.replaceIndex < state.photos.length) {
     state.photos[state.replaceIndex] = photo;                // re-jepret slot ini
     state.replaceIndex = null;
@@ -548,7 +562,7 @@ async function fileToCanvas(file) {
 async function handleFiles(files) {
   const list = Array.from(files || []).filter(f => f.type.startsWith('image/'));
   let added = 0;
-  const make = async (f) => ({ canvas: await fileToCanvas(f), filter: state.filter });
+  const make = async (f) => ({ id: Date.now() + Math.random(), canvas: await fileToCanvas(f), filter: state.filter, zoom: 1, ox: 0, oy: 0 });
   for (const f of list) {
     if (state.replaceIndex != null && state.replaceIndex < state.photos.length) {
       try { state.photos[state.replaceIndex] = await make(f); state.replaceIndex = null; added++; }
@@ -573,8 +587,27 @@ if ($('btn-gallery')) $('btn-gallery').onclick = () => openGallery('cam');
 if ($('btn-gallery-start')) $('btn-gallery-start').onclick = () => openGallery('start');
 if ($('btn-to-preview')) $('btn-to-preview').onclick = () => goPreview();
 if ($('btn-preview-fix')) $('btn-preview-fix').onclick = () => show('scr-result');
+function layoutForCount(n) {
+  if (n <= 1) return 1;
+  if (n <= 3) return 3;
+  if (n <= 4) return 4;
+  return 6;
+}
+function setLayout(n) {
+  state.layout = n;
+  document.querySelectorAll('#layoutseg button').forEach(x => x.classList.toggle('sel', +x.dataset.layout === n));
+  applyLayoutAspect();
+}
 if (fileInput) {
   fileInput.onchange = async () => {
+    if (galleryIntent === 'start') {
+      const files = Array.from(fileInput.files || []).filter(f => f.type.startsWith('image/'));
+      if (files.length) {
+        setLayout(layoutForCount(files.length));
+        resetPhotos();
+        savePrefs();
+      }
+    }
     const added = await handleFiles(fileInput.files);
     fileInput.value = '';
     if (!added) return;
@@ -590,23 +623,53 @@ if (fileInput) {
 }
 
 /* ============ result preview (HTML) ============ */
+function imgTransform(p) {
+  const z = p.zoom || 1, ox = p.ox || 0, oy = p.oy || 0;
+  if (z === 1 && !ox && !oy) return 'none';
+  return 'translate(' + (ox * 100).toFixed(2) + '%, ' + (oy * 100).toFixed(2) + '%) scale(' + z.toFixed(3) + ')';
+}
+
+function slotMedia(p, i, gesture) {
+  const style = 'filter:' + filterCss(p.filter) + ';transform:' + imgTransform(p);
+  return '<img' + (gesture ? ' class="slot-img" data-i="' + i + '"' : '') + ' alt="Foto ' + (i + 1) +
+    '" style="' + style + '" src="' + p.canvas.toDataURL('image/jpeg', .85) + '">';
+}
+
+function captionFontStyle() {
+  return "font-family:'" + (state.captionFont || 'Matcha Iced') + "', 'Trebuchet MS', sans-serif";
+}
+
 function frameHTML() {
   const lay = state.layout === 1 ? 'single' : state.layout === 3 ? 'strip' : 'grid' + state.layout;
   const cls = state.layout === 1 ? 'photos-single' : state.layout === 3 ? 'photos-strip' : 'photos-grid';
   let slots = '';
   state.photos.forEach((p, i) => {
-    slots += '<div class="slot"><img alt="Foto ' + (i + 1) + '" style="filter:' + filterCss(p.filter)
-      + '" src="' + p.canvas.toDataURL('image/jpeg', .85) + '"></div>';
+    slots += '<div class="slot">' + slotMedia(p, i, false) + '</div>';
   });
-  const customHTML = state.customText ? '<div class="frame-date">' + esc(state.customText) + '</div>' : '';
-  const dateHTML = state.showDate ? '<div class="frame-date">' + dateLine() + '</div>' : '';
-  const captionsHTML = (customHTML || dateHTML)
-    ? '<div class="frame-captions">' + customHTML + dateHTML + '</div>' : '';
-  return '<div class="frame-outer th-' + state.theme + ' ' + lay + '">' +
+  const fs = captionFontStyle();
+  const customHTML = state.customText ? '<div class="frame-date" style="' + fs + '">' + esc(state.customText) + '</div>' : '';
+  const dateHTML = state.showDate ? '<div class="frame-date" style="' + fs + '">' + dateLine(getLang()) + '</div>' : '';
+  const captionsHTML = '<div class="frame-captions">' + customHTML + dateHTML + '</div>';
+  const th = state.frame ? 'th-' + state.theme : 'noframe';
+  return '<div class="frame-outer ' + th + ' ' + lay + '">' +
     '<div class="frame"><div class="' + cls + '">' + slots + '</div>' +
-    captionsHTML + '</div>' +
+    (state.frame ? captionsHTML : '') + '</div>' +
     '<div class="sticker-layer"></div></div>';
 }
+
+/* Ukuran kotak preview disamakan dengan bingkai 1 foto. */
+let boxAspect = 300 / 278;
+function measureBoxAspect() {
+  const probe = document.createElement('div');
+  probe.className = 'frame-outer single';
+  probe.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none;';
+  probe.innerHTML = '<div class="frame"><div class="photos-single"><div class="slot"></div></div><div class="frame-captions"></div></div>';
+  document.body.appendChild(probe);
+  const w = probe.offsetWidth, h = probe.offsetHeight;
+  probe.remove();
+  if (w > 0 && h > 0) boxAspect = w / h;
+}
+measureBoxAspect();
 
 function fitFrame(holderId) {
   const holder = $(holderId);
@@ -616,9 +679,11 @@ function fitFrame(holderId) {
   frame.style.transform = 'none';
   const fw = frame.offsetWidth, fh = frame.offsetHeight;
   const aw = holder.clientWidth, ah = holder.clientHeight;
-  if (!fw || !fh || !aw || !ah) return;
-  const s = Math.min(1, aw / fw, ah / fh);
-  frame.style.transform = s < 1 ? 'scale(' + s.toFixed(4) + ')' : 'none';
+  if (!fw || !fh || aw < 20 || ah < 20) return;
+  let tw = aw, th = aw / boxAspect;
+  if (th > ah) { th = ah; tw = ah * boxAspect; }
+  const s = Math.max(0.05, Math.min((tw - 8) / fw, (th - 8) / fh));
+  frame.style.transform = 'scale(' + s.toFixed(4) + ')';
 }
 
 function renderResult() {
@@ -626,6 +691,7 @@ function renderResult() {
   syncThemePickers();
   renderUserStickers();
   fitFrame('result-holder');
+  scheduleDraft(); commitHistory();
 }
 
 function previewHTML() {
@@ -634,38 +700,106 @@ function previewHTML() {
   let slots = '';
   state.photos.forEach((p, i) => {
     slots += '<div class="slot preview-slot">' +
-      '<img alt="Foto ' + (i + 1) + '" style="filter:' + filterCss(p.filter)
-        + '" src="' + p.canvas.toDataURL('image/jpeg', .85) + '">' +
+      slotMedia(p, i, true) +
       '<div class="slot-actions">' +
-        '<button type="button" class="slot-btn" data-act="del" data-i="' + i + '" aria-label="Buang foto" title="Buang">🗑</button>' +
-        '<button type="button" class="slot-btn" data-act="retake" data-i="' + i + '" aria-label="Jepret ulang" title="Jepret ulang">↻</button>' +
-        '<button type="button" class="slot-btn" data-act="gallery" data-i="' + i + '" aria-label="Ganti dari galeri" title="Ganti dari galeri">🖼</button>' +
+        '<button type="button" class="slot-btn" data-act="del" data-i="' + i + '" aria-label="Buang foto" title="Buang"><span class="ms">delete</span></button>' +
+        '<button type="button" class="slot-btn" data-act="retake" data-i="' + i + '" aria-label="Jepret ulang" title="Jepret ulang"><span class="ms">refresh</span></button>' +
       '</div></div>';
   });
-  const customHTML = state.customText ? '<div class="frame-date">' + esc(state.customText) + '</div>' : '';
-  const dateHTML = state.showDate ? '<div class="frame-date">' + dateLine() + '</div>' : '';
-  const captionsHTML = (customHTML || dateHTML)
-    ? '<div class="frame-captions">' + customHTML + dateHTML + '</div>' : '';
-  return '<div class="frame-outer th-' + state.theme + ' ' + lay + '">' +
+  const fs = captionFontStyle();
+  const customHTML = state.customText ? '<div class="frame-date" style="' + fs + '">' + esc(state.customText) + '</div>' : '';
+  const dateHTML = state.showDate ? '<div class="frame-date" style="' + fs + '">' + dateLine(getLang()) + '</div>' : '';
+  const captionsHTML = '<div class="frame-captions">' + customHTML + dateHTML + '</div>';
+  const th = state.frame ? 'th-' + state.theme : 'noframe';
+  return '<div class="frame-outer ' + th + ' ' + lay + '">' +
     '<div class="frame"><div class="' + cls + '">' + slots + '</div>' +
-    captionsHTML + '</div>' +
+    (state.frame ? captionsHTML : '') + '</div>' +
     '<div class="sticker-layer"></div></div>';
+}
+
+/* Zoom/geser isi foto per slot (di layar Preview). */
+function attachSlotGestures(img, p) {
+  const pts = new Map();
+  let start = null, pinch = null;
+  const clampPan = () => {
+    const lim = Math.max(0, ((p.zoom || 1) - 1) / 2);
+    p.ox = Math.max(-lim, Math.min(lim, p.ox || 0));
+    p.oy = Math.max(-lim, Math.min(lim, p.oy || 0));
+  };
+  const apply = () => { img.style.transform = imgTransform(p); };
+
+  img.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.slot-btn')) return;
+    try { img.setPointerCapture(e.pointerId); } catch (err) { /* abaikan */ }
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) {
+      start = { x: e.clientX, y: e.clientY, ox: p.ox || 0, oy: p.oy || 0 };
+      img.classList.add('slot-dragging');
+    } else if (pts.size === 2) {
+      start = null;
+      const [a, b] = [...pts.values()];
+      pinch = { dist: Math.hypot(b.x - a.x, b.y - a.y) || 1, zoom: p.zoom || 1 };
+    }
+    e.preventDefault();
+  });
+
+  img.addEventListener('pointermove', (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const r = img.getBoundingClientRect();
+    if (pts.size >= 2 && pinch) {
+      const [a, b] = [...pts.values()];
+      const d = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      p.zoom = Math.max(1, Math.min(4, pinch.zoom * (d / pinch.dist)));
+      clampPan(); apply();
+    } else if (pts.size === 1 && start) {
+      p.ox = start.ox + (e.clientX - start.x) / r.width;
+      p.oy = start.oy + (e.clientY - start.y) / r.height;
+      clampPan(); apply();
+    }
+  });
+
+  const up = (e) => {
+    pts.delete(e.pointerId);
+    if (pts.size < 2) pinch = null;
+    if (pts.size === 1) {
+      const q = [...pts.values()][0];
+      start = { x: q.x, y: q.y, ox: p.ox || 0, oy: p.oy || 0 };
+    } else if (pts.size === 0) {
+      start = null;
+      img.classList.remove('slot-dragging');
+      scheduleDraft(); commitHistory();
+    }
+  };
+  img.addEventListener('pointerup', up);
+  img.addEventListener('pointercancel', up);
+
+  img.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    p.zoom = Math.max(1, Math.min(4, (p.zoom || 1) * (e.deltaY < 0 ? 1.08 : 0.92)));
+    clampPan(); apply();
+  }, { passive: false });
 }
 
 function renderPreview() {
   const holder = $('preview-holder');
   if (!holder) return;
   holder.innerHTML = previewHTML();
+  holder.querySelectorAll('.slot-img').forEach(img => {
+    const p = state.photos[+img.dataset.i];
+    if (p) attachSlotGestures(img, p);
+  });
   renderUserStickers();
   fitFrame('preview-holder');
+  scheduleDraft(); commitHistory();
 }
 
 function refitFrames() {
   if (currentScreen === 'scr-preview') fitFrame('preview-holder');
   else if (currentScreen === 'scr-result') fitFrame('result-holder');
 }
-window.addEventListener('resize', refitFrames);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(refitFrames);
+window.addEventListener('resize', () => { measureBoxAspect(); refitFrames(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measureBoxAspect(); refitFrames(); });
 
 function onPreviewAction(act, i) {
   if (act === 'del') {
@@ -701,6 +835,17 @@ if (dateToggle) {
   };
 }
 
+const frameToggle = $('toggle-frame');
+if (frameToggle) {
+  frameToggle.checked = state.frame;
+  frameToggle.onchange = () => {
+    state.frame = frameToggle.checked;
+    if (currentScreen === 'scr-preview') renderPreview();
+    else if (currentScreen === 'scr-result') renderResult();
+    savePrefs();
+  };
+}
+
 const customInput = $('custom-text');
 if (customInput) {
   customInput.value = state.customText;
@@ -710,10 +855,21 @@ if (customInput) {
   };
 }
 
+const captionFontSel = $('caption-font');
+if (captionFontSel) {
+  captionFontSel.value = state.captionFont || 'Matcha Iced';
+  captionFontSel.onchange = () => {
+    state.captionFont = captionFontSel.value;
+    if (currentScreen === 'scr-result') renderResult();
+    savePrefs();
+  };
+}
+
 const darkToggle = $('toggle-dark');
 if (darkToggle) {
   const syncDarkIcon = () => {
-    darkToggle.textContent = document.body.classList.contains('dark-mode') ? '🌙' : '☀️';
+    const ico = $('dark-ico');
+    if (ico) ico.textContent = document.body.classList.contains('dark-mode') ? 'dark_mode' : 'light_mode';
   };
   syncDarkIcon();
   darkToggle.onclick = () => {
@@ -724,21 +880,92 @@ if (darkToggle) {
 }
 
 /* ============ capture settings ============ */
-const countdownSel = $('set-countdown');
-if (countdownSel) {
-  countdownSel.value = String(state.countdown);
-  countdownSel.onchange = () => { state.countdown = +countdownSel.value; savePrefs(); };
+const countdownBtn = $('set-countdown-btn');
+function countdownLabel(v) {
+  return v === 0 ? tr('cam.off') : tr('cam.s' + v);
 }
-const flashToggle = $('toggle-flash');
-if (flashToggle) {
-  flashToggle.checked = state.flash;
-  flashToggle.onchange = () => { state.flash = flashToggle.checked; savePrefs(); };
+function syncCountdown() {
+  if (countdownBtn) countdownBtn.textContent = countdownLabel(state.countdown);
+  const val = $('countdown-val');
+  if (val) val.textContent = state.countdown === 0 ? '—' : state.countdown + 's';
+  const grid = $('countdown-grid');
+  if (grid) grid.querySelectorAll('.cd-option').forEach(b => b.classList.toggle('sel', +b.dataset.v === state.countdown));
 }
-const soundToggle = $('toggle-sound');
-if (soundToggle) {
-  soundToggle.checked = state.sound;
-  soundToggle.onchange = () => { state.sound = soundToggle.checked; savePrefs(); };
+function buildCountdownPicker() {
+  const grid = $('countdown-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  [0, 3, 5, 10].forEach(v => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cd-option' + (v === state.countdown ? ' sel' : '');
+    b.dataset.v = v;
+    b.textContent = countdownLabel(v);
+    b.onclick = () => { state.countdown = v; syncCountdown(); closeModal('countdown-modal'); savePrefs(); };
+    grid.appendChild(b);
+  });
+  syncCountdown();
 }
+buildCountdownPicker();
+if (countdownBtn) countdownBtn.onclick = () => { syncCountdown(); openModal('countdown-modal'); };
+if ($('btn-close-countdown')) $('btn-close-countdown').onclick = () => closeModal('countdown-modal');
+const countdownModal = $('countdown-modal');
+if (countdownModal) countdownModal.onclick = (e) => { if (e.target === countdownModal) closeModal('countdown-modal'); };
+
+/* tombol flash di dalam preview kamera + popover pilihan mode */
+const flashBtn = $('btn-flash');
+const flashMenu = $('flash-menu');
+function syncFlashBtn() {
+  const g = $('flash-glyph');
+  if (g) {
+    g.textContent = state.flash === 'off' ? 'flash_off' : state.flash === 'auto' ? 'flash_auto' : 'flash_on';
+  }
+  const v = $('flash-val');
+  if (v) v.textContent = '';
+  if (flashBtn) flashBtn.setAttribute('aria-expanded', String(!!flashMenu && !flashMenu.hidden));
+  if (flashMenu) flashMenu.querySelectorAll('[data-flash]').forEach(b =>
+    b.classList.toggle('sel', b.dataset.flash === state.flash));
+}
+if (flashMenu) flashMenu.querySelectorAll('[data-flash]').forEach(b => {
+  b.onclick = () => {
+    state.flash = b.dataset.flash;
+    flashMenu.hidden = true;
+    syncFlashBtn();
+    savePrefs();
+  };
+});
+if (flashBtn) flashBtn.onclick = (e) => {
+  e.stopPropagation();
+  if (!flashMenu) return;
+  flashMenu.hidden = !flashMenu.hidden;
+  syncFlashBtn();
+};
+document.addEventListener('click', (e) => {
+  if (!flashMenu || flashMenu.hidden) return;
+  if (!e.target.closest('.cam-top-controls')) { flashMenu.hidden = true; syncFlashBtn(); }
+});
+syncFlashBtn();
+
+/* tombol suara: tap untuk aktif/nonaktif, simbol dicoret saat mati */
+const soundBtn = $('btn-sound');
+function syncSoundBtn() {
+  const g = $('sound-glyph');
+  if (g) { g.textContent = state.sound ? 'volume_up' : 'volume_off'; g.classList.toggle('muted', !state.sound); }
+  if (soundBtn) soundBtn.setAttribute('aria-pressed', String(state.sound));
+}
+if (soundBtn) soundBtn.onclick = () => { state.sound = !state.sound; syncSoundBtn(); if (state.sound) beep(); savePrefs(); };
+syncSoundBtn();
+
+/* tombol hitung mundur: tap berulang untuk ganti durasi */
+const CD_VALUES = [0, 3, 5, 10];
+const countdownInCam = $('btn-countdown');
+if (countdownInCam) countdownInCam.onclick = () => {
+  const i = CD_VALUES.indexOf(state.countdown);
+  state.countdown = CD_VALUES[(i + 1) % CD_VALUES.length];
+  syncCountdown();
+  savePrefs();
+};
+syncCountdown();
 
 /* ============ interactive stickers ============ */
 function updateStickerTransform(el, st, isDragging = false) {
@@ -770,7 +997,11 @@ function renderUserStickers() {
     if (st.type === 'char') {
       innerContent = `<div class="char-inner"><svg><use href="#ch-${st.value}"/></svg></div>`;
     } else if (st.type === 'text') {
-      innerContent = `<div class="text-inner">${esc(st.value)}</div>`;
+      const fam = st.font || 'Matcha Iced';
+      const col = st.color || '#23233a';
+      innerContent = '<div class="text-inner' + (st.outline === false ? '' : ' has-outline') +
+        '" style="font-family:\'' + fam + '\', Quicksand, sans-serif;color:' + col + '">' +
+        esc(st.value) + '</div>';
     } else {
       innerContent = `<div class="sticker-inner">${st.value}</div>`;
     }
@@ -791,15 +1022,16 @@ function renderUserStickers() {
 
     layer.appendChild(el);
   });
+  scheduleDraft(); commitHistory();
 }
 
-/* Finger gestures: 1 jari = pindah, 2 jari = zoom + putar, tahan 700ms = hapus.
+/* Finger gestures: 1 jari = pindah, 2 jari = zoom + putar.
+   Tap/klik stiker = pilih & tampilkan tombol hapus.
    Desktop: scroll = zoom, Shift+scroll = putar. Tombol kontrol tidak dipakai. */
 function attachStickerGestures(el, st, frameOuter) {
   const pts = new Map();          // pointerId aktif -> posisi
   let pinch = null;               // data awal pinch
   let dragStart = null;           // data awal drag
-  let longPress = null;           // timer hapus
   let active = false;
 
   const two = () => [...pts.values()];
@@ -822,8 +1054,18 @@ function attachStickerGestures(el, st, frameOuter) {
     return true;
   };
 
+  // Tombol hapus muncul saat stiker dipilih (tap/klik).
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button';
+  delBtn.className = 'sticker-delete';
+  delBtn.innerHTML = '<span class="ms">close</span>';
+  delBtn.title = 'Hapus';
+  delBtn.setAttribute('aria-label', 'Hapus stiker');
+  delBtn.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
+  delBtn.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); removeSticker(); });
+  el.appendChild(delBtn);
+
   const startPinch = () => {
-    if (longPress) { clearTimeout(longPress); longPress = null; }
     dragStart = null;
     const [a, b] = two();
     pinch = { dist: dist(a, b) || 1, angle: ang(a, b), scale: st.scale || 1, rotation: st.rotation || 0 };
@@ -844,7 +1086,6 @@ function attachStickerGestures(el, st, frameOuter) {
     if (dragStart && pts.size === 1) {
       const dx = e.clientX - dragStart.px;
       const dy = e.clientY - dragStart.py;
-      if (longPress && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) { clearTimeout(longPress); longPress = null; }
       st.x = Math.max(-0.25, Math.min(1.25, dragStart.x + dx / dragStart.rect.width));
       st.y = Math.max(-0.25, Math.min(1.25, dragStart.y + dy / dragStart.rect.height));
       updateStickerTransform(el, st, true);
@@ -860,7 +1101,6 @@ function attachStickerGestures(el, st, frameOuter) {
 
   const onUp = (e) => {
     if (!active) return;
-    if (longPress) { clearTimeout(longPress); longPress = null; }
     pts.delete(e.pointerId);
     if (pts.size < 2) pinch = null;
     if (pts.size === 1) {
@@ -876,13 +1116,13 @@ function attachStickerGestures(el, st, frameOuter) {
     pts.clear();
     pinch = null;
     dragStart = null;
-    if (longPress) { clearTimeout(longPress); longPress = null; }
     el.classList.remove('is-dragging');
-    updateStickerTransform(el, st);
     window.removeEventListener('pointerdown', onExtraDown, true);
     window.removeEventListener('pointermove', onMove, true);
     window.removeEventListener('pointerup', onUp, true);
     window.removeEventListener('pointercancel', onUp, true);
+    updateStickerTransform(el, st);
+    scheduleDraft(); commitHistory();
   };
 
   el.addEventListener('pointerdown', (e) => {
@@ -893,7 +1133,6 @@ function attachStickerGestures(el, st, frameOuter) {
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     el.classList.add('is-dragging');
     dragStart = { px: e.clientX, py: e.clientY, x: st.x, y: st.y, rect: rectOf() };
-    longPress = setTimeout(() => { longPress = null; if (removeSticker()) endGesture(); }, 700);
     window.addEventListener('pointerdown', onExtraDown, true);
     window.addEventListener('pointermove', onMove, true);
     window.addEventListener('pointerup', onUp, true);
@@ -988,8 +1227,12 @@ function addTextSticker(text) {
   const count = state.stickers.length;
   const offsetX = ((count % 5) - 2) * 0.1;
   const offsetY = ((Math.floor(count / 5) % 5) - 2) * 0.08;
+  const fontSel = $('sticker-font'), outIn = $('sticker-outline');
   state.stickers.push({
     id, type: 'text', value,
+    font: (fontSel && fontSel.value) || 'Matcha Iced',
+    color: colorOf('sticker-color'),
+    outline: outIn ? outIn.checked : true,
     x: 0.5 + offsetX, y: 0.45 + offsetY, scale: 1, rotation: 0,
   });
   state.selectedStickerId = id;
@@ -1019,19 +1262,84 @@ function addSticker(type, value) {
 
 initStickerPicker();
 
+/* ============ pemilih warna modal ============ */
+const COLOR_PALETTE = [
+  '#23233a', '#000000', '#555555', '#9a9a9a', '#ffffff', '#f8e9d2',
+  '#d63384', '#e1306c', '#e0487b', '#ff8fab', '#ff6b9d', '#c2557e',
+  '#ff007f', '#c46998', '#9c27b0', '#7b68ee', '#b8c6db', '#d5a8ff',
+  '#ff8c1a', '#f5a623', '#ffd166', '#f0d98a', '#8a6a3c', '#9a7b4f',
+  '#0f6b3a', '#25d366', '#6fbf5f', '#a8e6cf', '#0a6bb0', '#1877f2',
+  '#4facfe', '#00f0ff', '#e6c766', '#ffb3c7', '#bfe3ff', '#111111',
+];
+let colorTargetId = 'sticker-color';
+
+function colorOf(id) {
+  const el = $(id);
+  return (el && el.dataset.color) || '#23233a';
+}
+function setColor(id, color) {
+  const el = $(id);
+  if (!el) return;
+  el.dataset.color = color;
+  el.style.background = color;
+}
+function buildColorPicker() {
+  const modal = $('color-modal');
+  const grid = $('color-grid');
+  if (!modal || !grid) return;
+  grid.innerHTML = '';
+  COLOR_PALETTE.forEach(c => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'color-swatch';
+    b.style.background = c;
+    b.dataset.color = c;
+    b.setAttribute('aria-label', c);
+    b.onclick = () => {
+      setColor(colorTargetId, c);
+      grid.querySelectorAll('.color-swatch').forEach(x => x.classList.toggle('sel', x.dataset.color === c));
+      closeModal('color-modal');
+    };
+    grid.appendChild(b);
+  });
+  if ($('btn-close-color')) $('btn-close-color').onclick = () => closeModal('color-modal');
+  modal.onclick = (e) => { if (e.target === modal) closeModal('color-modal'); };
+}
+buildColorPicker();
+
+function openColorPicker(targetId) {
+  colorTargetId = targetId;
+  const cur = colorOf(targetId);
+  const grid = $('color-grid');
+  if (grid) grid.querySelectorAll('.color-swatch').forEach(x => x.classList.toggle('sel', x.dataset.color === cur));
+  openModal('color-modal');
+}
+['sticker-color', 'edit-color'].forEach(id => {
+  const el = $(id);
+  if (el) el.onclick = () => openColorPicker(id);
+});
+
 /* Editor teks inline (menggantikan prompt/confirm) */
 let editingTextId = null;
 function openTextEditor(st) {
   editingTextId = st.id;
   const input = $('text-edit-input');
   if (input) input.value = st.value;
+  if ($('edit-font')) $('edit-font').value = st.font || 'Matcha Iced';
+  setColor('edit-color', st.color || '#23233a');
+  if ($('edit-outline')) $('edit-outline').checked = st.outline !== false;
   openModal('text-edit-modal');
   if (input) setTimeout(() => input.focus(), 60);
 }
 function commitTextEdit() {
   const input = $('text-edit-input');
   const st = state.stickers.find(s => s.id === editingTextId);
-  if (st && input && input.value.trim()) st.value = input.value.trim();
+  if (st) {
+    if (input && input.value.trim()) st.value = input.value.trim();
+    if ($('edit-font')) st.font = $('edit-font').value;
+    st.color = colorOf('edit-color');
+    if ($('edit-outline')) st.outline = $('edit-outline').checked;
+  }
   editingTextId = null;
   closeModal('text-edit-modal');
   renderUserStickers();
@@ -1084,7 +1392,7 @@ document.addEventListener('keydown', (e) => {
 
 /* ============ social share ============ */
 async function getWatermarkedFile() {
-  const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText);
+  const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont);
   const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
   const d = new Date(), p = n => String(n).padStart(2, '0');
   const fileName = 'snappie-studio-' + state.theme + '-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.png';
@@ -1101,41 +1409,18 @@ function downloadFile(file) {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
-function showToast(msg) {
-  const toast = $('share-toast');
-  if (!toast) return;
-  toast.textContent = msg;
-  toast.style.display = 'block';
-  setTimeout(() => { toast.style.display = 'none'; }, 4000);
-}
-
 /* Buka aplikasi sosmed yang terpasang di perangkat lewat skema URL.
    Kalau ada 2 varian (mis. WhatsApp & WhatsApp Business), sistem Android yang menanya. */
 function launchApp(scheme, copyText) {
   if (copyText) navigator.clipboard.writeText(copyText).catch(() => {});
-  closeModal('share-modal');
   offerAnotherSession();
   window.location.href = scheme;
 }
 
-function initShareModal() {
-  const modal = $('share-modal');
-  const btnOpen = $('btn-open-share');
-  const btnClose = $('btn-close-share');
-
-  if (!btnOpen || !modal) return;
-
-  btnOpen.onclick = () => {
-    openModal('share-modal');
-  };
-
-  btnClose.onclick = () => {
-    closeModal('share-modal');
-  };
-
-  modal.onclick = (e) => {
-    if (e.target === modal) closeModal('share-modal');
-  };
+/* Ikon sosmed di layar hasil langsung membagikan foto ke platform terkait. */
+function initShareButtons() {
+  const ig = $('share-ig'), wa = $('share-wa'), fb = $('share-fb'), tt = $('share-tt');
+  if (!ig || !wa || !fb || !tt) return;
 
   const captionText = tr('share.caption');
 
@@ -1152,75 +1437,61 @@ function initShareModal() {
     }
   };
 
-  // General Web Share API
-  $('share-native').onclick = async () => {
-    try {
-      const file = await getWatermarkedFile();
-      const r = await sharePhoto(file);
-      if (r === 'shared') { closeModal('share-modal'); offerAnotherSession(); }
-      else if (r === 'unsupported') {
-        downloadFile(file);
-        closeModal('share-modal');
-        offerAnotherSession();
-      }
-    } catch (e) {
-      /* User cancelled share */
-    }
-  };
+  // Instagram — pilih Feed atau Story
+  ig.onclick = () => openModal('ig-modal');
 
-  // Instagram Share
-  $('share-ig').onclick = async () => {
+  const igModal = $('ig-modal');
+  if ($('btn-close-ig')) $('btn-close-ig').onclick = () => closeModal('ig-modal');
+  if (igModal) igModal.onclick = (e) => { if (e.target === igModal) closeModal('ig-modal'); };
+
+  if ($('ig-feed')) $('ig-feed').onclick = async () => {
+    closeModal('ig-modal');
     try {
       downloadFile(await getWatermarkedFile());
       launchApp('instagram://app', captionText);
-    } catch (e) {}
+    } catch (e) { /* batal — abaikan */ }
   };
 
-  // WhatsApp Share — lewat share sheet agar foto ikut
-  $('share-wa').onclick = async () => {
+  if ($('ig-story')) $('ig-story').onclick = async () => {
+    closeModal('ig-modal');
+    try {
+      downloadFile(await getWatermarkedFile());
+      launchApp('instagram://story-camera', captionText);
+    } catch (e) { /* batal — abaikan */ }
+  };
+
+  // WhatsApp — lewat share sheet agar foto ikut
+  wa.onclick = async () => {
     try {
       const file = await getWatermarkedFile();
       const r = await sharePhoto(file);
-      if (r === 'shared') { closeModal('share-modal'); offerAnotherSession(); }
+      if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') {
         downloadFile(file);
         const waText = encodeURIComponent(captionText + '\n' + window.location.href);
         launchApp('whatsapp://send?text=' + waText);
       }
-    } catch (e) {}
+    } catch (e) { /* batal — abaikan */ }
   };
 
-  // Facebook Share
-  $('share-fb').onclick = async () => {
+  // Facebook
+  fb.onclick = async () => {
     try {
       downloadFile(await getWatermarkedFile());
       launchApp('fb://');
-    } catch (e) {}
+    } catch (e) { /* batal — abaikan */ }
   };
 
-  // TikTok Share
-  $('share-tt').onclick = async () => {
+  // TikTok
+  tt.onclick = async () => {
     try {
       downloadFile(await getWatermarkedFile());
       launchApp('snssdk1233://camera', captionText + ' #SnappieStudio #yourlittlephotomoment');
-    } catch (e) {}
-  };
-
-  // Copy Link & Caption
-  $('share-copy-link').onclick = async () => {
-    const textToCopy = tr('share.caption') + '\n' + window.location.href;
-    try {
-      await navigator.clipboard.writeText(textToCopy);
-      showToast(tr('toast.copied'));
-      closeModal('share-modal');
-      offerAnotherSession();
-    } catch (e) {
-      showToast(tr('toast.copyFail'));
-    }
+    } catch (e) { /* batal — abaikan */ }
   };
 }
 
-initShareModal();
+initShareButtons();
 
 /* ============ tawaran lanjut sesi baru ============ */
 function offerAnotherSession() {
@@ -1232,6 +1503,7 @@ if ($('btn-close-again')) $('btn-close-again').onclick = () => closeModal('again
 if ($('btn-again-no')) $('btn-again-no').onclick = () => {
   closeModal('again-modal');
   resetPhotos();
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* abaikan */ }
   show('scr-start');
 };
 if ($('btn-again-yes')) $('btn-again-yes').onclick = () => {
@@ -1243,9 +1515,14 @@ if ($('btn-again-yes')) $('btn-again-yes').onclick = () => {
 /* ============ download ============ */
 $('btn-download').onclick = async () => {
   const btn = $('btn-download');
-  btn.disabled = true; btn.textContent = '⏳ Bikin PNG...';
+  const ico = $('download-ico');
+  const label = $('download-label');
+  btn.disabled = true;
+  if (ico) ico.textContent = 'progress_activity';
+  if (label) label.textContent = 'Bikin PNG...';
+  if (ico) ico.classList.add('spin');
   try {
-    const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText);
+    const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont);
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     const a = document.createElement('a');
     const d = new Date(), p = n => String(n).padStart(2, '0');
@@ -1257,5 +1534,230 @@ $('btn-download').onclick = async () => {
   } catch (e) {
     alert(tr('toast.failPng'));
   }
-  btn.disabled = false; btn.textContent = tr('rs.download');
+  btn.disabled = false;
+  if (ico) { ico.textContent = 'download'; ico.classList.remove('spin'); }
+  if (label) label.textContent = tr('rs.download');
 };
+
+/* ============ undo / redo ============ */
+let history = [];
+let redoStack = [];
+let lastKey = null;
+let applyingHistory = false;
+let historyTimer = null;
+
+function snapshotState() {
+  return {
+    photos: state.photos.map(p => ({ ...p })),
+    stickers: state.stickers.map(s => ({ ...s })),
+    theme: state.theme, layout: state.layout, showDate: state.showDate,
+    frame: state.frame, customText: state.customText, captionFont: state.captionFont,
+  };
+}
+function stateKey() {
+  return JSON.stringify({
+    p: state.photos.map(p => [p.id, p.filter, p.zoom || 1, p.ox || 0, p.oy || 0]),
+    s: state.stickers,
+    t: state.theme, l: state.layout, d: state.showDate, f: state.frame, c: state.customText,
+    ff: state.captionFont,
+  });
+}
+function updateUndoUI() {
+  const cu = history.length > 1, cr = redoStack.length > 0;
+  document.querySelectorAll('.undo-btn').forEach(b => { b.disabled = !cu; });
+  document.querySelectorAll('.redo-btn').forEach(b => { b.disabled = !cr; });
+}
+function commitHistory() {
+  if (applyingHistory) return;
+  clearTimeout(historyTimer);
+  historyTimer = setTimeout(() => {
+    const k = stateKey();
+    if (k === lastKey) return;
+    lastKey = k;
+    history.push(snapshotState());
+    if (history.length > 60) history.shift();
+    redoStack = [];
+    updateUndoUI();
+  }, 250);
+}
+function applySnapshot(s) {
+  applyingHistory = true;
+  state.photos = s.photos.map(p => ({ ...p }));
+  state.stickers = s.stickers.map(x => ({ ...x }));
+  state.theme = s.theme; state.layout = s.layout; state.showDate = s.showDate;
+  state.frame = s.frame; state.customText = s.customText; state.captionFont = s.captionFont || 'Matcha Iced';
+  setLayout(state.layout);
+  syncThemePickers();
+  syncFilterPicker();
+  if ($('toggle-date')) $('toggle-date').checked = state.showDate;
+  if ($('toggle-frame')) $('toggle-frame').checked = state.frame;
+  if ($('custom-text')) $('custom-text').value = state.customText;
+  if ($('caption-font')) $('caption-font').value = state.captionFont;
+  renderDots(); renderThumbs();
+  if (currentScreen === 'scr-preview') renderPreview();
+  else if (currentScreen === 'scr-result') renderResult();
+  savePrefs();
+  applyingHistory = false;
+}
+function undo() {
+  if (history.length < 2) return;
+  redoStack.push(history.pop());
+  applySnapshot(history[history.length - 1]);
+  lastKey = stateKey();
+  updateUndoUI();
+}
+function redo() {
+  if (!redoStack.length) return;
+  history.push(redoStack.pop());
+  applySnapshot(history[history.length - 1]);
+  lastKey = stateKey();
+  updateUndoUI();
+}
+function initHistory() {
+  history = [snapshotState()];
+  redoStack = [];
+  lastKey = stateKey();
+  updateUndoUI();
+}
+
+/* ============ draft otomatis (biar tidak hilang saat refresh) ============ */
+const DRAFT_KEY = 'snappie-draft-v1';
+let draftTimer = null;
+function scheduleDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(saveDraft, 600);
+}
+function saveDraft() {
+  if (!state.photos.length) { try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* abaikan */ } return; }
+  try {
+    const maxW = 720;
+    const photos = state.photos.map(ph => {
+      const c = ph.canvas;
+      let src;
+      if (c.width > maxW) {
+        const s = maxW / c.width;
+        const t = document.createElement('canvas');
+        t.width = maxW; t.height = Math.max(1, Math.round(c.height * s));
+        t.getContext('2d').drawImage(c, 0, 0, t.width, t.height);
+        src = t.toDataURL('image/jpeg', .8);
+      } else {
+        src = c.toDataURL('image/jpeg', .8);
+      }
+      return { src, filter: ph.filter, zoom: ph.zoom || 1, ox: ph.ox || 0, oy: ph.oy || 0 };
+    });
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      v: 1, layout: state.layout, theme: state.theme, showDate: state.showDate,
+      frame: state.frame, customText: state.customText, captionFont: state.captionFont,
+      stickers: state.stickers, photos,
+    }));
+  } catch (e) { /* penyimpanan penuh — abaikan */ }
+}
+/* ============ background line-art dari gambar user ============ */
+async function buildLineBackground() {
+  try {
+    const img = new Image();
+    img.src = bacUrl;
+    if (img.decode) await img.decode();
+    else await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    const scale = Math.min(1, 1100 / Math.max(1, iw));
+    const w = Math.max(1, Math.round(iw * scale));
+    const h = Math.max(1, Math.round(ih * scale));
+
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(img, 0, 0, w, h);
+    const src = x.getImageData(0, 0, w, h).data;
+
+    const gray = new Float32Array(w * h);
+    for (let i = 0, j = 0; j < gray.length; i += 4, j++) {
+      gray[j] = 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2];
+    }
+    const blur = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) {
+      for (let xx = 0; xx < w; xx++) {
+        let s = 0, n = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          const yy = y + dy; if (yy < 0 || yy >= h) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const x2 = xx + dx; if (x2 < 0 || x2 >= w) continue;
+            s += gray[yy * w + x2]; n++;
+          }
+        }
+        blur[y * w + xx] = s / n;
+      }
+    }
+    const edge = new Uint8Array(w * h);
+    const thr = 45;
+    for (let y = 1; y < h - 1; y++) {
+      for (let xx = 1; xx < w - 1; xx++) {
+        const i = y * w + xx;
+        const gx = -blur[i - w - 1] - 2 * blur[i - 1] - blur[i + w - 1]
+          + blur[i - w + 1] + 2 * blur[i + 1] + blur[i + w + 1];
+        const gy = -blur[i - w - 1] - 2 * blur[i - w] - blur[i - w + 1]
+          + blur[i + w - 1] + 2 * blur[i + w] + blur[i + w + 1];
+        edge[i] = Math.sqrt(gx * gx + gy * gy) > thr ? 1 : 0;
+      }
+    }
+    const out = x.createImageData(w, h);
+    const o = out.data;
+    for (let y = 0; y < h; y++) {
+      for (let xx = 0; xx < w; xx++) {
+        const i = y * w + xx;
+        let on = edge[i];
+        if (!on) {
+          if ((xx > 0 && edge[i - 1]) || (xx < w - 1 && edge[i + 1])
+            || (y > 0 && edge[i - w]) || (y < h - 1 && edge[i + w])) on = 1;
+        }
+        const k = i * 4;
+        o[k] = 255; o[k + 1] = 255; o[k + 2] = 255; o[k + 3] = on ? 255 : 0;
+      }
+    }
+    x.putImageData(out, 0, 0);
+    document.documentElement.style.setProperty('--bg-lines', 'url("' + c.toDataURL('image/png') + '")');
+    document.body.classList.add('has-lines');
+  } catch (e) { /* gagal memuat — biarkan tanpa garis */ }
+}
+buildLineBackground();
+
+/* ============ header (judul + tagline) di tiap halaman selain awal ============ */
+function goHome() {
+  if (currentScreen !== 'scr-start') show('scr-start');
+}
+function addHeaders() {
+  document.querySelectorAll('.screen:not(#scr-start)').forEach(scr => {
+    if (scr.querySelector('.mini-header')) return;
+    const h = document.createElement('button');
+    h.type = 'button';
+    h.className = 'mini-header';
+    h.setAttribute('aria-label', 'Snappie Studio — ke tampilan awal');
+    h.innerHTML = '<span class="mh-title">Snappie Studio</span>' +
+      '<span class="mh-tag">your little photo moment</span>';
+    h.onclick = goHome;
+    scr.insertBefore(h, scr.firstChild);
+  });
+}
+addHeaders();
+
+/* undo/redo: tombol + pintasan papan tombol */
+document.querySelectorAll('.undo-btn').forEach(b => b.addEventListener('click', undo));
+document.querySelectorAll('.redo-btn').forEach(b => b.addEventListener('click', redo));
+document.addEventListener('keydown', (e) => {
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault();
+    if (e.shiftKey) redo(); else undo();
+  } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+    e.preventDefault(); redo();
+  }
+});
+
+/* Privasi: jangan pulihkan foto sesi sebelumnya saat halaman dibuka.
+   Setiap kunjungan selalu mulai bersih agar user berikutnya tidak
+   melihat foto user sebelumnya. */
+try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* abaikan */ }
+initHistory();

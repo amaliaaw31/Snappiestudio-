@@ -3,6 +3,7 @@
    matches the on-screen HTML preview. */
 
 import { CHARS, CHAR_SVG, filterCss, dateLine } from './data.js';
+import { getLang } from './i18n.js';
 
 let charImgs = null;
 
@@ -26,12 +27,19 @@ function rr(x, X, Y, W, H) {
   x.closePath();
 }
 
-function coverDraw(x, img, X, Y, W, H) {
+function coverDraw(x, img, X, Y, W, H, zoom = 1, ox = 0, oy = 0) {
   const ir = img.width / img.height, r = W / H;
   let sw, sh, sx, sy;
   if (ir > r) { sh = img.height; sw = sh * r; sx = (img.width - sw) / 2; sy = 0; }
   else { sw = img.width; sh = sw / r; sx = 0; sy = (img.height - sh) / 2; }
-  x.drawImage(img, sx, sy, sw, sh, X, Y, W, H);
+  const z = Math.max(1, zoom || 1);
+  const cw = sw / z, ch = sh / z;
+  const cx = sx + sw / 2 - (ox || 0) * sw / z;
+  const cy = sy + sh / 2 - (oy || 0) * sh / z;
+  let dx = cx - cw / 2, dy = cy - ch / 2;
+  dx = Math.max(sx, Math.min(sx + sw - cw, dx));
+  dy = Math.max(sy, Math.min(sy + sh - ch, dy));
+  x.drawImage(img, dx, dy, cw, ch, X, Y, W, H);
 }
 
 const DATE_COLORS = {
@@ -44,28 +52,59 @@ const DATE_COLORS = {
 };
 
 /** Compose the final framed strip. Returns a <canvas>. */
-export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '') {
+export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '', showFrame = true, captionFont = 'Matcha Iced') {
   await loadCharImgs();
   if (document.fonts && document.fonts.load) {
     await Promise.all([
       document.fonts.load('34px "Matcha Iced"'),
       document.fonts.load('700 34px "Matcha Iced"'),
+      document.fonts.load('34px "The Magic Cookie"'),
+      document.fonts.load('34px "Orange Lovely"'),
+      document.fonts.load('700 34px "Quicksand"'),
+      document.fonts.load('700 34px "Fredoka"'),
     ]).catch(() => {});
   }
-  const slotW = 640, slotH = 480, gap = 36, padX = 76, capH = 200, padB = 28;
-  const isSingle = layout === 1;
-  const padTop = isSingle ? 96 : 150;                 // polaroid: margin atas tipis
+  /* Geometri disamakan dengan preview HTML (.frame-outer / .frame / .slot).
+     Semua ukuran preview (px) dikalikan `scale` agar slot foto tetap 640x480,
+     sehingga proporsi bingkai pada PNG identik dengan yang tampil di layar. */
   const cols = (layout === 6 || layout === 4) ? 2 : 1;
   const rows = layout === 1 ? 1 : (layout === 4 ? 2 : 3);
-  const W = padX * 2 + cols * slotW + (cols - 1) * gap;
+  const baseW = (layout === 4 || layout === 6) ? 440 : 300;   // .frame-outer width
+  const outer = showFrame ? 12 : 0;                            // .frame-outer padding
+  const frameX = showFrame ? 18 : 0;                           // .frame padding x
+  const frameTop = showFrame ? 22 : 0;                         // .frame padding-top
+  const frameBottom = showFrame ? 24 : 0;                      // .frame padding-bottom
+  const gapPrev = cols === 2 ? 10 : 12;                        // .photos-grid / .photos-strip gap
+  const innerW = baseW - 2 * (outer + frameX);
+  const slotPrevW = (innerW - (cols - 1) * gapPrev) / cols;
+  const scale = 640 / slotPrevW;                               // preview px -> canvas px
+
+  const slotW = 640, slotH = 480;
+  const padX = (outer + frameX) * scale;
+  const padTop = (outer + frameTop) * scale;
+  const gap = gapPrev * scale;
+  let padB = (outer + frameBottom) * scale;
+  if (showFrame && layout === 1) padB = (outer + 0.19 * (baseW - 2 * outer)) * scale;   // polaroid: margin bawah lebar
+
+  const hasCaption = showFrame && (customText || showDate);
+  const capFont = Math.max(1, Math.round(12 * scale));         // .frame-date font-size (12px)
+  const capLine = Math.round(capFont * 1.2);                   // line-height ~1.2
+  /* Area caption SELALU disediakan (samakan dengan .frame-captions:
+     min-height 48px + padding-top 12px, box-sizing border-box) sehingga
+     ukuran bingkai tetap walau tanpa tanggal/caption — sama seperti preview. */
+  const capPadTop = showFrame ? 12 * scale : 0;
+  const capH = showFrame ? 48 * scale : 0;
+
   const photosH = rows * slotH + (rows - 1) * gap;
-  const H = padTop + photosH + capH + padB;
+  const W = Math.round(padX * 2 + cols * slotW + (cols - 1) * gap);
+  const H = Math.round(padTop + photosH + capH + padB);
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const x = cv.getContext('2d');
   const t = theme;
 
   /* background + border per theme */
+  if (showFrame) {
   if (t === 'pastel') {
     const g = x.createLinearGradient(0, 0, W, H);
     g.addColorStop(0, '#ffe6f2'); g.addColorStop(.4, '#ffd3e8'); g.addColorStop(1, '#e9dcff');
@@ -234,6 +273,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillText('☁️', 46, 46); x.fillText('🍼', W - 46, 46);
   }
+  }
 
   /* photo slots */
   photos.forEach((photo, i) => {
@@ -243,8 +283,9 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     const X = padX + cx * (slotW + gap), Y = padTop + cy * (slotH + gap);
     x.save(); rr(x, X, Y, slotW, slotH, 18); x.clip();
     x.filter = fcss;                                                  // filter per foto
-    coverDraw(x, canvas, X, Y, slotW, slotH);
+    coverDraw(x, canvas, X, Y, slotW, slotH, photo.zoom, photo.ox, photo.oy);
     x.restore();
+    if (showFrame) {
     let slotStroke = '#ffffff';
     if (t === 'neon') slotStroke = '#00f0ff';
     else if (t === 'film' || t === 'minimal') slotStroke = '#111111';
@@ -314,25 +355,28 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
       rr(x, X, Y, slotW, slotH, 18); x.stroke();
       x.restore();
     }
+    }
   });
 
-  /* area caption: jarak kotak ke caption = 170px */
-  const capY = padTop + photosH + 170;
-
+  if (hasCaption) {
+  let capY = padTop + photosH + capPadTop + capLine / 2;
+  const capFontCss = '700 ' + capFont + 'px "' + captionFont + '", "Trebuchet MS", sans-serif';
   /* optional custom text */
   if (customText) {
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.font = '34px "Matcha Iced", "Trebuchet MS", sans-serif';
+    x.font = capFontCss;
     x.fillStyle = DATE_COLORS[t] || '#8f8fb0';
     x.fillText(customText, W / 2, capY);
+    capY += capLine;
   }
 
   /* optional date stamp */
   if (showDate) {
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.font = '26px "Matcha Iced", "Trebuchet MS", sans-serif';
+    x.font = capFontCss;
     x.fillStyle = DATE_COLORS[t] || '#8f8fb0';
-    x.fillText(dateLine(), W / 2, capY + 30);
+    x.fillText(dateLine(getLang()), W / 2, capY);
+  }
   }
 
   /* user added custom stickers */
@@ -358,13 +402,15 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
         }
       } else if (st.type === 'text') {
         const fontSize = Math.round(W * 0.045 * sc);
-        x.font = '700 ' + fontSize + 'px "Matcha Iced", "Trebuchet MS", sans-serif';
+        x.font = '700 ' + fontSize + 'px "' + (st.font || 'Matcha Iced') + '", "Trebuchet MS", sans-serif';
         x.textAlign = 'center';
         x.textBaseline = 'middle';
         x.lineJoin = 'round';
-        x.lineWidth = Math.max(3, fontSize * 0.14);
-        x.strokeStyle = 'rgba(255,255,255,.9)';
-        x.strokeText(st.value, 0, 0);
+        if (st.outline !== false) {
+          x.lineWidth = Math.max(3, fontSize * 0.14);
+          x.strokeStyle = 'rgba(255,255,255,.9)';
+          x.strokeText(st.value, 0, 0);
+        }
         x.fillStyle = st.color || '#23233a';
         x.fillText(st.value, 0, 0);
       } else if (st.type === 'emoji') {

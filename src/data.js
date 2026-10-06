@@ -63,9 +63,20 @@ export function filterCss(id) {
   return f ? f.css : 'none';
 }
 
-export function dateLine() {
+const DATE_FORMATS = {
+  id: 'DD·MM·YYYY', en: 'MM/DD/YYYY', ms: 'DD/MM/YYYY', ar: 'DD/MM/YYYY',
+  es: 'DD/MM/YYYY', fr: 'DD/MM/YYYY', de: 'DD.MM.YYYY', pt: 'DD/MM/YYYY',
+  ru: 'DD.MM.YYYY', ja: 'YYYY年MM月DD日', ko: 'YYYY.MM.DD', zh: 'YYYY年MM月DD日',
+  hi: 'DD/MM/YYYY', vi: 'DD/MM/YYYY', th: 'DD/MM/YYYY', tr: 'DD.MM.YYYY',
+};
+
+export function dateLine(lang = 'id') {
   const d = new Date(), p = n => String(n).padStart(2, '0');
-  return p(d.getDate()) + '·' + p(d.getMonth() + 1) + '·' + d.getFullYear();
+  const fmt = DATE_FORMATS[lang] || DATE_FORMATS.id;
+  return fmt
+    .replace('YYYY', String(d.getFullYear()))
+    .replace('MM', p(d.getMonth() + 1))
+    .replace('DD', p(d.getDate()));
 }
 
 export const EMOJI_STICKERS = [

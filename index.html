@@ -3,24 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Snappie Studio 📸 — your little photo moment</title>
+<title>Snappie Studio — your little photo moment</title>
 <meta name="description" content="Snappie Studio — web photo booth: ambil foto atau pilih dari galeri, pilih filter & bingkai lucu, tambah stiker, lalu unduh atau bagikan. Semua diproses di perangkatmu.">
 <meta name="theme-color" content="#d63384">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d63384'/%3E%3Crect x='15' y='10' width='34' height='44' rx='3' fill='%23ffffff'/%3E%3Crect x='19' y='14' width='26' height='24' rx='2' fill='%23ffd1e8'/%3E%3Cpath d='M32 31 C28.5 28 26 25.5 26 22.8 C26 20.4 28.2 19.2 30.4 20.8 C31.3 21.5 31.7 22.4 32 23.2 C32.3 22.4 32.7 21.5 33.6 20.8 C35.8 19.2 38 20.4 38 22.8 C38 25.5 35.5 28 32 31 Z' fill='%23d63384'/%3E%3Crect x='23' y='44' width='18' height='4' rx='2' fill='%23f5a9cd'/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d63384'/%3E%3Crect x='15' y='10' width='34' height='44' rx='3' fill='%23ffffff'/%3E%3Crect x='19' y='14' width='26' height='24' rx='2' fill='%23ffd1e8'/%3E%3Cpath d='M32 31 C28.5 28 26 25.5 26 22.8 C26 20.4 28.2 19.2 30.4 20.8 C31.3 21.5 31.7 22.4 32 23.2 C32.3 22.4 32.7 21.5 33.6 20.8 C35.8 19.2 38 20.4 38 22.8 C38 25.5 35.5 28 32 31 Z' fill='%23d63384'/%3E%3Crect x='23' y='44' width='18' height='4' rx='2' fill='%23f5a9cd'/%3E%3C/svg%3E">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Snappie Studio 📸 — your little photo moment">
+<meta property="og:title" content="Snappie Studio — your little photo moment">
 <meta property="og:description" content="Web photo booth: filter, bingkai lucu, stiker, lalu unduh atau bagikan ke sosmed.">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Snappie Studio 📸">
+<meta property="og:image" content="/og.png">
+<meta property="og:image:secure_url" content="/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Snappie Studio — your little photo moment">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Snappie Studio">
 <meta name="twitter:description" content="Web photo booth: filter, bingkai lucu, stiker, lalu bagikan.">
+<meta name="twitter:image" content="/og.png">
+<meta name="twitter:image:alt" content="Snappie Studio — your little photo moment">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
+
+<div id="bg-lines" aria-hidden="true"></div>
 
 <!-- character sticker definitions -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -34,13 +45,13 @@
 
 <!-- START -->
 <div class="screen active" id="scr-start">
-  <button id="btn-lang" class="lang-fab" type="button" aria-label="Language" title="Language">🌐</button>
-  <button id="toggle-dark" class="theme-fab" type="button" aria-label="Dark mode" title="Dark mode">🌙</button>
+  <button id="btn-lang" class="lang-fab" type="button" aria-label="Language" title="Language"><span class="ms">language</span></button>
+  <button id="toggle-dark" class="theme-fab" type="button" aria-label="Dark mode" title="Dark mode"><span class="ms" id="dark-ico">dark_mode</span></button>
   <h1>Snappie Studio</h1>
   <p class="tagline">"your little photo moment"</p>
   <p class="desc" data-i18n-html="start.desc">Jepret foto kece pakai filter,<br>hias dengan stiker lucu, lalu bagikan ke sosmed!</p>
   <button class="btn" id="btn-start" data-i18n="start.open">Buka Kamera</button>
-  <button class="btn ghost" id="btn-gallery-start" style="margin-top:12px;" data-i18n="start.gallery">🖼️ Pilih dari Galeri</button>
+  <button class="btn ghost" id="btn-gallery-start" style="margin-top:12px;"><span class="ms">image</span><span data-i18n="start.gallery">Pilih dari Galeri</span></button>
   <p class="desc" style="margin-top:18px; font-size:12px;" data-i18n-html="start.footer">Butuh izin kamera &amp; koneksi HTTPS.<br>Foto cuma diproses di perangkatmu.</p>
 </div>
 
@@ -51,20 +62,35 @@
       <video id="video" playsinline muted autoplay></video>
       <div id="flash"></div>
       <div id="countdown"></div>
+      <div class="cam-top-controls">
+        <button type="button" id="btn-flash" class="cam-ico" aria-label="Flash" title="Flash" aria-haspopup="true" aria-expanded="false">
+          <span class="cam-ico-glyph ms" id="flash-glyph">flash_on</span><span class="cam-ico-val" id="flash-val"></span>
+        </button>
+        <button type="button" id="btn-countdown" class="cam-ico" aria-label="Countdown" title="Countdown">
+          <span class="cam-ico-glyph ms">timer</span><span class="cam-ico-val" id="countdown-val"></span>
+        </button>
+        <button type="button" id="btn-sound" class="cam-ico" aria-label="Sound" title="Sound" aria-pressed="true">
+          <span class="cam-ico-glyph ms" id="sound-glyph">volume_up</span>
+        </button>
+        <span class="cam-count" id="shot-count">0 / 3</span>
+        <div id="flash-menu" class="cam-pop" role="menu" hidden>
+          <button type="button" class="cam-pop-item" data-flash="on" role="menuitem"><span class="ms">flash_on</span><span data-i18n="cam.flashOn">Flash Aktif</span></button>
+          <button type="button" class="cam-pop-item" data-flash="auto" role="menuitem"><span class="ms">flash_auto</span><span data-i18n="cam.flashAuto">Flash Otomatis</span></button>
+          <button type="button" class="cam-pop-item" data-flash="off" role="menuitem"><span class="ms">flash_off</span><span data-i18n="cam.flashOff">Flash Mati</span></button>
+        </div>
+      </div>
+      <div class="cam-bottom-controls">
+        <button type="button" id="btn-switch-cam" class="cam-round" aria-label="Ganti kamera" title="Ganti kamera"><span class="ms">cameraswitch</span></button>
+        <button id="shutter" aria-label="Jepret"></button>
+        <button type="button" id="toggle-mirror" class="cam-round active" aria-label="Mirror" title="Mirror" aria-pressed="true"><span class="ms">flip</span></button>
+      </div>
     </div>
-    <button id="shutter" aria-label="Jepret"></button>
-  </div>
-  <div class="cam-controls">
-    <button class="btn ghost small" id="btn-switch-cam" type="button" data-i18n="cam.switch">🔄 Ganti Kamera</button>
-    <label class="date-toggle" for="toggle-mirror" style="margin:0;">
-      <input type="checkbox" id="toggle-mirror" checked>
-      <span class="track"><span class="thumb"></span></span>
-      <span class="date-toggle-label" data-i18n="cam.mirror">🪞 Mirror</span>
-    </label>
   </div>
   <div id="camerr" data-i18n="err.generic">Kamera nggak bisa dibuka. Cek izin kamera / pakai HTTPS ya.</div>
   <div class="label" data-i18n="cam.filter">FILTER</div>
-  <button type="button" id="filters" class="theme-select-btn" aria-haspopup="dialog" aria-controls="filter-modal"></button>
+  <div class="filter-strip-wrap" id="filter-strip-wrap">
+    <div class="filter-strip" id="filter-strip"></div>
+  </div>
   <div class="label" data-i18n="cam.count">JUMLAH FOTO</div>
   <div class="seg" id="layoutseg">
     <button data-layout="1" data-i18n="cam.n1">1 foto</button>
@@ -72,68 +98,59 @@
     <button data-layout="4" data-i18n="cam.n4">4 foto</button>
     <button data-layout="6" data-i18n="cam.n6">6 foto</button>
   </div>
-  <div class="label" data-i18n="cam.settings">PENGATURAN</div>
-  <div class="settings-row">
-    <label class="setting">
-      <span data-i18n="cam.countdown">⏱ Hitung mundur</span>
-      <select id="set-countdown" class="filter-select small" aria-label="Hitung mundur">
-        <option value="0" data-i18n="cam.off">Tanpa</option>
-        <option value="3" data-i18n="cam.s3">3 dtk</option>
-        <option value="5" data-i18n="cam.s5">5 dtk</option>
-        <option value="10" data-i18n="cam.s10">10 dtk</option>
-      </select>
-    </label>
-    <label class="date-toggle" for="toggle-flash">
-      <input type="checkbox" id="toggle-flash" checked>
-      <span class="track"><span class="thumb"></span></span>
-      <span class="date-toggle-label" data-i18n="cam.flash">⚡ Flash</span>
-    </label>
-    <label class="date-toggle" for="toggle-sound">
-      <input type="checkbox" id="toggle-sound" checked>
-      <span class="track"><span class="thumb"></span></span>
-      <span class="date-toggle-label" data-i18n="cam.sound">🔔 Suara</span>
-    </label>
-  </div>
-  <div id="theme-block" class="theme-block" hidden>
-    <div class="label" data-i18n="cam.theme">TEMA BINGKAI</div>
-    <button type="button" id="themepick" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
-  </div>
-  <button class="btn ghost" id="btn-gallery" style="margin-top:16px;" data-i18n="cam.addGallery">🖼️ Tambah dari Galeri</button>
-  <button class="btn" id="btn-to-preview" style="margin-top:12px; display:none;" data-i18n="cam.preview">✓ Preview / Selesai</button>
-  <div class="dots" id="dots"></div>
-  <div id="thumbs"></div>
+  <button class="btn" id="btn-to-preview" style="margin-top:12px; display:none;"><span class="ms">check</span><span data-i18n="cam.preview">Preview / Selesai</span></button>
 </div>
 
 <!-- PREVIEW -->
 <div class="screen" id="scr-preview">
-  <h1 style="margin-top:4px" data-i18n="pv.title">Preview ✨</h1>
+  <h1 style="margin-top:4px"><span class="ms">auto_awesome</span><span data-i18n="pv.title">Preview</span></h1>
   <p class="desc" data-i18n="pv.desc">Cek tiap foto — buang, jepret ulang, atau ganti dari galeri. Tambah stiker, lalu tekan Fix.</p>
   <div id="preview-holder"></div>
+  <label class="date-toggle" for="toggle-frame" style="margin:6px 0 2px;">
+    <input type="checkbox" id="toggle-frame" checked>
+    <span class="track"><span class="thumb"></span></span>
+    <span class="date-toggle-label"><span class="ms">filter_frames</span><span data-i18n="pv.frame">Bingkai</span></span>
+  </label>
   <div class="btnrow">
-    <button class="btn ghost" id="btn-preview-sticker" data-i18n="pv.sticker">➕ Add Sticker</button>
-    <button class="btn" id="btn-preview-fix" data-i18n="pv.fix">✓ Fix</button>
+    <button class="btn ghost" id="btn-preview-sticker"><span class="ms">add</span><span data-i18n="pv.sticker">Add Sticker</span></button>
+    <button class="btn" id="btn-preview-fix"><span class="ms">check</span><span data-i18n="pv.fix">Fix</span></button>
   </div>
 </div>
 
 <!-- RESULT -->
 <div class="screen" id="scr-result">
-  <h1 style="margin-top:4px" data-i18n="rs.title">Hasilnya! 🎉</h1>
+  <h1 style="margin-top:4px"><span class="ms">celebration</span><span data-i18n="rs.title">Hasilnya!</span></h1>
   <div id="result-holder"></div>
   <div class="label" data-i18n="rs.theme">GANTI TEMA</div>
   <div class="theme-pick-row">
     <button type="button" id="themepick2" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
-    <button class="btn ghost" id="btn-add-sticker" data-i18n="rs.sticker">➕ Sticker</button>
+    <button class="btn ghost" id="btn-add-sticker"><span class="ms">add</span><span data-i18n="rs.sticker">Sticker</span></button>
   </div>
   <label class="date-toggle" for="toggle-date">
     <input type="checkbox" id="toggle-date">
     <span class="track"><span class="thumb"></span></span>
-    <span class="date-toggle-label" data-i18n="rs.date">📅 Tambah Tanggal ke Bingkai</span>
+    <span class="date-toggle-label"><span class="ms">event</span><span data-i18n="rs.date">Tambah Tanggal</span></span>
   </label>
   <input type="text" id="custom-text" class="custom-text-input" maxlength="28"
-    data-i18n-ph="rs.namePh" placeholder="✎ Tulis nama / ucapan (opsional)" autocomplete="off">
+    data-i18n-ph="rs.namePh" placeholder="Tulis nama / ucapan (opsional)" autocomplete="off">
+  <label class="setting result-font" for="caption-font">
+    <span><span class="ms">text_fields</span><span data-i18n="rs.font">Font</span></span>
+    <select id="caption-font" class="filter-select small" aria-label="Font">
+      <option value="Matcha Iced">Matcha Iced</option>
+      <option value="The Magic Cookie">The Magic Cookie</option>
+      <option value="Orange Lovely">Orange Lovely</option>
+      <option value="Quicksand">Quicksand</option>
+      <option value="Fredoka">Fredoka</option>
+    </select>
+  </label>
   <div class="btnrow">
-    <button class="btn share-btn" id="btn-open-share" data-i18n="rs.share">🚀 Bagikan ke Sosmed</button>
-    <button class="btn" id="btn-download" data-i18n="rs.download">⬇ Unduh PNG</button>
+    <button class="btn" id="btn-download"><span class="ms" id="download-ico">download</span><span id="download-label" data-i18n="rs.download">Unduh PNG</span></button>
+  </div>
+  <div class="share-social" role="group" aria-label="Bagikan ke media sosial">
+    <button type="button" class="share-social-btn ig" id="share-ig" aria-label="Instagram" title="Instagram"><span class="ms">photo_camera</span></button>
+    <button type="button" class="share-social-btn wa" id="share-wa" aria-label="WhatsApp" title="WhatsApp"><span class="ms">chat</span></button>
+    <button type="button" class="share-social-btn fb" id="share-fb" aria-label="Facebook" title="Facebook"><span class="ms">public</span></button>
+    <button type="button" class="share-social-btn tt" id="share-tt" aria-label="TikTok" title="TikTok"><span class="ms">music_note</span></button>
   </div>
 </div>
 
@@ -141,7 +158,7 @@
 <div id="sticker-modal" class="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal-card">
     <div class="modal-header">
-      <h2 data-i18n="md.stickerTitle">✨ Pilih Stiker / Add Sticker ✨</h2>
+      <h2><span class="ms">auto_awesome</span><span data-i18n="md.stickerTitle">Pilih Stiker / Add Sticker</span></h2>
       <button id="btn-close-sticker" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
@@ -150,6 +167,17 @@
         <input type="text" id="sticker-text-input" class="custom-text-input" maxlength="40"
           data-i18n-ph="md.textPh" placeholder="Tulis teks, lalu Tambah (bisa dipindah)" autocomplete="off">
         <button type="button" class="btn" id="btn-add-text" data-i18n="md.add">Tambah</button>
+      </div>
+      <div class="sticker-style-row">
+        <select id="sticker-font" class="filter-select small" aria-label="Font">
+          <option value="Matcha Iced">Matcha Iced</option>
+          <option value="The Magic Cookie">Magic Cookie</option>
+          <option value="Orange Lovely">Orange Lovely</option>
+          <option value="Quicksand">Quicksand</option>
+          <option value="Fredoka">Fredoka</option>
+        </select>
+        <button type="button" id="sticker-color" class="sticker-color" data-color="#23233a" style="background:#23233a" aria-label="Warna" title="Warna"></button>
+        <label class="sticker-outline"><input type="checkbox" id="sticker-outline" checked> <span data-i18n="st.outline">Outline</span></label>
       </div>
       <div class="sticker-section-title" data-i18n="md.chars">Karakter Lucu</div>
       <div class="sticker-grid" id="char-sticker-grid"></div>
@@ -163,7 +191,7 @@
 <div id="theme-modal" class="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal-card theme-modal-card">
     <div class="modal-header">
-      <h2 data-i18n="md.themeTitle">✨ Pilih Tema Bingkai</h2>
+      <h2><span class="ms">auto_awesome</span><span data-i18n="md.themeTitle">Pilih Tema Bingkai</span></h2>
       <button id="btn-close-theme" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
@@ -176,7 +204,7 @@
 <div id="filter-modal" class="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal-card filter-modal-card">
     <div class="modal-header">
-      <h2 data-i18n="md.filterTitle">🎨 Pilih Filter</h2>
+      <h2><span class="ms">palette</span><span data-i18n="md.filterTitle">Pilih Filter</span></h2>
       <button id="btn-close-filter" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
@@ -185,15 +213,39 @@
   </div>
 </div>
 
+<!-- COUNTDOWN MODAL -->
+<div id="countdown-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="cd-title">
+  <div class="modal-card cd-card">
+    <div class="modal-header">
+      <h2 id="cd-title"><span class="ms">timer</span><span data-i18n="cam.countdown">Hitung mundur</span></h2>
+      <button id="btn-close-countdown" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="cd-grid" id="countdown-grid"></div>
+    </div>
+  </div>
+</div>
+
 <!-- TEXT EDIT MODAL -->
 <div id="text-edit-modal" class="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal-card text-edit-card">
     <div class="modal-header">
-      <h2 data-i18n="md.editTitle">✏️ Edit Teks</h2>
+      <h2><span class="ms">edit</span><span data-i18n="md.editTitle">Edit Teks</span></h2>
       <button id="btn-close-text-edit" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <input type="text" id="text-edit-input" class="custom-text-input" maxlength="40" autocomplete="off">
+      <div class="sticker-style-row">
+        <select id="edit-font" class="filter-select small" aria-label="Font">
+          <option value="Matcha Iced">Matcha Iced</option>
+          <option value="The Magic Cookie">Magic Cookie</option>
+          <option value="Orange Lovely">Orange Lovely</option>
+          <option value="Quicksand">Quicksand</option>
+          <option value="Fredoka">Fredoka</option>
+        </select>
+        <button type="button" id="edit-color" class="sticker-color" data-color="#23233a" style="background:#23233a" aria-label="Warna" title="Warna"></button>
+        <label class="sticker-outline"><input type="checkbox" id="edit-outline" checked> <span data-i18n="st.outline">Outline</span></label>
+      </div>
       <div class="btnrow">
         <button type="button" class="btn ghost" id="btn-cancel-text-edit" data-i18n="md.cancel">Batal</button>
         <button type="button" class="btn" id="btn-save-text-edit" data-i18n="md.save">Simpan</button>
@@ -202,66 +254,15 @@
   </div>
 </div>
 
-<!-- SHARE MODAL -->
-<div id="share-modal" class="modal-overlay" role="dialog" aria-modal="true">
-  <div class="modal-card share-card">
+<!-- COLOR MODAL -->
+<div id="color-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="color-title">
+  <div class="modal-card color-card">
     <div class="modal-header">
-      <h2 data-i18n="sh.title">🚀 Bagikan ke Media Sosial ✨</h2>
-      <button id="btn-close-share" class="modal-close" aria-label="Tutup">&times;</button>
+      <h2 id="color-title"><span class="ms">palette</span><span data-i18n="st.colorTitle">Pilih Warna</span></h2>
+      <button id="btn-close-color" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
-    <div class="modal-body share-body">
-      <div class="share-wm-badge">
-        <span class="wm-icon">📸</span>
-        <div>
-          <strong data-i18n="sh.wm">Watermark Otomatis:</strong>
-          <span data-i18n="sh.promo">✨ Bikin foto strip lucu GRATIS di Snappie Studio</span>
-        </div>
-      </div>
-
-      <div class="share-grid">
-        <button class="share-item ig" id="share-ig">
-          <div class="share-icon">📸</div>
-          <div class="share-text">
-            <strong>Instagram</strong>
-            <span data-i18n="sh.igSub">Story / Feed</span>
-          </div>
-        </button>
-
-        <button class="share-item wa" id="share-wa">
-          <div class="share-icon">💬</div>
-          <div class="share-text">
-            <strong>WhatsApp</strong>
-            <span data-i18n="sh.waSub">Story / Chat</span>
-          </div>
-        </button>
-
-        <button class="share-item fb" id="share-fb">
-          <div class="share-icon">🔷</div>
-          <div class="share-text">
-            <strong>Facebook</strong>
-            <span data-i18n="sh.fbSub">Post / Story</span>
-          </div>
-        </button>
-
-        <button class="share-item tt" id="share-tt">
-          <div class="share-icon">🎵</div>
-          <div class="share-text">
-            <strong>TikTok</strong>
-            <span data-i18n="sh.ttSub">Video / Story</span>
-          </div>
-        </button>
-      </div>
-
-      <div class="share-actions">
-        <button class="btn share-native-btn" id="share-native" data-i18n="sh.native">
-          📲 Bagikan Langsung (Web Share API)
-        </button>
-        <button class="btn ghost share-copy-btn" id="share-copy-link" data-i18n="sh.copy">
-          🔗 Salin Caption &amp; Link
-        </button>
-      </div>
-      
-      <div id="share-toast" class="share-toast"></div>
+    <div class="modal-body">
+      <div class="color-grid" id="color-grid"></div>
     </div>
   </div>
 </div>
@@ -270,7 +271,7 @@
 <div id="again-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="again-title">
   <div class="modal-card again-card">
     <div class="modal-header">
-      <h2 id="again-title" data-i18n="ag.title">Mau jepret lagi? 📸</h2>
+      <h2 id="again-title"><span class="ms">photo_camera</span><span data-i18n="ag.title">Mau jepret lagi?</span></h2>
       <button id="btn-close-again" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
@@ -283,11 +284,35 @@
   </div>
 </div>
 
+<!-- INSTAGRAM SHARE MODAL -->
+<div id="ig-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ig-title">
+  <div class="modal-card ig-card">
+    <div class="modal-header">
+      <h2 id="ig-title"><span class="ms">photo_camera</span><span data-i18n="sh.igTitle">Bagikan ke Instagram</span></h2>
+      <button id="btn-close-ig" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="ig-grid">
+        <button type="button" class="ig-option" id="ig-feed">
+          <span class="ms">photo_library</span>
+          <span class="ig-option-title" data-i18n="sh.igFeed">Feed</span>
+          <span class="ig-option-sub" data-i18n="sh.igFeedSub">Posting sebagai feed</span>
+        </button>
+        <button type="button" class="ig-option" id="ig-story">
+          <span class="ms">auto_stories</span>
+          <span class="ig-option-title" data-i18n="sh.igStory">Story</span>
+          <span class="ig-option-sub" data-i18n="sh.igStorySub">Posting ke story</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- LANGUAGE MODAL -->
 <div id="lang-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="lang-title">
   <div class="modal-card lang-modal-card">
     <div class="modal-header">
-      <h2 id="lang-title" data-i18n="start.lang">🌐 Bahasa</h2>
+      <h2 id="lang-title"><span class="ms">language</span><span data-i18n="start.lang">Bahasa</span></h2>
       <button id="btn-close-lang" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
