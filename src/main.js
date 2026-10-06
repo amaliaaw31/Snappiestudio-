@@ -2,6 +2,7 @@
 
 import { FILTERS, THEMES, CHARS, EMOJI_STICKERS, dateLine, filterCss } from './data.js';
 import { compose } from './composer.js';
+import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
 
 /* ============ state ============ */
 const LAYOUT_AR = { 1: '4 / 3', 3: '3 / 4', 4: '4 / 3', 6: '1 / 1' };
@@ -121,7 +122,7 @@ document.addEventListener('keydown', (e) => {
 const filterModal = $('filter-modal');
 const filterBtns = [];
 function filterName() {
-  return (FILTERS.find(f => f.id === state.filter) || {}).name || '';
+  return tr('filter.' + state.filter);
 }
 function syncFilterPicker() {
   filterBtns.forEach(b => { if (b) b.textContent = filterName(); });
@@ -150,7 +151,7 @@ function buildFilterPicker() {
     b.className = 'filter-option' + (f.id === state.filter ? ' sel' : '');
     b.dataset.id = f.id;
     b.innerHTML = '<span class="filter-sample" style="filter:' + f.css + '"></span>' +
-      '<span class="filter-option-name">' + f.name + '</span>';
+      '<span class="filter-option-name">' + tr('filter.' + f.id) + '</span>';
     b.onclick = () => { chooseFilter(f.id); closeModal('filter-modal'); };
     grid.appendChild(b);
   });
@@ -168,7 +169,7 @@ buildFilterPicker();
 const themeModal = $('theme-modal');
 const themeBtns = [];
 function themeName() {
-  return (THEMES.find(t => t.id === state.theme) || {}).name || '';
+  return tr('theme.' + state.theme);
 }
 function themeThumbHTML(t) {
   return '<span class="frame-outer th-' + t.id + ' theme-thumb">' +
@@ -190,7 +191,7 @@ function buildThemePicker() {
     b.type = 'button';
     b.className = 'theme-option' + (t.id === state.theme ? ' sel' : '');
     b.dataset.id = t.id;
-    b.innerHTML = themeThumbHTML(t) + '<span class="theme-option-name">' + t.name + '</span>';
+    b.innerHTML = themeThumbHTML(t) + '<span class="theme-option-name">' + tr('theme.' + t.id) + '</span>';
     b.onclick = () => {
       state.theme = t.id;
       syncThemePickers();
@@ -212,6 +213,54 @@ function buildThemePicker() {
   syncThemePickers();
 }
 buildThemePicker();
+
+function refreshPickers() {
+  document.querySelectorAll('#filter-grid .filter-option').forEach(x => {
+    const n = x.querySelector('.filter-option-name');
+    if (n) n.textContent = tr('filter.' + x.dataset.id);
+  });
+  document.querySelectorAll('#theme-grid .theme-option').forEach(x => {
+    const n = x.querySelector('.theme-option-name');
+    if (n) n.textContent = tr('theme.' + x.dataset.id);
+  });
+  syncFilterPicker();
+  syncThemePickers();
+}
+
+function applyLang(code) {
+  setLang(code);
+  applyI18n();
+  refreshPickers();
+  const grid = $('lang-grid');
+  if (grid) grid.querySelectorAll('.lang-option').forEach(x => x.classList.toggle('sel', x.dataset.code === code));
+  if (currentScreen === 'scr-preview') renderPreview();
+  else if (currentScreen === 'scr-result') renderResult();
+}
+
+function buildLangPicker() {
+  const grid = $('lang-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  LANGS.forEach(l => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'lang-option' + (l.code === getLang() ? ' sel' : '');
+    b.dataset.code = l.code;
+    b.title = l.label;
+    b.setAttribute('aria-label', l.label);
+    b.innerHTML = '<span class="lang-flag">' + l.flag + '</span><span class="lang-abbr">' + l.abbr + '</span>';
+    b.onclick = () => { applyLang(l.code); closeModal('lang-modal'); };
+    grid.appendChild(b);
+  });
+}
+buildLangPicker();
+
+if ($('btn-lang')) $('btn-lang').onclick = () => openModal('lang-modal');
+if ($('btn-close-lang')) $('btn-close-lang').onclick = () => closeModal('lang-modal');
+const langModal = $('lang-modal');
+if (langModal) langModal.onclick = (e) => { if (e.target === langModal) closeModal('lang-modal'); };
+
+applyI18n();
 
 function applyLayoutAspect() {
   const wrap = $('camwrap');
@@ -259,13 +308,13 @@ async function startCamera() {
   } catch (e) {
     const name = e && e.name;
     if (name === 'NotAllowedError' || name === 'SecurityError') {
-      camerr.textContent = 'Izin kamera ditolak. Izinkan akses kamera lalu coba lagi.';
+      camerr.textContent = tr('err.denied');
     } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
-      camerr.textContent = 'Kamera tidak ditemukan atau kamera depan/belakang tidak tersedia.';
+      camerr.textContent = tr('err.notfound');
     } else if (name === 'NotReadableError' || name === 'AbortError') {
-      camerr.textContent = 'Kamera sedang dipakai aplikasi lain. Tutup lalu coba lagi.';
+      camerr.textContent = tr('err.inuse');
     } else {
-      camerr.textContent = 'Kamera tidak bisa dibuka. Pakai browser terbaru / koneksi HTTPS.';
+      camerr.textContent = tr('err.generic');
     }
     camerr.style.display = 'block';
     return false;
@@ -641,9 +690,13 @@ if (customInput) {
 
 const darkToggle = $('toggle-dark');
 if (darkToggle) {
-  darkToggle.checked = document.body.classList.contains('dark-mode');
-  darkToggle.onchange = () => {
-    document.body.classList.toggle('dark-mode', darkToggle.checked);
+  const syncDarkIcon = () => {
+    darkToggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+  };
+  syncDarkIcon();
+  darkToggle.onclick = () => {
+    document.body.classList.toggle('dark-mode');
+    syncDarkIcon();
     savePrefs();
   };
 }
@@ -1062,7 +1115,7 @@ function initShareModal() {
     if (e.target === modal) closeModal('share-modal');
   };
 
-  const captionText = 'Jepretan foto di Snappie Studio — your little photo moment 📸✨';
+  const captionText = tr('share.caption');
 
   /* Coba kirim foto langsung lewat Web Share; kalau tidak didukung, baru unduh.
      Return: 'shared' | 'cancelled' | 'unsupported'. */
@@ -1133,14 +1186,14 @@ function initShareModal() {
 
   // Copy Link & Caption
   $('share-copy-link').onclick = async () => {
-    const textToCopy = 'Snappie Studio — your little photo moment 📸✨\nBikin foto strip lucu kamu di: ' + window.location.href;
+    const textToCopy = tr('share.caption') + '\n' + window.location.href;
     try {
       await navigator.clipboard.writeText(textToCopy);
-      showToast('Tautan & caption Snappie Studio berhasil disalin! 🔗');
+      showToast(tr('toast.copied'));
       closeModal('share-modal');
       offerAnotherSession();
     } catch (e) {
-      showToast('Gagal menyalin tautan.');
+      showToast(tr('toast.copyFail'));
     }
   };
 }
@@ -1180,7 +1233,7 @@ $('btn-download').onclick = async () => {
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     offerAnotherSession();
   } catch (e) {
-    alert('Gagal bikin PNG. Coba lagi ya.');
+    alert(tr('toast.failPng'));
   }
-  btn.disabled = false; btn.textContent = '⬇ Unduh PNG';
+  btn.disabled = false; btn.textContent = tr('rs.download');
 };

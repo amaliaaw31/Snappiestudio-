@@ -26,7 +26,7 @@ body { font-family: 'Matcha Iced', 'Quicksand', 'Trebuchet MS', Verdana, sans-se
 .screen { display: none; width: 100%; max-width: 560px; padding: 20px 16px 32px;
   flex-direction: column; align-items: center; }
 .screen.active { display: flex; }
-#scr-start { justify-content: center; min-height: 100vh; min-height: 100dvh; }
+#scr-start { justify-content: center; min-height: 100vh; min-height: 100dvh; position: relative; }
 h1 { font-family: 'The Magic Cookie', 'Fredoka', cursive; font-size: clamp(40px, 8.5vw, 76px); font-weight: 400; color: #d63384; margin: 18px 0 6px; text-align: center; }
 p.desc { color: #9a7bb8; text-align: center; font-size: clamp(13px, 1.8vw, 17px); margin-bottom: 22px; }
 .btn { background: #d63384; color: #fff; border: none; border-radius: 999px;
@@ -68,6 +68,12 @@ video { width: 100%; height: 100%; display: block; transform: scaleX(-1); object
 .date-toggle input:checked + .track .thumb { transform: translateX(20px); }
 .date-toggle input:focus-visible + .track { outline: 2px solid #d63384; outline-offset: 2px; }
 .date-toggle-label { font-size: 13px; font-weight: 800; color: #8a5b7e; letter-spacing: .5px; }
+.lang-fab, .theme-fab { position: absolute; top: 14px; background: none; border: none; padding: 4px;
+  font-size: 28px; line-height: 1; cursor: pointer; z-index: 5;
+  -webkit-tap-highlight-color: transparent; }
+.lang-fab { left: 14px; }
+.theme-fab { right: 14px; }
+.lang-fab:active, .theme-fab:active { transform: scale(.9); }
 .custom-text-input { width: 100%; max-width: 360px; margin-top: 10px; padding: 11px 18px; border-radius: 999px;
   border: 2px solid #d9b8d0; background: #fff; color: #6a4a6a; font-family: inherit; font-size: 14px;
   text-align: center; outline: none; }
@@ -603,6 +609,19 @@ video { width: 100%; height: 100%; display: block; transform: scaleX(-1); object
   background: linear-gradient(135deg,#ff6b9d,#ffd166 40%,#4ecdc4 70%,#5566ff);
   border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
 
+/* language modal */
+.lang-modal-card { max-width: 360px; }
+.lang-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.lang-option { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px;
+  background: #f8f2fc; border: 2px solid #e9d5f2; border-radius: 14px; cursor: pointer; font-family: inherit; }
+.lang-option:hover { background: #fff0f6; border-color: #d63384; }
+.lang-option.sel { outline: 3px solid #d63384; outline-offset: 1px; background: #fdf3ff; }
+.lang-flag { font-size: 26px; line-height: 1.1; }
+.lang-abbr { font-size: 11px; font-weight: 800; color: #6a6a8a; letter-spacing: .5px; }
+.dark-mode .lang-option { background: #2a2740; border-color: #4a4568; }
+.dark-mode .lang-option:hover, .dark-mode .lang-option.sel { background: #2f2b48; }
+.dark-mode .lang-abbr { color: #b7a9d6; }
+
 
 
 
@@ -667,6 +686,7 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
   .sticker-text-row .btn { font-size: 16px; }
   .theme-select-btn { font-size: 16px; }
   .theme-option-name, .filter-option-name { font-size: 11px; }
+  .lang-flag { font-size: 30px; }
   .share-wm-badge { font-size: 14px; }
   .share-item .share-icon { font-size: 30px; }
   .share-item .share-text strong { font-size: 17px; }

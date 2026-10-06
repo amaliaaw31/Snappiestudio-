@@ -34,17 +34,14 @@
 
 <!-- START -->
 <div class="screen active" id="scr-start">
+  <button id="btn-lang" class="lang-fab" type="button" aria-label="Language" title="Language">🌐</button>
+  <button id="toggle-dark" class="theme-fab" type="button" aria-label="Dark mode" title="Dark mode">🌙</button>
   <h1>Snappie Studio</h1>
   <p class="tagline">"your little photo moment"</p>
-  <p class="desc">Jepret foto kece pakai filter,<br>hias dengan stiker lucu, lalu bagikan ke sosmed!</p>
-  <button class="btn" id="btn-start">Buka Kamera</button>
-  <button class="btn ghost" id="btn-gallery-start" style="margin-top:12px;">🖼️ Pilih dari Galeri</button>
-  <label class="date-toggle" for="toggle-dark" style="margin-top:18px;">
-    <input type="checkbox" id="toggle-dark">
-    <span class="track"><span class="thumb"></span></span>
-    <span class="date-toggle-label">🌙 Mode Gelap</span>
-  </label>
-  <p class="desc" style="margin-top:18px; font-size:12px;">Butuh izin kamera &amp; koneksi HTTPS.<br>Foto cuma diproses di perangkatmu.</p>
+  <p class="desc" data-i18n-html="start.desc">Jepret foto kece pakai filter,<br>hias dengan stiker lucu, lalu bagikan ke sosmed!</p>
+  <button class="btn" id="btn-start" data-i18n="start.open">Buka Kamera</button>
+  <button class="btn ghost" id="btn-gallery-start" style="margin-top:12px;" data-i18n="start.gallery">🖼️ Pilih dari Galeri</button>
+  <p class="desc" style="margin-top:18px; font-size:12px;" data-i18n-html="start.footer">Butuh izin kamera &amp; koneksi HTTPS.<br>Foto cuma diproses di perangkatmu.</p>
 </div>
 
 <!-- CAMERA -->
@@ -58,85 +55,85 @@
     <button id="shutter" aria-label="Jepret"></button>
   </div>
   <div class="cam-controls">
-    <button class="btn ghost small" id="btn-switch-cam" type="button">🔄 Ganti Kamera</button>
+    <button class="btn ghost small" id="btn-switch-cam" type="button" data-i18n="cam.switch">🔄 Ganti Kamera</button>
     <label class="date-toggle" for="toggle-mirror" style="margin:0;">
       <input type="checkbox" id="toggle-mirror" checked>
       <span class="track"><span class="thumb"></span></span>
-      <span class="date-toggle-label">🪞 Mirror</span>
+      <span class="date-toggle-label" data-i18n="cam.mirror">🪞 Mirror</span>
     </label>
   </div>
-  <div id="camerr">Kamera nggak bisa dibuka. Cek izin kamera / pakai HTTPS ya.</div>
-  <div class="label">FILTER</div>
+  <div id="camerr" data-i18n="err.generic">Kamera nggak bisa dibuka. Cek izin kamera / pakai HTTPS ya.</div>
+  <div class="label" data-i18n="cam.filter">FILTER</div>
   <button type="button" id="filters" class="theme-select-btn" aria-haspopup="dialog" aria-controls="filter-modal"></button>
-  <div class="label">JUMLAH FOTO</div>
+  <div class="label" data-i18n="cam.count">JUMLAH FOTO</div>
   <div class="seg" id="layoutseg">
-    <button data-layout="1">1 foto</button>
-    <button data-layout="3" class="sel">3 foto</button>
-    <button data-layout="4">4 foto</button>
-    <button data-layout="6">6 foto</button>
+    <button data-layout="1" data-i18n="cam.n1">1 foto</button>
+    <button data-layout="3" class="sel" data-i18n="cam.n3">3 foto</button>
+    <button data-layout="4" data-i18n="cam.n4">4 foto</button>
+    <button data-layout="6" data-i18n="cam.n6">6 foto</button>
   </div>
-  <div class="label">PENGATURAN</div>
+  <div class="label" data-i18n="cam.settings">PENGATURAN</div>
   <div class="settings-row">
     <label class="setting">
-      <span>⏱ Hitung mundur</span>
+      <span data-i18n="cam.countdown">⏱ Hitung mundur</span>
       <select id="set-countdown" class="filter-select small" aria-label="Hitung mundur">
-        <option value="0">Tanpa</option>
-        <option value="3">3 dtk</option>
-        <option value="5">5 dtk</option>
-        <option value="10">10 dtk</option>
+        <option value="0" data-i18n="cam.off">Tanpa</option>
+        <option value="3" data-i18n="cam.s3">3 dtk</option>
+        <option value="5" data-i18n="cam.s5">5 dtk</option>
+        <option value="10" data-i18n="cam.s10">10 dtk</option>
       </select>
     </label>
     <label class="date-toggle" for="toggle-flash">
       <input type="checkbox" id="toggle-flash" checked>
       <span class="track"><span class="thumb"></span></span>
-      <span class="date-toggle-label">⚡ Flash</span>
+      <span class="date-toggle-label" data-i18n="cam.flash">⚡ Flash</span>
     </label>
     <label class="date-toggle" for="toggle-sound">
       <input type="checkbox" id="toggle-sound" checked>
       <span class="track"><span class="thumb"></span></span>
-      <span class="date-toggle-label">🔔 Suara</span>
+      <span class="date-toggle-label" data-i18n="cam.sound">🔔 Suara</span>
     </label>
   </div>
   <div id="theme-block" class="theme-block" hidden>
-    <div class="label">TEMA BINGKAI</div>
+    <div class="label" data-i18n="cam.theme">TEMA BINGKAI</div>
     <button type="button" id="themepick" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
   </div>
-  <button class="btn ghost" id="btn-gallery" style="margin-top:16px;">🖼️ Tambah dari Galeri</button>
-  <button class="btn" id="btn-to-preview" style="margin-top:12px; display:none;">✓ Preview / Selesai</button>
+  <button class="btn ghost" id="btn-gallery" style="margin-top:16px;" data-i18n="cam.addGallery">🖼️ Tambah dari Galeri</button>
+  <button class="btn" id="btn-to-preview" style="margin-top:12px; display:none;" data-i18n="cam.preview">✓ Preview / Selesai</button>
   <div class="dots" id="dots"></div>
   <div id="thumbs"></div>
 </div>
 
 <!-- PREVIEW -->
 <div class="screen" id="scr-preview">
-  <h1 style="margin-top:4px">Preview ✨</h1>
-  <p class="desc">Cek tiap foto — buang, jepret ulang, atau ganti dari galeri. Tambah stiker, lalu tekan Fix.</p>
+  <h1 style="margin-top:4px" data-i18n="pv.title">Preview ✨</h1>
+  <p class="desc" data-i18n="pv.desc">Cek tiap foto — buang, jepret ulang, atau ganti dari galeri. Tambah stiker, lalu tekan Fix.</p>
   <div id="preview-holder"></div>
   <div class="btnrow">
-    <button class="btn ghost" id="btn-preview-sticker">➕ Add Sticker</button>
-    <button class="btn" id="btn-preview-fix">✓ Fix</button>
+    <button class="btn ghost" id="btn-preview-sticker" data-i18n="pv.sticker">➕ Add Sticker</button>
+    <button class="btn" id="btn-preview-fix" data-i18n="pv.fix">✓ Fix</button>
   </div>
 </div>
 
 <!-- RESULT -->
 <div class="screen" id="scr-result">
-  <h1 style="margin-top:4px">Hasilnya! 🎉</h1>
+  <h1 style="margin-top:4px" data-i18n="rs.title">Hasilnya! 🎉</h1>
   <div id="result-holder"></div>
-  <div class="label">GANTI TEMA</div>
+  <div class="label" data-i18n="rs.theme">GANTI TEMA</div>
   <div class="theme-pick-row">
     <button type="button" id="themepick2" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
-    <button class="btn ghost" id="btn-add-sticker">➕ Sticker</button>
+    <button class="btn ghost" id="btn-add-sticker" data-i18n="rs.sticker">➕ Sticker</button>
   </div>
   <label class="date-toggle" for="toggle-date">
     <input type="checkbox" id="toggle-date">
     <span class="track"><span class="thumb"></span></span>
-    <span class="date-toggle-label">📅 Tambah Tanggal ke Bingkai</span>
+    <span class="date-toggle-label" data-i18n="rs.date">📅 Tambah Tanggal ke Bingkai</span>
   </label>
   <input type="text" id="custom-text" class="custom-text-input" maxlength="28"
-    placeholder="✎ Tulis nama / ucapan (opsional)" autocomplete="off">
+    data-i18n-ph="rs.namePh" placeholder="✎ Tulis nama / ucapan (opsional)" autocomplete="off">
   <div class="btnrow">
-    <button class="btn share-btn" id="btn-open-share">🚀 Bagikan ke Sosmed</button>
-    <button class="btn" id="btn-download">⬇ Unduh PNG</button>
+    <button class="btn share-btn" id="btn-open-share" data-i18n="rs.share">🚀 Bagikan ke Sosmed</button>
+    <button class="btn" id="btn-download" data-i18n="rs.download">⬇ Unduh PNG</button>
   </div>
 </div>
 
@@ -144,19 +141,19 @@
 <div id="sticker-modal" class="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal-card">
     <div class="modal-header">
-      <h2>✨ Pilih Stiker / Add Sticker ✨</h2>
+      <h2 data-i18n="md.stickerTitle">✨ Pilih Stiker / Add Sticker ✨</h2>
       <button id="btn-close-sticker" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="sticker-section-title">Teks</div>
+      <div class="sticker-section-title" data-i18n="md.text">Teks</div>
       <div class="sticker-text-row">
         <input type="text" id="sticker-text-input" class="custom-text-input" maxlength="40"
-          placeholder="Tulis teks, lalu Tambah (bisa dipindah)" autocomplete="off">
-        <button type="button" class="btn" id="btn-add-text">Tambah</button>
+          data-i18n-ph="md.textPh" placeholder="Tulis teks, lalu Tambah (bisa dipindah)" autocomplete="off">
+        <button type="button" class="btn" id="btn-add-text" data-i18n="md.add">Tambah</button>
       </div>
-      <div class="sticker-section-title">Karakter Lucu</div>
+      <div class="sticker-section-title" data-i18n="md.chars">Karakter Lucu</div>
       <div class="sticker-grid" id="char-sticker-grid"></div>
-      <div class="sticker-section-title">Emoji &amp; Simbol</div>
+      <div class="sticker-section-title" data-i18n="md.emoji">Emoji &amp; Simbol</div>
       <div class="sticker-grid" id="emoji-sticker-grid"></div>
     </div>
   </div>
@@ -166,7 +163,7 @@
 <div id="theme-modal" class="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal-card theme-modal-card">
     <div class="modal-header">
-      <h2>✨ Pilih Tema Bingkai</h2>
+      <h2 data-i18n="md.themeTitle">✨ Pilih Tema Bingkai</h2>
       <button id="btn-close-theme" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
@@ -179,7 +176,7 @@
 <div id="filter-modal" class="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal-card filter-modal-card">
     <div class="modal-header">
-      <h2>🎨 Pilih Filter</h2>
+      <h2 data-i18n="md.filterTitle">🎨 Pilih Filter</h2>
       <button id="btn-close-filter" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
@@ -192,14 +189,14 @@
 <div id="text-edit-modal" class="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal-card text-edit-card">
     <div class="modal-header">
-      <h2>✏️ Edit Teks</h2>
+      <h2 data-i18n="md.editTitle">✏️ Edit Teks</h2>
       <button id="btn-close-text-edit" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <input type="text" id="text-edit-input" class="custom-text-input" maxlength="40" autocomplete="off">
       <div class="btnrow">
-        <button type="button" class="btn ghost" id="btn-cancel-text-edit">Batal</button>
-        <button type="button" class="btn" id="btn-save-text-edit">Simpan</button>
+        <button type="button" class="btn ghost" id="btn-cancel-text-edit" data-i18n="md.cancel">Batal</button>
+        <button type="button" class="btn" id="btn-save-text-edit" data-i18n="md.save">Simpan</button>
       </div>
     </div>
   </div>
@@ -209,15 +206,15 @@
 <div id="share-modal" class="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal-card share-card">
     <div class="modal-header">
-      <h2>🚀 Bagikan ke Media Sosial ✨</h2>
+      <h2 data-i18n="sh.title">🚀 Bagikan ke Media Sosial ✨</h2>
       <button id="btn-close-share" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body share-body">
       <div class="share-wm-badge">
         <span class="wm-icon">📸</span>
         <div>
-          <strong>Watermark Otomatis:</strong>
-          <span>✨ Bikin foto strip lucu <strong>GRATIS</strong> di Snappie Studio</span>
+          <strong data-i18n="sh.wm">Watermark Otomatis:</strong>
+          <span data-i18n="sh.promo">✨ Bikin foto strip lucu GRATIS di Snappie Studio</span>
         </div>
       </div>
 
@@ -226,7 +223,7 @@
           <div class="share-icon">📸</div>
           <div class="share-text">
             <strong>Instagram</strong>
-            <span>Story / Feed</span>
+            <span data-i18n="sh.igSub">Story / Feed</span>
           </div>
         </button>
 
@@ -234,7 +231,7 @@
           <div class="share-icon">💬</div>
           <div class="share-text">
             <strong>WhatsApp</strong>
-            <span>Story / Chat</span>
+            <span data-i18n="sh.waSub">Story / Chat</span>
           </div>
         </button>
 
@@ -242,7 +239,7 @@
           <div class="share-icon">🔷</div>
           <div class="share-text">
             <strong>Facebook</strong>
-            <span>Post / Story</span>
+            <span data-i18n="sh.fbSub">Post / Story</span>
           </div>
         </button>
 
@@ -250,16 +247,16 @@
           <div class="share-icon">🎵</div>
           <div class="share-text">
             <strong>TikTok</strong>
-            <span>Video / Story</span>
+            <span data-i18n="sh.ttSub">Video / Story</span>
           </div>
         </button>
       </div>
 
       <div class="share-actions">
-        <button class="btn share-native-btn" id="share-native">
+        <button class="btn share-native-btn" id="share-native" data-i18n="sh.native">
           📲 Bagikan Langsung (Web Share API)
         </button>
-        <button class="btn ghost share-copy-btn" id="share-copy-link">
+        <button class="btn ghost share-copy-btn" id="share-copy-link" data-i18n="sh.copy">
           🔗 Salin Caption &amp; Link
         </button>
       </div>
@@ -273,15 +270,28 @@
 <div id="again-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="again-title">
   <div class="modal-card again-card">
     <div class="modal-header">
-      <h2 id="again-title">Mau jepret lagi? 📸</h2>
+      <h2 id="again-title" data-i18n="ag.title">Mau jepret lagi? 📸</h2>
       <button id="btn-close-again" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
-      <p class="again-text">Hasil fotomu sudah aman. Mau lanjut bikin sesi baru, atau selesai sampai di sini?</p>
+      <p class="again-text" data-i18n="ag.text">Hasil fotomu sudah aman. Mau lanjut bikin sesi baru, atau selesai sampai di sini?</p>
       <div class="btnrow">
-        <button class="btn ghost" id="btn-again-no">Tidak, selesai</button>
-        <button class="btn" id="btn-again-yes">Ya, jepret lagi</button>
+        <button class="btn ghost" id="btn-again-no" data-i18n="ag.no">Tidak, selesai</button>
+        <button class="btn" id="btn-again-yes" data-i18n="ag.yes">Ya, jepret lagi</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- LANGUAGE MODAL -->
+<div id="lang-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="lang-title">
+  <div class="modal-card lang-modal-card">
+    <div class="modal-header">
+      <h2 id="lang-title" data-i18n="start.lang">🌐 Bahasa</h2>
+      <button id="btn-close-lang" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="lang-grid" id="lang-grid"></div>
     </div>
   </div>
 </div>
