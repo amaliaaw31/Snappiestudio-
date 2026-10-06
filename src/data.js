@@ -90,6 +90,20 @@ export const FONT_TRACKING = {
   'Streat Coffee': 0,
   'Super Waffles': 0.01,
   'Anak Bijak': 0.005,
+  'Scripty': 0,
+  'Carefour': 0,
+  'JW Script': 0,
+  'MiloScript': 0,
+  'Love Script': 0,
+  'Script Soft': 0,
+  'Happiness Machine': 0,
+  'Happiness Machine Script': 0,
+  'Monobit': 0,
+  'Nuka Mono': 0,
+  'Solid Mono': 0,
+  'Always Monoline': 0,
+  'Always Smiling': 0,
+  'Smiling': 0,
 };
 export function fontTracking(font) {
   const v = FONT_TRACKING[font];
@@ -111,6 +125,20 @@ export const FONT_LINE_HEIGHT = {
   'Streat Coffee': 1.3,
   'Super Waffles': 1.35,
   'Anak Bijak': 1.3,
+  'Scripty': 1.4,
+  'Carefour': 1.2,
+  'JW Script': 1.45,
+  'MiloScript': 1.4,
+  'Love Script': 1.4,
+  'Script Soft': 1.35,
+  'Happiness Machine': 1.35,
+  'Happiness Machine Script': 1.4,
+  'Monobit': 1.2,
+  'Nuka Mono': 1.25,
+  'Solid Mono': 1.2,
+  'Always Monoline': 1.45,
+  'Always Smiling': 1.4,
+  'Smiling': 1.45,
 };
 export function fontLineHeight(font) {
   const v = FONT_LINE_HEIGHT[font];

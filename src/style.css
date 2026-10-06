@@ -69,6 +69,111 @@
   font-style: normal;
   font-display: swap;
 }
+@font-face {
+  font-family: 'Scripty';
+  src: url('./fonts/scripty.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Carefour';
+  src: url('./fonts/carefour.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Carefour';
+  src: url('./fonts/carefour-bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JW Script';
+  src: url('./fonts/jw-script.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'MiloScript';
+  src: url('./fonts/milo-script.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Love Script';
+  src: url('./fonts/love-script.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Script Soft';
+  src: url('./fonts/script-soft.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Happiness Machine';
+  src: url('./fonts/happiness-machine.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Happiness Machine Script';
+  src: url('./fonts/happiness-machine-script.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Monobit';
+  src: url('./fonts/monobit.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nuka Mono';
+  src: url('./fonts/nuka-mono.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Solid Mono';
+  src: url('./fonts/solid-mono.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Always Monoline';
+  src: url('./fonts/always-monoline.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Always Smiling';
+  src: url('./fonts/always-smiling.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Smiling';
+  src: url('./fonts/smiling.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 /* Opt-out dari "auto dark" browser (mis. Chrome Android): warna tetap persis
    seperti yang dipilih; mode gelap aplikasi diatur sendiri lewat .dark-mode. */
 :root { color-scheme: only light; }
@@ -321,15 +426,11 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .frame-outer.noframe .slot { border: none !important; outline: none !important; box-shadow: none !important; }
 
 /* ======== theme frames (preview - Polaroid style) ======== */
-.frame-outer { position: relative; border-radius: 4px; padding: 12px; box-shadow: 0 10px 28px rgba(35,35,58,.22), 0 2px 6px rgba(0,0,0,.1); }
+.frame-outer { position: relative; border-radius: 4px; padding: 0; box-shadow: 0 10px 28px rgba(35,35,58,.22), 0 2px 6px rgba(0,0,0,.1); }
 .frame { position: relative; border-radius: 2px; padding: 22px 18px 24px; }
 .frame-outer.single { width: 300px; } .frame-outer.strip { width: 300px; }
 .frame-outer.grid4 { width: 440px; } .frame-outer.grid6 { width: 440px; }
 /* 3–6 foto: seluruh bingkai 9:16 (portrait HP), foto tetap utuh & ditengahkan. */
-.frame-outer.strip, .frame-outer.grid4, .frame-outer.grid6 {
-  aspect-ratio: 9 / 16; display: flex; flex-direction: column; align-items: center; justify-content: center;
-}
-.frame-outer.strip .frame { width: 72%; }
 .photos-single { display: flex; flex-direction: column; gap: 12px; }
 /* Layout 1 foto: gaya polaroid besar — ruang putih lebar di bawah foto */
 .frame-outer.single .frame { padding-bottom: 19%; }
@@ -356,12 +457,12 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
   box-shadow: 0 2px 6px rgba(0,0,0,.3); font-family: inherit; }
 .slot-btn:active { transform: scale(.9); }
 
-.th-pastel.frame-outer { background: linear-gradient(165deg,#ffe6f2,#ffd3e8 35%,#e9dcff);
-  border: 4px solid #fff; outline: 2px solid #eba9c9; box-shadow: 0 10px 28px rgba(214,130,175,.45); }
+.th-pastel.frame-outer { background: #ffffff; border: none; outline: none;
+  box-shadow: 0 10px 28px rgba(214,130,175,.28); }
 .th-pastel .frame { border: none; padding: 22px 18px 24px; border-radius: 2px; }
 .th-pastel .slot { border: 3px solid #fff; border-radius: 2px; box-shadow: inset 0 0 0 2px #f3c6dd; }
 
-.th-cream.frame-outer { background: none; box-shadow: none; padding: 4px; }
+.th-cream.frame-outer { background: none; box-shadow: none; padding: 0; }
 .th-cream .frame { background: #f8f2e6; border: 1px solid #b89b6d; border-radius: 2px;
   box-shadow: inset 0 0 0 5px #f8f2e6, inset 0 0 0 6px #d9c6a4, 0 10px 28px rgba(140,115,80,.25); }
 .th-cream .slot { border: 4px solid #fffdf8; outline: 1px solid #c9b18a; border-radius: 2px; }

@@ -49,7 +49,10 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     const families = [
       'Matcha Iced', 'The Magic Cookie', 'Orange Lovely', 'Quicksand', 'Fredoka',
       'Always Classy', 'Melon Tea', 'Smart Water', 'Stay With Me', 'Streat Coffee',
-      'Super Waffles', 'Anak Bijak',
+      'Super Waffles', 'Anak Bijak', 'Scripty', 'Carefour', 'JW Script',
+      'MiloScript', 'Love Script', 'Script Soft', 'Happiness Machine',
+      'Happiness Machine Script', 'Monobit', 'Nuka Mono', 'Solid Mono',
+      'Always Monoline', 'Always Smiling', 'Smiling',
     ];
     await Promise.all(families.flatMap(f => [
       document.fonts.load('34px "' + f + '"'),
@@ -62,21 +65,23 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
   const cols = (layout === 6 || layout === 4) ? 2 : 1;
   const rows = layout === 1 ? 1 : (layout === 4 ? 2 : 3);
   const baseW = (layout === 4 || layout === 6) ? 440 : 300;   // .frame-outer width
-  const outer = showFrame ? 12 : 0;                            // .frame-outer padding
+  /* Semua tema: potong rapat ke kartu (tanpa padding frame-outer). */
+  const outer = 0;                                             // .frame-outer padding
+  const outerT = outer;
   const frameX = showFrame ? 18 : 0;                           // .frame padding x
   const frameTop = showFrame ? 22 : 0;                         // .frame padding-top
   const frameBottom = showFrame ? 24 : 0;                      // .frame padding-bottom
   const gapPrev = cols === 2 ? 10 : 12;                        // .photos-grid / .photos-strip gap
-  const innerW = baseW - 2 * (outer + frameX);
+  const innerW = baseW - 2 * (outerT + frameX);
   const slotPrevW = (innerW - (cols - 1) * gapPrev) / cols;
   const scale = 640 / slotPrevW;                               // preview px -> canvas px
 
   const slotW = 640, slotH = 480;
-  const padX = (outer + frameX) * scale;
-  const padTop = (outer + frameTop) * scale;
+  const padX = (outerT + frameX) * scale;
+  const padTop = (outerT + frameTop) * scale;
   const gap = gapPrev * scale;
-  let padB = (outer + frameBottom) * scale;
-  if (showFrame && layout === 1) padB = (outer + 0.19 * (baseW - 2 * outer)) * scale;   // polaroid: margin bawah lebar
+  let padB = (outerT + frameBottom) * scale;
+  if (showFrame && layout === 1) padB = (outerT + 0.19 * (baseW - 2 * outerT)) * scale;   // polaroid: margin bawah lebar
 
   const hasCaption = showFrame && (customText || showDate);
   const capFit = (captionFit && captionFit.cap) ? captionFit.cap : null;
@@ -100,14 +105,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
   const Hc = Math.round(padTop + photosH + capH + padB);
   /* Layout 3/4/6: hasil keseluruhan dibuat 9:16 (portrait HP) tanpa crop —
      foto tetap, bingkai/latar mengisi sisanya; konten ditengahkan. */
-  let W = Wc, H = Hc, offX = 0, offY = 0;
-  if (layout === 3 || layout === 4 || layout === 6) {
-    const target = 9 / 16;
-    if (Wc / Hc > target) { W = Wc; H = Math.round(Wc / target); }
-    else { H = Hc; W = Math.round(Hc * target); }
-    offX = Math.round((W - Wc) / 2);
-    offY = Math.round((H - Hc) / 2);
-  }
+  const W = Wc, H = Hc, offX = 0, offY = 0;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const x = cv.getContext('2d');
@@ -120,11 +118,8 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
   const _stroke = x.stroke, _strokeRect = x.strokeRect;
   if (!fo) { x.stroke = () => {}; x.strokeRect = () => {}; }
   if (t === 'pastel') {
-    const g = x.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#ffe6f2'); g.addColorStop(.4, '#ffd3e8'); g.addColorStop(1, '#e9dcff');
-    x.fillStyle = g; rr(x, 0, 0, W, H, 44); x.fill();
-    x.lineWidth = 12; x.strokeStyle = '#ffffff'; rr(x, 18, 18, W - 36, H - 36, 32); x.stroke();
-    x.lineWidth = 4; x.strokeStyle = '#eba9c9'; rr(x, 40, 40, W - 80, H - 80, 24); x.stroke();
+    /* Fokus ke area putih: gradien pinggir dihilangkan, kartu putih polos. */
+    x.fillStyle = '#ffffff'; rr(x, 0, 0, W, H, 44); x.fill();
   } else if (t === 'cream') {
     x.fillStyle = '#f8f2e6'; rr(x, 0, 0, W, H, 14); x.fill();
     x.lineWidth = 3; x.strokeStyle = '#b89b6d'; rr(x, 8, 8, W - 16, H - 16, 10); x.stroke();

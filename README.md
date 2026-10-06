@@ -12,7 +12,7 @@ Tanpa backend — semua diproses di browser. Mendukung **16 bahasa**.
 - Filter: 18 pilihan (modal grid + preview), **per-foto** — pilih thumbnail lalu ganti filternya
 - 22 tema bingkai (pastel, cream, confetti, floral, neon, Y2K, film, midnight, chrome, scrapbook, digicam, coquette, aero, doodle, minimal, ulang tahun, wedding, lebaran, natal, valentine, baby shower, custom)
 - **Frame custom**: warna background/gradien, outline, border slot, pattern, **palet rekomendasi**, input kode warna (HEX/RGB/CMYK) + **eyedropper**
-- **Font kustom** (10) untuk caption & tanggal; spasi antar-huruf & tinggi baris otomatis per font
+- **Font kustom** (24) untuk caption, tanggal & stiker; spasi antar-huruf & tinggi baris otomatis per font
 - Stiker karakter & emoji dengan **gestur jari** (1 jari pindah, 2 jari zoom+putar, tahan untuk hapus)
 - Text box bisa dipindah (multi), tanggal opsional, watermark
 - Bahasa: ID, EN, MS, AR, ES, FR, DE, PT, RU, JA, KO, ZH, HI, VI, TH, TR
@@ -53,6 +53,6 @@ npm test           # unit test (node --test)
 
 ## Catatan
 - Kamera butuh secure context: HTTPS, `localhost`, atau `file://` di Chrome.
-- `dist/` **di-`.gitignore`** — dihasilkan lewat `npm run build`; hasilnya satu file `index.html` (+ aset di `public/` disalin ke `dist/`).
+- `dist/` **di-`.gitignore`** — dihasilkan lewat `npm run build`. JS/CSS/gambar di-inline ke `index.html`, sedangkan **font dibuat file terpisah** (`dist/*.ttf|otf`) agar `index.html` tetap ringan. Aset `public/` disalin ke `dist/`.
 - Logo/favicon: `public/logo.png`.
 - Karakter stiker adalah gambar orisinal (SVG), bukan karakter berhak cipta.
