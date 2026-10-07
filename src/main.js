@@ -936,6 +936,53 @@ function frameHTML() {
     '<div class="sticker-layer"></div></div>';
 }
 
+/* Update bingkai DI TEMPAT tanpa membangun ulang elemen foto — dipakai untuk
+   perubahan yang hanya menyentuh bingkai/caption (toggle, tema, font, warna,
+   tanggal). Menghindari re-render berat saat toggle. */
+function refreshActiveFrame() {
+  const holderId = currentScreen === 'scr-preview' ? 'preview-holder'
+    : currentScreen === 'scr-result' ? 'result-holder' : null;
+  if (!holderId) return;
+  const holder = $(holderId);
+  const outer = holder && holder.querySelector('.frame-outer');
+  if (!outer) { if (currentScreen === 'scr-preview') renderPreview(); else renderResult(); return; }
+
+  const lay = state.layout === 1 ? 'single' : state.layout === 3 ? 'strip' : 'grid' + state.layout;
+  const th = state.frame ? 'th-' + state.theme : 'noframe';
+  const cf = customFrameAttr();
+  const noSlot = (state.frame && state.customFrame.slotBorder === false) ? ' no-slot-border' : '';
+  const noOutline = (state.frame && state.customFrame.outlineOn === false) ? ' no-frame-outline' : '';
+  outer.className = 'frame-outer ' + th + cf.cls + noSlot + noOutline + ' ' + lay;
+
+  ['--cf-bg', '--cf-outline', '--cf-slot'].forEach(pn => outer.style.removeProperty(pn));
+  if (state.frame && state.theme === 'custom') {
+    const f = state.customFrame;
+    const bg = f.gradient ? 'linear-gradient(180deg,' + f.bg + ',' + f.bg2 + ')' : f.bg;
+    outer.style.setProperty('--cf-bg', bg);
+    outer.style.setProperty('--cf-outline', f.outline);
+    outer.style.setProperty('--cf-slot', f.slot);
+  }
+
+  const frameEl = outer.querySelector('.frame');
+  let caps = outer.querySelector('.frame-captions');
+  if (state.frame) {
+    const L = captionLayout();
+    const fsCap = lineStyleString(L.cap, state.captionColor);
+    const fsDate = lineStyleString(L.date, state.dateColor);
+    const customHTML = state.customText ? '<div class="frame-date" style="' + fsCap + '">' + esc(state.customText) + '</div>' : '';
+    const dateHTML = state.showDate ? '<div class="frame-date" style="' + fsDate + '">' + esc(currentDateText()) + '</div>' : '';
+    if (!caps && frameEl) { caps = document.createElement('div'); caps.className = 'frame-captions'; frameEl.appendChild(caps); }
+    if (caps) { caps.style.minHeight = captionAreaMinHeight(L).toFixed(1) + 'px'; caps.innerHTML = customHTML + dateHTML; }
+  } else if (caps) {
+    caps.remove();
+  }
+
+  updateDateButton();
+  fitFrame(holderId);
+  shareFileCache = null;
+  scheduleDraft(); commitHistory();
+}
+
 /* Besarkan bingkai sebesar mungkin agar pas di area yang tersedia (boleh diperbesar). */
 function fitFrame(holderId) {
   const holder = $(holderId);
@@ -968,13 +1015,6 @@ function renderResult() {
   scheduleDraft(); commitHistory();
 }
 
-/* Re-render halaman aktif pada frame berikutnya (biar animasi toggle selesai dulu). */
-function renderActiveLater() {
-  requestAnimationFrame(() => {
-    if (currentScreen === 'scr-preview') renderPreview();
-    else if (currentScreen === 'scr-result') renderResult();
-  });
-}
 
 function previewHTML() {
   const lay = state.layout === 1 ? 'single' : state.layout === 3 ? 'strip' : 'grid' + state.layout;
@@ -1163,7 +1203,7 @@ if (dateToggle) {
   dateToggle.checked = state.showDate;
   dateToggle.onchange = () => {
     state.showDate = dateToggle.checked;
-    renderActiveLater();
+    refreshActiveFrame();
     savePrefs();
   };
 }
@@ -1173,7 +1213,7 @@ if (frameToggle) {
   frameToggle.checked = state.frame;
   frameToggle.onchange = () => {
     state.frame = frameToggle.checked;
-    renderActiveLater();
+    refreshActiveFrame();
     savePrefs();
   };
 }
@@ -1185,7 +1225,7 @@ if (frameOutlineToggle) {
   frameOutlineToggle.onchange = () => {
     state.customFrame.outlineOn = frameOutlineToggle.checked;
     updateCustomFrameUI();
-    renderActiveLater();
+    refreshActiveFrame();
     savePrefs();
   };
 }
@@ -1196,7 +1236,7 @@ if (slotBorderToggle) {
   slotBorderToggle.onchange = () => {
     state.customFrame.slotBorder = slotBorderToggle.checked;
     updateCustomFrameUI();
-    renderActiveLater();
+    refreshActiveFrame();
     savePrefs();
   };
 }
@@ -1206,7 +1246,7 @@ if (customInput) {
   customInput.value = state.customText;
   customInput.oninput = () => {
     state.customText = customInput.value.trim();
-    if (currentScreen === 'scr-result') renderResult();
+    refreshActiveFrame();
   };
 }
 
@@ -1249,7 +1289,7 @@ function initDateWheel() {
   }
   function apply() {
     state.customDate = cur.y + '-' + pad(cur.m) + '-' + pad(cur.d);
-    renderActiveLater();
+    refreshActiveFrame();
   }
   function settle() {
     cur.d = indexOf(dayEl) + 1;
@@ -1282,7 +1322,7 @@ function initDateWheel() {
     dateWheel.set('');
     dateWheel.refresh();
     updateDateButton();
-    renderActiveLater();
+    refreshActiveFrame();
   };
 }
 initDateWheel();
@@ -1316,7 +1356,7 @@ if (captionFontSel) {
   captionFontSel.value = state.captionFont || 'Matcha Iced';
   captionFontSel.onchange = () => {
     state.captionFont = captionFontSel.value;
-    if (currentScreen === 'scr-result') renderResult();
+    refreshActiveFrame();
     savePrefs();
   };
 }
@@ -1326,7 +1366,7 @@ if (dateFontSel) {
   dateFontSel.value = state.dateFont || 'Matcha Iced';
   dateFontSel.onchange = () => {
     state.dateFont = dateFontSel.value;
-    if (currentScreen === 'scr-result') renderResult();
+    refreshActiveFrame();
     savePrefs();
   };
 }
@@ -1918,7 +1958,7 @@ function setColor(id, color) {
     rerenderCustom();
   } else if (id === 'caption-color' || id === 'date-color') {
     if (id === 'caption-color') state.captionColor = color; else state.dateColor = color;
-    renderActiveLater();
+    refreshActiveFrame();
     savePrefs();
   }
 }
