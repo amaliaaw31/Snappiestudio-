@@ -612,7 +612,6 @@ $('btn-start').onclick = async () => {
   if (await startCamera()) {
     resetPhotos();                 // sesi baru: pastikan tidak ada foto user sebelumnya
     resetFrameSettings();          // sesi baru: bingkai balik ke original
-    try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* abaikan */ }
     applyMirror();
     show('scr-cam');
   }
@@ -652,7 +651,7 @@ function renderThumbs() {
   const pv = $('btn-to-preview');
   if (pv) pv.style.display = state.photos.length ? '' : 'none';
   renderDots();
-  scheduleDraft(); commitHistory();
+  commitHistory();
 }
 
 renderDots();
@@ -978,9 +977,10 @@ function refreshActiveFrame() {
   }
 
   updateDateButton();
-  fitFrame(holderId);
   shareFileCache = null;
-  scheduleDraft(); commitHistory();
+  /* Tunda fit + snapshot ke frame berikutnya: perubahan visual toggle langsung
+     tergambar dulu, kerja layout/history tidak menahan paint. */
+  requestAnimationFrame(() => { fitFrame(holderId); commitHistory(); });
 }
 
 /* Besarkan bingkai sebesar mungkin agar pas di area yang tersedia (boleh diperbesar). */
@@ -1012,7 +1012,7 @@ function renderResult() {
   updateDateButton();
   fitFrame('result-holder');
   shareFileCache = null;          // invalidasi cache share (murah, tanpa compose)
-  scheduleDraft(); commitHistory();
+  commitHistory();
 }
 
 
@@ -1104,7 +1104,7 @@ function attachSlotGestures(img, p, index) {
     } else if (pts.size === 0) {
       start = null;
       img.classList.remove('slot-dragging');
-      scheduleDraft(); commitHistory();
+      commitHistory();
     }
   };
   img.addEventListener('pointerup', up);
@@ -1130,7 +1130,7 @@ function renderPreview() {
   renderUserStickers();
   fitFrame('preview-holder');
   shareFileCache = null;
-  scheduleDraft(); commitHistory();
+  commitHistory();
 }
 
 let refitPending = false;
@@ -1701,7 +1701,7 @@ function renderUserStickers() {
 
     layer.appendChild(el);
   });
-  scheduleDraft(); commitHistory();
+  commitHistory();
 }
 
 /* Finger gestures: 1 jari = pindah, 2 jari = zoom + putar.
@@ -1801,7 +1801,7 @@ function attachStickerGestures(el, st, frameOuter) {
     window.removeEventListener('pointerup', onUp, true);
     window.removeEventListener('pointercancel', onUp, true);
     updateStickerTransform(el, st);
-    scheduleDraft(); commitHistory();
+    commitHistory();
   };
 
   el.addEventListener('pointerdown', (e) => {
@@ -2467,7 +2467,6 @@ if ($('btn-again-no')) $('btn-again-no').onclick = () => {
   closeModal('again-modal');
   resetPhotos();
   resetFrameSettings();
-  try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* abaikan */ }
   show('scr-start');
 };
 if ($('btn-again-yes')) $('btn-again-yes').onclick = () => {
@@ -2595,39 +2594,6 @@ function initHistory() {
   updateUndoUI();
 }
 
-/* ============ draft otomatis (biar tidak hilang saat refresh) ============ */
-const DRAFT_KEY = 'snappie-draft-v1';
-let draftTimer = null;
-function scheduleDraft() {
-  clearTimeout(draftTimer);
-  draftTimer = setTimeout(saveDraft, 600);
-}
-function saveDraft() {
-  if (!state.photos.length) { try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* abaikan */ } return; }
-  try {
-    const maxW = 720;
-    const photos = state.photos.map(ph => {
-      const c = ph.canvas;
-      let src;
-      if (c.width > maxW) {
-        const s = maxW / c.width;
-        const t = document.createElement('canvas');
-        t.width = maxW; t.height = Math.max(1, Math.round(c.height * s));
-        t.getContext('2d').drawImage(c, 0, 0, t.width, t.height);
-        src = t.toDataURL('image/jpeg', .8);
-      } else {
-        src = c.toDataURL('image/jpeg', .8);
-      }
-      return { src, filter: ph.filter, zoom: ph.zoom || 1, ox: ph.ox || 0, oy: ph.oy || 0 };
-    });
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({
-      v: 1, layout: state.layout, theme: state.theme, showDate: state.showDate,
-      frame: state.frame, customText: state.customText, customDate: state.customDate, captionFont: state.captionFont,
-      dateFont: state.dateFont, captionColor: state.captionColor, dateColor: state.dateColor,
-      customFrame: state.customFrame, stickers: state.stickers, photos,
-    }));
-  } catch (e) { /* penyimpanan penuh — abaikan */ }
-}
 /* ============ background line-art dari gambar user ============ */
 async function buildLineBackground() {
   try {
@@ -2732,8 +2698,4 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-/* Privasi: jangan pulihkan foto sesi sebelumnya saat halaman dibuka.
-   Setiap kunjungan selalu mulai bersih agar user berikutnya tidak
-   melihat foto user sebelumnya. */
-try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* abaikan */ }
 initHistory();
