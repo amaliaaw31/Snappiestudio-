@@ -847,8 +847,12 @@ function imgTransform(p) {
 
 function slotMedia(p, i, gesture) {
   const style = 'filter:' + filterCss(p.filter) + ';transform:' + imgTransform(p);
+  /* Cache data URL per foto — toDataURL itu berat; jangan diulang tiap render
+     (mis. saat toggle), kalau tidak UI jadi patah-patah/kedut. Filter & zoom
+     diterapkan lewat CSS (bukan di-bake ke canvas), jadi URL-nya tetap valid. */
+  if (!p._url) p._url = p.canvas.toDataURL('image/jpeg', .85);
   return '<img' + (gesture ? ' class="slot-img" data-i="' + i + '"' : '') + ' draggable="false" alt="Foto ' + (i + 1) +
-    '" style="' + style + '" src="' + p.canvas.toDataURL('image/jpeg', .85) + '">';
+    '" style="' + style + '" src="' + p._url + '">';
 }
 
 /* Ukur lebar teks untuk auto-fit caption (nilai dipakai preview & PNG). */
