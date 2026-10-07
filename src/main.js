@@ -938,29 +938,15 @@ function fitFrame(holderId) {
   if (!holder) return;
   const frame = holder.querySelector('.frame-outer');
   if (!frame) return;
+  /* Tinggi area frame dipatok lewat CSS (min-height) → tinggi halaman STABIL,
+     jadi tidak ada geseran/kedut saat toggle. Frame cukup di-scale agar muat. */
+  holder.style.minHeight = '';
+  holder.style.height = '';
   const fw = frame.offsetWidth, fh = frame.offsetHeight;   // offset* tak terpengaruh transform
-  const aw = holder.clientWidth;
-  /* Tinggi tersedia = viewport - (padding + tinggi elemen lain di screen ini).
-     Pakai documentElement.clientHeight (stabil) bukan window.innerHeight, supaya
-     tak bergetar saat toolbar browser di HP muncul/hilang. */
-  const screenEl = holder.closest('.screen');
-  let used = 16;
-  if (screenEl) {
-    const cs = getComputedStyle(screenEl);
-    used += (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
-    [...screenEl.children].forEach(ch => { if (ch !== holder) used += ch.offsetHeight; });
-  }
-  const vh = document.documentElement.clientHeight || window.innerHeight;
-  const budget = Math.max(220, vh - used);
-  if (!fw || !fh || aw < 20) return;
-  const s = Math.max(0.05, Math.min((aw - 8) / fw, (budget - 8) / fh));
-  const prev = parseFloat(holder.dataset.fitScale || '0');
-  if (Math.abs(s - prev) > 0.004) {          // hysteresis: hindari getar saat nilai berubah tipis
-    holder.dataset.fitScale = String(s);
-    frame.style.transform = 'scale(' + s.toFixed(4) + ')';
-    holder.style.minHeight = '0';
-    holder.style.height = Math.ceil(fh * s + 8) + 'px';
-  }
+  const aw = holder.clientWidth, ah = holder.clientHeight;
+  if (!fw || !fh || aw < 20 || ah < 20) return;
+  const s = Math.max(0.05, Math.min((aw - 8) / fw, (ah - 8) / fh));
+  frame.style.transform = 'scale(' + s.toFixed(4) + ')';
 }
 
 function renderResult() {
@@ -970,8 +956,16 @@ function renderResult() {
   renderUserStickers();
   updateDateButton();
   fitFrame('result-holder');
-  scheduleShareCache();
+  shareFileCache = null;          // invalidasi cache share (murah, tanpa compose)
   scheduleDraft(); commitHistory();
+}
+
+/* Re-render halaman aktif pada frame berikutnya (biar animasi toggle selesai dulu). */
+function renderActiveLater() {
+  requestAnimationFrame(() => {
+    if (currentScreen === 'scr-preview') renderPreview();
+    else if (currentScreen === 'scr-result') renderResult();
+  });
 }
 
 function previewHTML() {
@@ -1087,7 +1081,7 @@ function renderPreview() {
   applySlotSelection();
   renderUserStickers();
   fitFrame('preview-holder');
-  scheduleShareCache();
+  shareFileCache = null;
   scheduleDraft(); commitHistory();
 }
 
@@ -1101,7 +1095,16 @@ function refitFrames() {
     else if (currentScreen === 'scr-result') fitFrame('result-holder');
   });
 }
-window.addEventListener('resize', refitFrames);
+/* Refit hanya saat LEBAR viewport berubah (orientasi/resize). Perubahan tinggi
+   murni (toolbar browser HP muncul/hilang) DIABAIKAN — kalau tidak, tinggi
+   bingkai yang kita ubah memicu resize lagi → layar kedut-kedut. */
+let lastVpW = window.innerWidth;
+window.addEventListener('resize', () => {
+  if (Math.abs(window.innerWidth - lastVpW) < 2) return;
+  lastVpW = window.innerWidth;
+  refitFrames();
+});
+window.addEventListener('orientationchange', refitFrames);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
   refitFrames();
   /* ukur ulang caption setelah semua font selesai dimuat */
@@ -1152,7 +1155,7 @@ if (dateToggle) {
   dateToggle.checked = state.showDate;
   dateToggle.onchange = () => {
     state.showDate = dateToggle.checked;
-    if (currentScreen === 'scr-result') renderResult();
+    renderActiveLater();
     savePrefs();
   };
 }
@@ -1162,8 +1165,7 @@ if (frameToggle) {
   frameToggle.checked = state.frame;
   frameToggle.onchange = () => {
     state.frame = frameToggle.checked;
-    if (currentScreen === 'scr-preview') renderPreview();
-    else if (currentScreen === 'scr-result') renderResult();
+    renderActiveLater();
     savePrefs();
   };
 }
@@ -1175,8 +1177,7 @@ if (frameOutlineToggle) {
   frameOutlineToggle.onchange = () => {
     state.customFrame.outlineOn = frameOutlineToggle.checked;
     updateCustomFrameUI();
-    if (currentScreen === 'scr-preview') renderPreview();
-    else if (currentScreen === 'scr-result') renderResult();
+    renderActiveLater();
     savePrefs();
   };
 }
@@ -1187,8 +1188,7 @@ if (slotBorderToggle) {
   slotBorderToggle.onchange = () => {
     state.customFrame.slotBorder = slotBorderToggle.checked;
     updateCustomFrameUI();
-    if (currentScreen === 'scr-preview') renderPreview();
-    else if (currentScreen === 'scr-result') renderResult();
+    renderActiveLater();
     savePrefs();
   };
 }
@@ -1241,8 +1241,7 @@ function initDateWheel() {
   }
   function apply() {
     state.customDate = cur.y + '-' + pad(cur.m) + '-' + pad(cur.d);
-    if (currentScreen === 'scr-preview') renderPreview();
-    else if (currentScreen === 'scr-result') renderResult();
+    renderActiveLater();
   }
   function settle() {
     cur.d = indexOf(dayEl) + 1;
@@ -1275,8 +1274,7 @@ function initDateWheel() {
     dateWheel.set('');
     dateWheel.refresh();
     updateDateButton();
-    if (currentScreen === 'scr-preview') renderPreview();
-    else if (currentScreen === 'scr-result') renderResult();
+    renderActiveLater();
   };
 }
 initDateWheel();
@@ -1912,8 +1910,7 @@ function setColor(id, color) {
     rerenderCustom();
   } else if (id === 'caption-color' || id === 'date-color') {
     if (id === 'caption-color') state.captionColor = color; else state.dateColor = color;
-    if (currentScreen === 'scr-preview') renderPreview();
-    else if (currentScreen === 'scr-result') renderResult();
+    renderActiveLater();
     savePrefs();
   }
 }
@@ -2302,17 +2299,11 @@ function launchApp(scheme) {
    activation"; kalau menyusun PNG dulu (async) aktivasi bisa hilang dan share
    gagal → sistem cuma berbagi teks. Jadi PNG disiapkan lebih awal & disimpan. */
 let shareFileCache = null;
-let shareCacheTimer = null;
 function currentShareFile() {
   if (shareFileCache) return Promise.resolve(shareFileCache);
   return getWatermarkedFile().then(f => { shareFileCache = f; return f; });
 }
 function primeShareFile() { currentShareFile().catch(() => {}); }
-function scheduleShareCache() {
-  shareFileCache = null;
-  clearTimeout(shareCacheTimer);
-  shareCacheTimer = setTimeout(() => { currentShareFile().catch(() => {}); }, 400);
-}
 
 /* Ikon sosmed di layar hasil langsung membagikan foto ke platform terkait. */
 function initShareButtons() {
