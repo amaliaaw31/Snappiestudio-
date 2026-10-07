@@ -211,13 +211,12 @@ h1 { font-family: 'The Magic Cookie', 'Fredoka', cursive; font-size: clamp(48px,
 .screen:not(#scr-start) { padding-top: 112px; }
 .mini-header { position: fixed; top: 10px; left: 12px; right: 12px; z-index: 50; width: auto; max-width: none;
   display: flex; flex-direction: column; align-items: flex-start; gap: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,.78) 0%, rgba(255,255,255,.42) 55%, rgba(255,255,255,.34) 100%);
-  border: 1px solid rgba(255,255,255,.75); border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,.94) 0%, rgba(255,255,255,.88) 55%, rgba(255,255,255,.84) 100%);
+  border: 1px solid rgba(255,255,255,.85); border-radius: 16px;
   padding: 8px 14px; cursor: pointer; font-family: inherit; text-align: left;
-  -webkit-backdrop-filter: blur(14px) saturate(170%); backdrop-filter: blur(14px) saturate(170%);
   box-shadow: 0 8px 24px rgba(35,35,58,.16), inset 0 1px 0 rgba(255,255,255,.95); }
 .dark-mode .mini-header {
-  background: linear-gradient(180deg, rgba(78,70,105,.6) 0%, rgba(48,42,70,.42) 55%, rgba(40,34,60,.4) 100%);
+  background: linear-gradient(180deg, rgba(78,70,105,.95) 0%, rgba(48,42,70,.92) 55%, rgba(40,34,60,.9) 100%);
   border-color: rgba(255,255,255,.18);
   box-shadow: 0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2); }
 .mini-header .mh-title { font-family: 'The Magic Cookie', 'Fredoka', cursive; font-size: clamp(26px, 5vw, 38px); line-height: 1; color: #d63384; }
@@ -446,7 +445,8 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 #scr-preview, #scr-result { min-height: 100vh; min-height: 100dvh; }
 #result-holder, #preview-holder { width: 100%; flex: 1 1 auto; min-height: 66vh; overflow: hidden;
   display: flex; align-items: center; justify-content: center; margin-top: 6px; }
-#result-holder .frame-outer, #preview-holder .frame-outer { transform-origin: center center; }
+#result-holder .frame-outer, #preview-holder .frame-outer { transform-origin: center center;
+  will-change: transform; backface-visibility: hidden; }
 .frame-outer.noframe { padding: 0; box-shadow: none; background: none; outline: none; }
 .frame-outer.noframe .frame { padding: 0; }
 .frame-outer.noframe .slot { border: none !important; outline: none !important; box-shadow: none !important; }

@@ -950,7 +950,11 @@ function fitFrame(holderId) {
   const aw = holder.clientWidth, ah = holder.clientHeight;
   if (!fw || !fh || aw < 20 || ah < 20) return;
   const s = Math.max(0.05, Math.min((aw - 8) / fw, (ah - 8) / fh));
-  frame.style.transform = 'scale(' + s.toFixed(4) + ')';
+  const prev = parseFloat(holder.dataset.fitScale || '0');
+  if (Math.abs(s - prev) > 0.01) {   // hysteresis: jangan re-raster tiap render
+    holder.dataset.fitScale = String(s);
+    frame.style.transform = 'scale(' + s.toFixed(4) + ')';
+  }
 }
 
 function renderResult() {
