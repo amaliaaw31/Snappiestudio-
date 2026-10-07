@@ -178,6 +178,7 @@
    seperti yang dipilih; mode gelap aplikasi diatur sendiri lewat .dark-mode. */
 :root { color-scheme: only light; }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { scrollbar-gutter: stable; }
 body { --page-bg: #fdf3ff; font-family: 'Matcha Iced', 'Quicksand', 'Trebuchet MS', Verdana, sans-serif; background: #fdf3ff; color: #3a3a5c;
   min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
 body.dark-mode { --page-bg: #14121d; }

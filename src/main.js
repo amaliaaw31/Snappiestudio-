@@ -938,12 +938,11 @@ function fitFrame(holderId) {
   if (!holder) return;
   const frame = holder.querySelector('.frame-outer');
   if (!frame) return;
-  frame.style.transform = 'none';
-  holder.style.minHeight = '0';   // batalkan reservasi 66vh agar tidak ada jarak kosong
-  holder.style.height = '';
-  const fw = frame.offsetWidth, fh = frame.offsetHeight;
+  const fw = frame.offsetWidth, fh = frame.offsetHeight;   // offset* tak terpengaruh transform
   const aw = holder.clientWidth;
-  /* Tinggi yang tersedia = viewport - (padding + tinggi elemen lain di screen ini). */
+  /* Tinggi tersedia = viewport - (padding + tinggi elemen lain di screen ini).
+     Pakai documentElement.clientHeight (stabil) bukan window.innerHeight, supaya
+     tak bergetar saat toolbar browser di HP muncul/hilang. */
   const screenEl = holder.closest('.screen');
   let used = 16;
   if (screenEl) {
@@ -951,12 +950,17 @@ function fitFrame(holderId) {
     used += (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
     [...screenEl.children].forEach(ch => { if (ch !== holder) used += ch.offsetHeight; });
   }
-  const ah = Math.max(220, window.innerHeight - used);
+  const vh = document.documentElement.clientHeight || window.innerHeight;
+  const budget = Math.max(220, vh - used);
   if (!fw || !fh || aw < 20) return;
-  const s = Math.max(0.05, Math.min((aw - 8) / fw, (ah - 8) / fh));
-  frame.style.transform = 'scale(' + s.toFixed(4) + ')';
-  /* Rapatkan tinggi holder ke tinggi bingkai setelah di-scale. */
-  holder.style.height = Math.ceil(fh * s + 8) + 'px';
+  const s = Math.max(0.05, Math.min((aw - 8) / fw, (budget - 8) / fh));
+  const prev = parseFloat(holder.dataset.fitScale || '0');
+  if (Math.abs(s - prev) > 0.004) {          // hysteresis: hindari getar saat nilai berubah tipis
+    holder.dataset.fitScale = String(s);
+    frame.style.transform = 'scale(' + s.toFixed(4) + ')';
+    holder.style.minHeight = '0';
+    holder.style.height = Math.ceil(fh * s + 8) + 'px';
+  }
 }
 
 function renderResult() {
@@ -966,6 +970,7 @@ function renderResult() {
   renderUserStickers();
   updateDateButton();
   fitFrame('result-holder');
+  scheduleShareCache();
   scheduleDraft(); commitHistory();
 }
 
@@ -1082,12 +1087,19 @@ function renderPreview() {
   applySlotSelection();
   renderUserStickers();
   fitFrame('preview-holder');
+  scheduleShareCache();
   scheduleDraft(); commitHistory();
 }
 
+let refitPending = false;
 function refitFrames() {
-  if (currentScreen === 'scr-preview') fitFrame('preview-holder');
-  else if (currentScreen === 'scr-result') fitFrame('result-holder');
+  if (refitPending) return;
+  refitPending = true;
+  requestAnimationFrame(() => {
+    refitPending = false;
+    if (currentScreen === 'scr-preview') fitFrame('preview-holder');
+    else if (currentScreen === 'scr-result') fitFrame('result-holder');
+  });
 }
 window.addEventListener('resize', refitFrames);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
@@ -2286,24 +2298,28 @@ function launchApp(scheme) {
   window.location.href = scheme;
 }
 
-/* Siapkan file PNG saat modal dibuka, agar navigator.share (butuh user
-   activation) tidak kehilangan aktivasi karena menunggu proses compose. */
-let shareFilePromise = null;
-function primeShareFile() {
-  shareFilePromise = getWatermarkedFile();
-  shareFilePromise.catch(() => { shareFilePromise = null; });
-  return shareFilePromise;
+/* Cache file PNG untuk share. navigator.share (khususnya iOS) butuh "user
+   activation"; kalau menyusun PNG dulu (async) aktivasi bisa hilang dan share
+   gagal → sistem cuma berbagi teks. Jadi PNG disiapkan lebih awal & disimpan. */
+let shareFileCache = null;
+let shareCacheTimer = null;
+function currentShareFile() {
+  if (shareFileCache) return Promise.resolve(shareFileCache);
+  return getWatermarkedFile().then(f => { shareFileCache = f; return f; });
 }
-function takeShareFile() {
-  const p = shareFilePromise;
-  shareFilePromise = null;
-  return p || getWatermarkedFile();
+function primeShareFile() { currentShareFile().catch(() => {}); }
+function scheduleShareCache() {
+  shareFileCache = null;
+  clearTimeout(shareCacheTimer);
+  shareCacheTimer = setTimeout(() => { currentShareFile().catch(() => {}); }, 400);
 }
 
 /* Ikon sosmed di layar hasil langsung membagikan foto ke platform terkait. */
 function initShareButtons() {
   const ig = $('share-ig'), wa = $('share-wa'), fb = $('share-fb'), tt = $('share-tt');
   if (!ig || !wa || !fb || !tt) return;
+  /* Panaskan PNG begitu jari menyentuh tombol → share punya file siap pakai. */
+  [ig, wa, fb, tt].forEach(b => b.addEventListener('pointerdown', primeShareFile, { passive: true }));
 
   /* Kirim foto lewat share sheet (Web Share API). Tidak mengunduh file otomatis.
      Return: 'shared' | 'cancelled' | 'unsupported'. */
@@ -2330,7 +2346,7 @@ function initShareButtons() {
     closeModal('ig-modal');
     copyShareText();
     try {
-      const file = await takeShareFile();
+      const file = await currentShareFile();
       const r = await sharePhoto(file);
       if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') launchApp('instagram://app');
@@ -2341,7 +2357,7 @@ function initShareButtons() {
     closeModal('ig-modal');
     copyShareText();
     try {
-      const file = await takeShareFile();
+      const file = await currentShareFile();
       const r = await sharePhoto(file);
       if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') launchApp('instagram://story-camera');
@@ -2352,7 +2368,7 @@ function initShareButtons() {
   wa.onclick = async () => {
     copyShareText();
     try {
-      const file = await takeShareFile();
+      const file = await currentShareFile();
       const r = await sharePhoto(file);
       if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') {
@@ -2371,7 +2387,7 @@ function initShareButtons() {
     closeModal('fb-modal');
     copyShareText();
     try {
-      const r = await sharePhoto(await takeShareFile());
+      const r = await sharePhoto(await currentShareFile());
       if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') launchApp(fallbackScheme || 'fb://');
     } catch (e) { /* batal — abaikan */ }
@@ -2389,7 +2405,7 @@ function initShareButtons() {
     closeModal('tt-modal');
     copyShareText('#SnappieStudio #yourlittlephotomoment');
     try {
-      const r = await sharePhoto(await takeShareFile());
+      const r = await sharePhoto(await currentShareFile());
       if (r === 'shared') { offerAnotherSession(); }
       else if (r === 'unsupported') launchApp('snssdk1233://camera');
     } catch (e) { /* batal — abaikan */ }
