@@ -90,6 +90,9 @@ function activateScreen(id) {
   el.classList.add('active');
   window.scrollTo(0, 0);
   currentScreen = id;
+  /* Latar bermotif (fixed + mask besar) hanya di halaman awal — di halaman lain
+     bikin komposit/repaint berat di HP lemah, jadi dimatikan. */
+  document.body.classList.toggle('on-start', id === 'scr-start');
   if (id === 'scr-start' && state.stream) {
     state.stream.getTracks().forEach(t => t.stop());
     state.stream = null;
