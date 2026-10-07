@@ -1188,6 +1188,9 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
 
 /* ---------- tablet & desktop: font lebih besar ---------- */
 @media (min-width: 720px) {
+  /* Header full-width menempel tepi layar (tablet/desktop) */
+  .mini-header { top: 0; left: 0; right: 0; border-radius: 0;
+    border-left: none; border-right: none; border-top: none; }
   .screen { max-width: 640px; padding: 28px 24px 40px; }
   .screen:not(#scr-start) { padding-top: 124px; }
   .btn { padding: 17px 46px; font-size: 21px; }
