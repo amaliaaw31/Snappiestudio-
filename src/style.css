@@ -455,7 +455,9 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 /* ---------- result ---------- */
 #scr-preview, #scr-result { min-height: 100vh; min-height: 100dvh; }
 #scr-preview .desc { margin-bottom: 6px; }
-#result-holder, #preview-holder { width: 100%; flex: 1 1 auto; min-height: 66vh; overflow: hidden;
+/* Tinggi tetap (bukan sisa layar) supaya tidak ada celah besar antara foto dan kontrol di HP,
+   dan tetap stabil saat toggle bingkai. */
+#result-holder, #preview-holder { width: 100%; flex: 0 0 auto; height: min(64vh, 470px); overflow: hidden;
   display: flex; align-items: flex-start; justify-content: center; margin-top: 4px; padding-top: 4px; }
 #result-holder .frame-outer, #preview-holder .frame-outer { transform-origin: top center;
   will-change: transform; backface-visibility: hidden; }
