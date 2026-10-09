@@ -224,6 +224,8 @@ h1 { font-family: 'The Magic Cookie', 'Fredoka', cursive; font-size: clamp(48px,
 .dark-mode .mini-header .mh-title { color: #ff7ab8; }
 .dark-mode .mini-header .mh-tag { color: #cbb3dd; }
 p.desc { color: #9a7bb8; text-align: center; font-size: clamp(14px, 2vw, 18px); margin-bottom: 22px; }
+/* Start-screen footer: privacy/permission note. Darker and larger than .desc so it stays readable on the pink background. */
+p.desc.start-foot { margin-top: 18px; font-size: 14px; line-height: 1.5; color: #6b4a86; }
 .btn { background: #d63384; color: #fff; border: none; border-radius: 999px;
   padding: 14px 38px; font-size: 17px; font-weight: 800; cursor: pointer;
   box-shadow: 0 6px 18px rgba(214,51,132,.4); font-family: inherit; }
@@ -351,7 +353,7 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
  }
 .cam-ico:active { transform: scale(.94); }
 .cam-ico-glyph { font-size: 17px; }
-.cam-ico-glyph.muted { text-decoration: line-through; opacity: .65; }
+.cam-ico-glyph.muted { opacity: .65; }
 .cam-ico-val { font-size: 12px; font-weight: 800; }
 .cam-pop { position: absolute; top: calc(100% + 8px); right: 0; display: flex; flex-direction: column;
   min-width: 180px; background: #fff; border-radius: 14px; box-shadow: 0 12px 32px rgba(35,35,58,.35);

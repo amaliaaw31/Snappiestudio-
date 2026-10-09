@@ -7,16 +7,19 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 export default defineConfig({
   base: './',
   build: {
-    // Inline semua aset (gambar/JS/CSS) KECUALI font → font jadi file terpisah
-    // agar dist/index.html tetap ringan. Butuh useRecommendedBuildConfig:false
+    // Inline semua aset (gambar/JS/CSS) KECUALI font dan foto, supaya
+    // dist/index.html tetap ringan. Butuh useRecommendedBuildConfig:false
     // supaya pengaturan ini tidak ditimpa plugin.
-    assetsInlineLimit: (file) => !/\.(ttf|otf|woff2?|eot)$/i.test(file),
+    assetsInlineLimit: (file) => !/\.(ttf|otf|woff2?|eot|jpe?g|png)$/i.test(file),
     chunkSizeWarningLimit: 100000000,
     cssCodeSplit: false,
     assetsDir: '',
     rollupOptions: {
-      output: { inlineDynamicImports: true },
+      // heic2any dimuat lewat import() dan tidak dipakai sebagian besar
+      // pengguna, jadi biarkan chunk-nya terpisah agar tidak ikut di index.html.
+      output: { inlineDynamicImports: false },
     },
   },
-  plugins: [viteSingleFile({ useRecommendedBuildConfig: false })],
+  // Hanya entry (index-*) yang di-inline; chunk heic2any tetap file terpisah.
+  plugins: [viteSingleFile({ useRecommendedBuildConfig: false, inlinePattern: ['index-*.js', 'index-*.css'] })],
 });

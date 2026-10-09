@@ -1718,7 +1718,7 @@ document.addEventListener('click', (e) => {
 });
 syncFlashBtn();
 
-/* tombol suara: tap untuk aktif/nonaktif, simbol dicoret saat mati */
+/* tombol suara: tap untuk aktif/nonaktif, ikon volume_off saat mati */
 const soundBtn = $('btn-sound');
 function syncSoundBtn() {
   const g = $('sound-glyph');
