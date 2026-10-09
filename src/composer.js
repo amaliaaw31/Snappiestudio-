@@ -5,19 +5,22 @@
 import { CHARS, CHAR_SVG, filterCss, dateLine, fontTracking, DATE_COLORS } from './data.js';
 import { getLang } from './i18n.js';
 
-let charImgs = null;
+/* Dicache sebagai Promise: pemanggil paralel ikut menunggu decode yang sama
+   (bukan dapat objek kosong). Kalau gagal, cache dibuang agar bisa dicoba lagi. */
+let charImgsPromise = null;
 
-export async function loadCharImgs() {
-  if (charImgs) return charImgs;
-  charImgs = {};
-  for (const k of CHARS) {
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">' + CHAR_SVG[k] + '</svg>';
-    const img = new Image();
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    await img.decode();
-    charImgs[k] = img;
+export function loadCharImgs() {
+  if (!charImgsPromise) {
+    charImgsPromise = Promise.all(CHARS.map(async k => {
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">' + CHAR_SVG[k] + '</svg>';
+      const img = new Image();
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      await img.decode();
+      return [k, img];
+    })).then(entries => Object.fromEntries(entries))
+      .catch(err => { charImgsPromise = null; throw err; });
   }
-  return charImgs;
+  return charImgsPromise;
 }
 
 function rr(x, X, Y, W, H) {
@@ -44,7 +47,7 @@ function coverDraw(x, img, X, Y, W, H, zoom = 1, ox = 0, oy = 0) {
 
 /** Compose the final framed strip. Returns a <canvas>. */
 export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '', showFrame = true, captionFont = 'Matcha Iced', customFrame = null, captionFit = null, dateFont = 'Matcha Iced', captionColor = '', dateColor = '', frameOutline = true, customDate = '') {
-  await loadCharImgs();
+  const charImgs = await loadCharImgs();
   if (document.fonts && document.fonts.load) {
     const families = [
       'Matcha Iced', 'The Magic Cookie', 'Orange Lovely', 'Quicksand', 'Fredoka',

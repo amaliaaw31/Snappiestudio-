@@ -93,10 +93,7 @@ function activateScreen(id) {
   /* Latar bermotif (fixed + mask besar) hanya di halaman awal — di halaman lain
      bikin komposit/repaint berat di HP lemah, jadi dimatikan. */
   document.body.classList.toggle('on-start', id === 'scr-start');
-  if (id === 'scr-start' && state.stream) {
-    state.stream.getTracks().forEach(t => t.stop());
-    state.stream = null;
-  }
+  if (id === 'scr-start' && state.stream) stopStream();
   if (id === 'scr-cam') {
     renderDots(); renderThumbs();
     requestAnimationFrame(updateFilterEdges);
@@ -533,6 +530,12 @@ function resetFrameSettings() {
 }
 
 /* ============ camera ============ */
+/* Hentikan semua track kamera dan lepaskan referensinya. */
+function stopStream() {
+  if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+  state.stream = null;
+}
+
 function applyMirror() {
   const v = $('video');
   if (v) v.style.transform = state.mirror ? 'scaleX(-1)' : 'none';
@@ -544,12 +547,12 @@ function doFlash() {
   f.style.transition = 'none'; f.style.opacity = '.85';
   requestAnimationFrame(() => { f.style.transition = 'opacity .4s'; f.style.opacity = '0'; });
 }
+let ambientCanvas = null;   // dipakai ulang tiap cek (tidak alokasi canvas baru)
 function ambientIsDark() {
   const v = $('video');
   if (!v || !v.videoWidth) return false;
-  const c = document.createElement('canvas');
-  c.width = 32; c.height = 24;
-  const x = c.getContext('2d');
+  if (!ambientCanvas) { ambientCanvas = document.createElement('canvas'); ambientCanvas.width = 32; ambientCanvas.height = 24; }
+  const x = ambientCanvas.getContext('2d', { willReadFrequently: true });
   try { x.drawImage(v, 0, 0, 32, 24); } catch (e) { return false; }
   const d = x.getImageData(0, 0, 32, 24).data;
   let sum = 0;
@@ -586,16 +589,23 @@ function shouldUseTorch() {
 }
 
 async function startCamera() {
-  if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+  stopStream();
   const camerr = $('camerr');
   try {
-    state.stream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: state.facing, width: { ideal: 1280 } }, audio: false,
     });
-    $('video').srcObject = state.stream;
+    state.stream = stream;
+    /* Kamera dicabut sistem (mis. perangkat dilepas): anggap stream sudah mati
+       supaya layar kamera meminta ulang, bukan memotret frame kosong. */
+    stream.getVideoTracks().forEach(track => track.addEventListener('ended', () => {
+      if (state.stream === stream) stopStream();
+    }));
+    $('video').srcObject = stream;
     camerr.style.display = 'none';
     return true;
   } catch (e) {
+    state.stream = null;   // jangan simpan stream yang sudah mati
     const name = e && e.name;
     if (name === 'NotAllowedError' || name === 'SecurityError') {
       camerr.textContent = tr('err.denied');
@@ -613,8 +623,7 @@ async function startCamera() {
 
 $('btn-start').onclick = async () => {
   if (await startCamera()) {
-    resetPhotos();                 // sesi baru: pastikan tidak ada foto user sebelumnya
-    resetFrameSettings();          // sesi baru: bingkai balik ke original
+    startNewSession();             // sesi baru: foto, bingkai, dan riwayat undo di-reset
     applyMirror();
     show('scr-cam');
   }
@@ -659,14 +668,20 @@ function renderThumbs() {
 
 renderDots();
 
+/* Satu AudioContext dipakai ulang: membuat context baru tiap bunyi menumpuk
+   context hidup dan browser bisa berhenti memutar bunyi. */
+let audioCtx = null;
 function beep() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
     o.frequency.value = 880; g.gain.value = .12;
     o.start(); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .18);
     o.stop(ctx.currentTime + .2);
+    o.onended = () => { o.disconnect(); g.disconnect(); };
   } catch (e) { /* audio not available — skip */ }
 }
 
@@ -676,23 +691,27 @@ $('shutter').onclick = async () => {
   const replacing = state.replaceIndex != null;
   state.busy = true; $('shutter').disabled = true;
   const cd = $('countdown');
+  const cameraGone = () => !state.stream || currentScreen !== 'scr-cam';
   if (state.countdown > 0) {
     cd.style.display = 'flex';
-    for (let n = state.countdown; n >= 1; n--) {
+    for (let n = state.countdown; n >= 1 && !cameraGone(); n--) {
       cd.textContent = String(n);
       if (state.sound) beep();
       await sleep(1000);
     }
     cd.style.display = 'none';
   }
+  /* Kamera hilang / pindah layar saat hitung mundur: batalkan jepretan. */
+  if (cameraGone()) { state.busy = false; $('shutter').disabled = false; return; }
   const useTorch = shouldUseTorch();
   if (useTorch) {
     await setTorch(true);
     await sleep(700);   // beri waktu sensor menyesuaikan exposure agar hasil cerah
   }
-  capture();
+  const captured = capture();
   if (useTorch) { setTimeout(() => setTorch(false), 500); }   // matikan setelah jepret
-  else if (shouldScreenFlash()) doFlash();
+  if (!captured) { state.busy = false; $('shutter').disabled = false; return; }
+  if (!useTorch && shouldScreenFlash()) doFlash();
   if (state.sound) beep();
   state.busy = false; $('shutter').disabled = false;
   if (replacing || state.photos.length >= state.layout) { await sleep(400); goPreview(); }
@@ -700,7 +719,8 @@ $('shutter').onclick = async () => {
 
 function capture() {
   const v = $('video');
-  const vw = v.videoWidth || 1280, vh = v.videoHeight || 960;
+  if (!state.stream || !v.videoWidth) return false;   // tidak ada frame nyata untuk dipotret
+  const vw = v.videoWidth, vh = v.videoHeight;
   const ar = LAYOUT_ARN[state.layout] || (4 / 3);
   let cw = vw, ch = Math.round(vw / ar);
   if (ch > vh) { ch = vh; cw = Math.round(vh * ar); }   // crop to preview aspect
@@ -711,6 +731,7 @@ function capture() {
   if (state.mirror) { x.translate(cw, 0); x.scale(-1, 1); }   // mirror like preview
   x.drawImage(v, sx, sy, cw, ch, 0, 0, cw, ch);
   const photo = { id: Date.now() + Math.random(), canvas: c, filter: state.filter, zoom: 1, ox: 0, oy: 0 };   // filter + crop per foto
+  warmPhotoUrl(c);
   if (state.replaceIndex != null && state.replaceIndex < state.photos.length) {
     state.photos[state.replaceIndex] = photo;                // re-jepret slot ini
     state.replaceIndex = null;
@@ -718,15 +739,14 @@ function capture() {
     state.photos.push(photo);
   }
   renderDots(); renderThumbs();
+  return true;
 }
 
 /* ============ gallery import ============ */
-const IMG_EXT = /\.(jpe?g|png|gif|webp|bmp|heic|heif|avif)$/i;
 /* Sebagian Android mengembalikan file galeri dengan MIME type kosong —
    jangan sampai ikut tersaring keluar. */
 function isImageFile(f) {
-  if (f.type) return f.type.startsWith('image/');
-  return IMG_EXT.test(f.name || '') || true;
+  return !f.type || f.type.startsWith('image/');
 }
 /* HEIC/HEIF: Chrome Android tak bisa decode sendiri → konversi ke JPEG dulu. */
 function isHeic(f) {
@@ -748,34 +768,42 @@ async function fileToCanvas(file) {
     try { f = await heicToJpeg(file); } catch (e) { f = file; }
   }
   let src = null, objectUrl = null;
-  if (window.createImageBitmap) {
-    try { src = await createImageBitmap(f, { imageOrientation: 'from-image' }); } catch (e) { src = null; }
+  try {
+    if (window.createImageBitmap) {
+      try { src = await createImageBitmap(f, { imageOrientation: 'from-image' }); } catch (e) { src = null; }
+    }
+    if (!src) {
+      objectUrl = URL.createObjectURL(f);
+      src = await new Promise((res, rej) => {
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = rej;
+        img.src = objectUrl;
+      });
+    }
+    let w = src.width, h = src.height;
+    const scale = Math.min(1, 1600 / Math.max(w, h));
+    w = Math.max(1, Math.round(w * scale));
+    h = Math.max(1, Math.round(h * scale));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(src, 0, 0, w, h);
+    if (src.close) src.close();
+    return c;
+  } finally {
+    /* object URL dibuang di semua jalur (sukses maupun gagal) */
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
   }
-  if (!src) {
-    objectUrl = URL.createObjectURL(f);
-    src = await new Promise((res, rej) => {
-      const img = new Image();
-      img.onload = () => res(img);
-      img.onerror = rej;
-      img.src = objectUrl;
-    });
-  }
-  let w = src.width, h = src.height;
-  const scale = Math.min(1, 1600 / Math.max(w, h));
-  w = Math.max(1, Math.round(w * scale));
-  h = Math.max(1, Math.round(h * scale));
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  c.getContext('2d').drawImage(src, 0, 0, w, h);
-  if (src.close) src.close();
-  if (objectUrl) URL.revokeObjectURL(objectUrl);
-  return c;
 }
 
 async function handleFiles(files) {
   const list = Array.from(files || []).filter(isImageFile);
   let added = 0;
-  const make = async (f) => ({ id: Date.now() + Math.random(), canvas: await fileToCanvas(f), filter: state.filter, zoom: 1, ox: 0, oy: 0 });
+  const make = async (f) => {
+    const canvas = await fileToCanvas(f);
+    warmPhotoUrl(canvas);
+    return { id: Date.now() + Math.random(), canvas, filter: state.filter, zoom: 1, ox: 0, oy: 0 };
+  };
   for (const f of list) {
     if (state.replaceIndex != null && state.replaceIndex < state.photos.length) {
       try { state.photos[state.replaceIndex] = await make(f); state.replaceIndex = null; added++; }
@@ -817,8 +845,7 @@ if (fileInput) {
       const files = Array.from(fileInput.files || []).filter(isImageFile);
       if (files.length) {
         setLayout(layoutForCount(files.length));
-        resetPhotos();
-        resetFrameSettings();
+        startNewSession();
         savePrefs();
       }
     }
@@ -826,7 +853,7 @@ if (fileInput) {
     const added = await handleFiles(fileInput.files);
     fileInput.value = '';
     if (!added) {
-      if (picked.length) alert('Foto tidak bisa dibuka. Coba pilih foto lain ya.');
+      if (picked.length) alert(tr('alert.badPhoto'));
       return;
     }
     if (galleryIntent === 'preview') {
@@ -847,14 +874,55 @@ function imgTransform(p) {
   return 'translate(' + (ox * 100).toFixed(2) + '%, ' + (oy * 100).toFixed(2) + '%) scale(' + z.toFixed(3) + ')';
 }
 
+/* URL gambar per foto. JPEG di-encode lewat canvas.toBlob (async, tidak memblokir
+   thread utama) lalu dijadikan object URL — jauh lebih ringan daripada dataURL
+   base64 yang disimpan di state & riwayat undo. Disimpan per canvas, jadi render
+   ulang (toggle, dsb.) tetap sinkron tanpa encode ulang. Filter & zoom diterapkan
+   lewat CSS, jadi URL-nya tetap valid. */
+const photoUrlReady = new Map();     // canvas -> object URL siap pakai
+const photoUrlPending = new Map();   // canvas -> Promise<string>
+function photoUrl(canvas) {
+  if (photoUrlReady.has(canvas)) return Promise.resolve(photoUrlReady.get(canvas));
+  if (!photoUrlPending.has(canvas)) {
+    const p = new Promise(res => canvas.toBlob(b => res(b ? URL.createObjectURL(b) : ''), 'image/jpeg', .85))
+      .then(u => {
+        /* Kalau canvas sudah dibuang (prunePhotoUrls) saat encode, jangan simpan. */
+        if (photoUrlPending.get(canvas) === p) { photoUrlPending.delete(canvas); photoUrlReady.set(canvas, u); }
+        else if (u) URL.revokeObjectURL(u);
+        return u;
+      });
+    photoUrlPending.set(canvas, p);
+  }
+  return photoUrlPending.get(canvas);
+}
+function warmPhotoUrl(canvas) { photoUrl(canvas).catch(() => {}); }
+/* Buang URL untuk canvas yang sudah tidak dipakai foto aktif maupun riwayat undo. */
+function prunePhotoUrls() {
+  const live = new Set();
+  const addPhotos = list => list.forEach(p => live.add(p.canvas));
+  addPhotos(state.photos);
+  history.forEach(s => addPhotos(s.photos));
+  redoStack.forEach(s => addPhotos(s.photos));
+  for (const [c, u] of photoUrlReady) {
+    if (!live.has(c)) { URL.revokeObjectURL(u); photoUrlReady.delete(c); }
+  }
+  for (const c of [...photoUrlPending.keys()]) {
+    if (!live.has(c)) photoUrlPending.delete(c);
+  }
+}
 function slotMedia(p, i, gesture) {
   const style = 'filter:' + filterCss(p.filter) + ';transform:' + imgTransform(p);
-  /* Cache data URL per foto — toDataURL itu berat; jangan diulang tiap render
-     (mis. saat toggle), kalau tidak UI jadi patah-patah/kedut. Filter & zoom
-     diterapkan lewat CSS (bukan di-bake ke canvas), jadi URL-nya tetap valid. */
-  if (!p._url) p._url = p.canvas.toDataURL('image/jpeg', .85);
-  return '<img' + (gesture ? ' class="slot-img" data-i="' + i + '"' : '') + ' draggable="false" alt="Foto ' + (i + 1) +
-    '" style="' + style + '" src="' + p._url + '">';
+  const src = photoUrlReady.get(p.canvas);
+  return '<img' + (gesture ? ' class="slot-img"' : '') + ' data-photo="' + i + '" draggable="false" alt="Foto ' + (i + 1) +
+    '" style="' + style + '"' + (src ? ' src="' + src + '"' : '') + '>';
+}
+/* Isi src gambar yang belum siap setelah render (encode async), tanpa re-render. */
+function hydrateSlotImages(root) {
+  root.querySelectorAll('img[data-photo]:not([src])').forEach(img => {
+    const p = state.photos[+img.dataset.photo];
+    if (!p) return;
+    photoUrl(p.canvas).then(u => { if (u && img.isConnected) img.src = u; });
+  });
 }
 
 /* Ukur lebar teks untuk auto-fit caption (nilai dipakai preview & PNG). */
@@ -980,7 +1048,7 @@ function refreshActiveFrame() {
   }
 
   updateDateButton();
-  shareFileCache = null;
+  invalidateShareFile();
   /* Tunda fit + snapshot ke frame berikutnya: perubahan visual toggle langsung
      tergambar dulu, kerja layout/history tidak menahan paint. */
   requestAnimationFrame(() => { fitFrame(holderId); commitHistory(); });
@@ -1008,13 +1076,15 @@ function fitFrame(holderId) {
 }
 
 function renderResult() {
-  $('result-holder').innerHTML = frameHTML();
+  const holder = $('result-holder');
+  holder.innerHTML = frameHTML();
+  hydrateSlotImages(holder);
   syncThemePickers();
   syncTextColorsUI();
   renderUserStickers();
   updateDateButton();
   fitFrame('result-holder');
-  shareFileCache = null;          // invalidasi cache share (murah, tanpa compose)
+  invalidateShareFile();          // invalidasi cache share (murah, tanpa compose)
   commitHistory();
 }
 
@@ -1027,8 +1097,8 @@ function previewHTML() {
     slots += '<div class="slot preview-slot" data-i="' + i + '">' +
       slotMedia(p, i, true) +
       '<div class="slot-actions">' +
-        '<button type="button" class="slot-btn" data-act="retake" data-i="' + i + '" aria-label="Jepret ulang" title="Retake"><span class="ms">refresh</span></button>' +
-        '<button type="button" class="slot-btn" data-act="del" data-i="' + i + '" aria-label="Buang foto" title="Buang"><span class="ms">delete</span></button>' +
+        '<button type="button" class="slot-btn" data-act="retake" data-i="' + i + '" aria-label="' + esc(tr('slot.retake')) + '" title="' + esc(tr('slot.retake')) + '"><span class="ms">refresh</span></button>' +
+        '<button type="button" class="slot-btn" data-act="del" data-i="' + i + '" aria-label="' + esc(tr('slot.remove')) + '" title="' + esc(tr('slot.removeShort')) + '"><span class="ms">delete</span></button>' +
       '</div></div>';
   });
   const L = captionLayout();
@@ -1056,7 +1126,7 @@ function applySlotSelection() {
 
 function attachSlotGestures(img, p, index) {
   const pts = new Map();
-  let start = null, pinch = null;
+  let start = null, pinch = null, rect = null;
   const clampPan = () => {
     const lim = Math.max(0, ((p.zoom || 1) - 1) / 2);
     p.ox = Math.max(-lim, Math.min(lim, p.ox || 0));
@@ -1083,7 +1153,8 @@ function attachSlotGestures(img, p, index) {
   img.addEventListener('pointermove', (e) => {
     if (!pts.has(e.pointerId)) return;
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const r = img.getBoundingClientRect();
+    /* ukuran elemen diukur sekali per gesture (bukan tiap event gerak → hindari layout paksa) */
+    const r = rect || (rect = img.getBoundingClientRect());
     if (pts.size >= 2 && pinch) {
       const [a, b] = [...pts.values()];
       const d = Math.hypot(b.x - a.x, b.y - a.y) || 1;
@@ -1106,6 +1177,7 @@ function attachSlotGestures(img, p, index) {
       start = { x: q.x, y: q.y, ox: p.ox || 0, oy: p.oy || 0 };
     } else if (pts.size === 0) {
       start = null;
+      rect = null;
       img.classList.remove('slot-dragging');
       commitHistory();
     }
@@ -1125,14 +1197,16 @@ function renderPreview() {
   const holder = $('preview-holder');
   if (!holder) return;
   holder.innerHTML = previewHTML();
+  hydrateSlotImages(holder);
   holder.querySelectorAll('.slot-img').forEach(img => {
-    const p = state.photos[+img.dataset.i];
-    if (p) attachSlotGestures(img, p, +img.dataset.i);
+    const i = +img.dataset.photo;
+    const p = state.photos[i];
+    if (p) attachSlotGestures(img, p, i);
   });
   applySlotSelection();
   renderUserStickers();
   fitFrame('preview-holder');
-  shareFileCache = null;
+  invalidateShareFile();
   commitHistory();
 }
 
@@ -1691,9 +1765,9 @@ function renderUserStickers() {
     el.innerHTML = innerContent;
     el.setAttribute('role', 'button');
     el.setAttribute('tabindex', '0');
-    const label = st.type === 'text' ? ('Teks: ' + st.value)
-      : st.type === 'char' ? 'Stiker karakter' : ('Stiker ' + st.value);
-    el.setAttribute('aria-label', label + '. Panah: pindah, +/-: ukuran, [ ]: putar, Delete: hapus.');
+    const label = st.type === 'text' ? (tr('st.text') + st.value)
+      : st.type === 'char' ? tr('st.char') : (tr('st.emoji') + st.value);
+    el.setAttribute('aria-label', label + '. ' + tr('st.hint'));
     el.addEventListener('focus', () => {
       state.selectedStickerId = st.id;
       layer.querySelectorAll('.user-sticker').forEach(x => x.classList.remove('selected'));
@@ -1741,8 +1815,8 @@ function attachStickerGestures(el, st, frameOuter) {
   delBtn.type = 'button';
   delBtn.className = 'sticker-delete';
   delBtn.innerHTML = '<span class="ms">close</span>';
-  delBtn.title = 'Hapus';
-  delBtn.setAttribute('aria-label', 'Hapus stiker');
+  delBtn.title = tr('st.delete');
+  delBtn.setAttribute('aria-label', tr('st.deleteAria'));
   delBtn.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
   delBtn.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); removeSticker(); });
   el.appendChild(delBtn);
@@ -2350,9 +2424,27 @@ function launchApp(scheme) {
    activation"; kalau menyusun PNG dulu (async) aktivasi bisa hilang dan share
    gagal → sistem cuma berbagi teks. Jadi PNG disiapkan lebih awal & disimpan. */
 let shareFileCache = null;
+let shareFilePending = null;   // Promise compose yang sedang jalan (dipakai ulang, tidak dobel)
+let shareGen = 0;              // naik tiap frame berubah; hasil compose lama tidak boleh disimpan
+function invalidateShareFile() {
+  shareFileCache = null;
+  shareFilePending = null;
+  shareGen++;
+}
 function currentShareFile() {
   if (shareFileCache) return Promise.resolve(shareFileCache);
-  return getWatermarkedFile().then(f => { shareFileCache = f; return f; });
+  if (shareFilePending) return shareFilePending;
+  const p = (async () => {
+    for (;;) {
+      const gen = shareGen;
+      const f = await getWatermarkedFile();
+      if (gen === shareGen) { shareFileCache = f; return f; }   // tidak berubah selama compose
+    }
+  })();
+  shareFilePending = p;
+  const clear = () => { if (shareFilePending === p) shareFilePending = null; };
+  p.then(clear, clear);
+  return p;
 }
 function primeShareFile() { currentShareFile().catch(() => {}); }
 
@@ -2468,14 +2560,12 @@ if (againModal) againModal.onclick = (e) => { if (e.target === againModal) close
 if ($('btn-close-again')) $('btn-close-again').onclick = () => closeModal('again-modal');
 if ($('btn-again-no')) $('btn-again-no').onclick = () => {
   closeModal('again-modal');
-  resetPhotos();
-  resetFrameSettings();
+  startNewSession();
   show('scr-start');
 };
 if ($('btn-again-yes')) $('btn-again-yes').onclick = () => {
   closeModal('again-modal');
-  resetPhotos();
-  resetFrameSettings();
+  startNewSession();
   show('scr-cam');
 };
 
@@ -2486,7 +2576,7 @@ $('btn-download').onclick = async () => {
   const label = $('download-label');
   btn.disabled = true;
   if (ico) ico.textContent = 'progress_activity';
-  if (label) label.textContent = 'Bikin PNG...';
+  if (label) label.textContent = tr('rs.making');
   if (ico) ico.classList.add('spin');
   try {
     const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont, state.captionColor, state.dateColor, state.customFrame.outlineOn, state.customDate ? currentDateText() : '');
@@ -2507,6 +2597,7 @@ $('btn-download').onclick = async () => {
 };
 
 /* ============ undo / redo ============ */
+const HISTORY_MAX = 30;   // batas langkah undo; juga membatasi foto lama yang tertahan di memori
 let history = [];
 let redoStack = [];
 let lastKey = null;
@@ -2545,8 +2636,9 @@ function commitHistory() {
     if (k === lastKey) return;
     lastKey = k;
     history.push(snapshotState());
-    if (history.length > 60) history.shift();
+    if (history.length > HISTORY_MAX) history.shift();
     redoStack = [];
+    prunePhotoUrls();
     updateUndoUI();
   }, 250);
 }
@@ -2591,10 +2683,19 @@ function redo() {
   updateUndoUI();
 }
 function initHistory() {
+  clearTimeout(historyTimer);
   history = [snapshotState()];
   redoStack = [];
   lastKey = stateKey();
+  prunePhotoUrls();
   updateUndoUI();
+}
+/* Sesi baru: kosongkan foto, kembalikan bingkai ke default, dan reset riwayat undo
+   (supaya Ctrl+Z tidak memunculkan foto sesi sebelumnya). */
+function startNewSession() {
+  resetPhotos();
+  resetFrameSettings();
+  initHistory();
 }
 
 /* ============ background line-art dari gambar user ============ */
@@ -2678,7 +2779,7 @@ function addHeaders() {
     const h = document.createElement('button');
     h.type = 'button';
     h.className = 'mini-header';
-    h.setAttribute('aria-label', 'Snappie Studio — ke tampilan awal');
+    h.setAttribute('aria-label', tr('hdr.home'));
     h.innerHTML = '<span class="mh-title">Snappie Studio</span>' +
       '<span class="mh-tag">your little photo moment</span>';
     h.onclick = goHome;

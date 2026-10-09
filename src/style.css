@@ -337,9 +337,9 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .cam-top-controls { position: absolute; top: 10px; right: 10px; display: flex; align-items: center;
   gap: 8px; z-index: 8; }
 .cam-ico { display: inline-flex; align-items: center; gap: 4px; padding: 6px 11px; border-radius: 999px;
-  border: 1.5px solid rgba(255,255,255,.75); background: rgba(20,15,30,.34); color: #fff;
+  border: 1.5px solid rgba(255,255,255,.75); background: rgba(20,15,30,.5); color: #fff;
   font-family: inherit; font-size: 16px; line-height: 1; cursor: pointer;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+ }
 .cam-ico:active { transform: scale(.94); }
 .cam-ico-glyph { font-size: 17px; }
 .cam-ico-glyph.muted { text-decoration: line-through; opacity: .65; }
@@ -356,15 +356,15 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .cam-bottom-controls { position: absolute; left: 0; right: 0; bottom: 16px; display: flex;
   align-items: center; justify-content: center; gap: 26px; z-index: 7; }
 .cam-round { width: 50px; height: 50px; border-radius: 50%; border: 2px solid rgba(255,255,255,.85);
-  background: rgba(20,15,30,.34); color: #fff; font-size: 21px; line-height: 1; cursor: pointer;
+  background: rgba(20,15,30,.5); color: #fff; font-size: 21px; line-height: 1; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+ }
 .cam-round:active { transform: scale(.92); }
 .cam-round.active { background: rgba(214,51,132,.85); border-color: #fff; }
 #shutter { width: 72px; height: 72px; border-radius: 50%;
-  border: 4px solid rgba(255,255,255,.95); background: rgba(255,255,255,.32);
+  border: 4px solid rgba(255,255,255,.95); background: rgba(255,255,255,.45);
   box-shadow: 0 6px 20px rgba(0,0,0,.4); cursor: pointer;
-  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+ }
 #shutter:active { transform: scale(.93); }
 #shutter:disabled { opacity: .45; }
 .theme-block { width: 100%; }
@@ -412,9 +412,9 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 
 .cam-count { display: inline-flex; align-items: center; justify-content: center; min-width: 54px;
   padding: 6px 10px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.75);
-  background: rgba(20,15,30,.4); color: #fff; font-size: 13px; font-weight: 800; letter-spacing: .5px;
+  background: rgba(20,15,30,.55); color: #fff; font-size: 13px; font-weight: 800; letter-spacing: .5px;
   font-variant-numeric: tabular-nums;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+ }
 
 #thumbs { display: flex; gap: 14px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
 .thumb { position: relative; width: 64px; height: 48px; touch-action: none; }
@@ -679,7 +679,7 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .theme-thumb.th-custom .slot { border-width: 2px; }
 
 /* Modal Overlay & Sticker Picker */
-.modal-overlay { position: fixed; inset: 0; background: rgba(35,35,58,0.65); backdrop-filter: blur(4px);
+.modal-overlay { position: fixed; inset: 0; background: rgba(35,35,58,0.8);
   display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none;
   transition: opacity 0.25s ease; padding: 16px; }
 .modal-overlay.open { opacity: 1; pointer-events: auto; }

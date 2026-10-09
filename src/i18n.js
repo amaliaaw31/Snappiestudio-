@@ -20,6 +20,18 @@ export const LANGS = [
 ];
 
 const id = {
+  'alert.badPhoto': 'Foto tidak bisa dibuka. Coba pilih foto lain ya.',
+  'rs.making': 'Bikin PNG...',
+  'slot.retake': 'Jepret ulang',
+  'slot.remove': 'Buang foto',
+  'slot.removeShort': 'Buang',
+  'st.text': 'Teks: ',
+  'st.char': 'Stiker karakter',
+  'st.emoji': 'Stiker ',
+  'st.hint': 'Panah: pindah, +/-: ukuran, [ ]: putar, Delete: hapus.',
+  'st.delete': 'Hapus',
+  'st.deleteAria': 'Hapus stiker',
+  'hdr.home': 'Snappie Studio — ke tampilan awal',
   'tagline': 'momen foto kecilmu',
   'start.desc': 'Jepret foto kece pakai filter,<br>hias dengan stiker lucu, lalu bagikan ke sosmed!',
   'start.open': 'Buka Kamera',
@@ -170,6 +182,18 @@ const id = {
 };
 
 const en = {
+  'alert.badPhoto': 'This photo could not be opened. Please pick another one.',
+  'rs.making': 'Making PNG...',
+  'slot.retake': 'Retake',
+  'slot.remove': 'Remove photo',
+  'slot.removeShort': 'Remove',
+  'st.text': 'Text: ',
+  'st.char': 'Character sticker',
+  'st.emoji': 'Sticker ',
+  'st.hint': 'Arrows: move, +/-: size, [ ]: rotate, Delete: remove.',
+  'st.delete': 'Delete',
+  'st.deleteAria': 'Delete sticker',
+  'hdr.home': 'Snappie Studio — back to start',
   'tagline': 'your little photo moment',
   'start.desc': 'Snap cool photos with filters,<br>decorate with cute stickers, and share to social media!',
   'start.open': 'Open Camera',
