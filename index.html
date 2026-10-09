@@ -86,14 +86,7 @@
 <div id="bg-lines" aria-hidden="true"></div>
 
 <!-- character sticker definitions -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-<symbol id="ch-bear" viewBox="0 0 48 48"><circle cx="11" cy="13" r="7.5" fill="#8a5a34"/><circle cx="37" cy="13" r="7.5" fill="#8a5a34"/><circle cx="11" cy="13" r="3.4" fill="#d9a06b"/><circle cx="37" cy="13" r="3.4" fill="#d9a06b"/><circle cx="24" cy="27" r="16" fill="#b07a4f"/><ellipse cx="24" cy="33" rx="8.5" ry="6.5" fill="#e8c9a0"/><circle cx="17" cy="24" r="2.6" fill="#23233a"/><circle cx="31" cy="24" r="2.6" fill="#23233a"/><ellipse cx="24" cy="30.5" rx="3" ry="2.4" fill="#23233a"/><path d="M24 33 v3 M24 36 q-3 3 -6 2 M24 36 q3 3 6 2" stroke="#23233a" stroke-width="1.6" fill="none" stroke-linecap="round"/></symbol>
-<symbol id="ch-bunny" viewBox="0 0 48 48"><ellipse cx="16" cy="11" rx="5.5" ry="11" fill="#f4f4f8" stroke="#23233a" stroke-width="2"/><ellipse cx="32" cy="11" rx="5.5" ry="11" fill="#f4f4f8" stroke="#23233a" stroke-width="2"/><ellipse cx="16" cy="12" rx="2.4" ry="6.5" fill="#ffb3c7"/><ellipse cx="32" cy="12" rx="2.4" ry="6.5" fill="#ffb3c7"/><circle cx="24" cy="31" r="14.5" fill="#f4f4f8" stroke="#23233a" stroke-width="2"/><circle cx="18" cy="29" r="2.6" fill="#23233a"/><circle cx="30" cy="29" r="2.6" fill="#23233a"/><polygon points="24,33 21,36.5 27,36.5" fill="#ff8fab"/><rect x="22" y="37" width="4.4" height="4" fill="#fff" stroke="#23233a" stroke-width="1.4"/></symbol>
-<symbol id="ch-cat" viewBox="0 0 48 48"><polygon points="10,16 13,3 23,11" fill="#ff9f45" stroke="#23233a" stroke-width="2" stroke-linejoin="round"/><polygon points="38,16 35,3 25,11" fill="#ff9f45" stroke="#23233a" stroke-width="2" stroke-linejoin="round"/><circle cx="24" cy="28" r="15.5" fill="#ff9f45" stroke="#23233a" stroke-width="2"/><path d="M18 16 l-2 -4 M24 14.5 v-4.5 M30 16 l2 -4" stroke="#e07b28" stroke-width="2" stroke-linecap="round"/><circle cx="17.5" cy="26" r="2.6" fill="#23233a"/><circle cx="30.5" cy="26" r="2.6" fill="#23233a"/><polygon points="24,30 21.5,33.5 26.5,33.5" fill="#ff6b8f"/><path d="M14 32 l-6 -1 M14 35 l-6 1 M34 32 l6 -1 M34 35 l6 1" stroke="#23233a" stroke-width="1.4" stroke-linecap="round"/></symbol>
-<symbol id="ch-frog" viewBox="0 0 48 48"><circle cx="15" cy="12" r="7" fill="#6fbf5f" stroke="#23233a" stroke-width="2"/><circle cx="33" cy="12" r="7" fill="#6fbf5f" stroke="#23233a" stroke-width="2"/><circle cx="15" cy="12" r="4" fill="#fff"/><circle cx="33" cy="12" r="4" fill="#fff"/><circle cx="15" cy="13" r="2" fill="#23233a"/><circle cx="33" cy="13" r="2" fill="#23233a"/><ellipse cx="24" cy="30" rx="15.5" ry="13.5" fill="#6fbf5f" stroke="#23233a" stroke-width="2"/><circle cx="13" cy="31" r="3" fill="#ff9fb0" opacity=".8"/><circle cx="35" cy="31" r="3" fill="#ff9fb0" opacity=".8"/><path d="M17 32 Q24 38 31 32" stroke="#23233a" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
-<symbol id="ch-chick" viewBox="0 0 48 48"><path d="M20 8 q1 -5 5 -5 M24 8 q2 -5 6 -4" stroke="#e0a92e" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="24" cy="27" r="15" fill="#ffd94d" stroke="#23233a" stroke-width="2"/><circle cx="18" cy="25" r="2.6" fill="#23233a"/><circle cx="30" cy="25" r="2.6" fill="#23233a"/><polygon points="24,28 18.5,33 29.5,33" fill="#ff8f3f" stroke="#23233a" stroke-width="1.6" stroke-linejoin="round"/><circle cx="14" cy="30" r="2.6" fill="#ff9fb0" opacity=".8"/><circle cx="34" cy="30" r="2.6" fill="#ff9fb0" opacity=".8"/></symbol>
-<symbol id="ch-star" viewBox="0 0 48 48"><polygon points="24,4 29,17 43,17 32,26 36,40 24,32 12,40 16,26 5,17 19,17" fill="#ffd166" stroke="#23233a" stroke-width="2.4" stroke-linejoin="round"/><circle cx="18.5" cy="22" r="2.4" fill="#23233a"/><circle cx="29.5" cy="22" r="2.4" fill="#23233a"/><path d="M19 29 Q24 33 29 29" stroke="#23233a" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
-</defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="sticker-defs"></defs></svg>
 
 <!-- START -->
 <div class="screen active" id="scr-start">
@@ -139,6 +132,13 @@
     </div>
   </div>
   <div id="camerr" data-i18n="err.generic">Kamera nggak bisa dibuka. Cek izin kamera / pakai HTTPS ya.</div>
+  <div class="camera-zoom-controls">
+    <label for="camera-zoom">Zoom</label>
+    <button type="button" id="camera-zoom-out" aria-label="Zoom −">−</button>
+    <input id="camera-zoom" type="range" min="1" max="3" step="0.1" value="1" aria-label="Zoom">
+    <button type="button" id="camera-zoom-in" aria-label="Zoom +">+</button>
+    <button type="button" id="camera-zoom-reset" aria-label="Reset zoom">1.0×</button>
+  </div>
   <div class="label" data-i18n="cam.filter">FILTER</div>
   <div class="filter-strip-wrap" id="filter-strip-wrap">
     <div class="filter-strip" id="filter-strip"></div>
@@ -155,7 +155,7 @@
 
 <!-- PREVIEW -->
 <div class="screen" id="scr-preview">
-  <h1 style="margin-top:4px"><span class="ms">auto_awesome</span><span data-i18n="pv.title">Preview</span></h1>
+  <h1 style="margin-top:4px"><span data-i18n="pv.title">Preview</span></h1>
   <p class="desc" data-i18n="pv.desc">Cek tiap foto — buang, jepret ulang, atau ganti dari galeri. Tambah stiker, lalu tekan Fix.</p>
   <div id="preview-holder"></div>
   <div class="toggle-row">

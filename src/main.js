@@ -1,7 +1,8 @@
 /* Photo Booth — app logic: camera, filters, countdown, capture, result, stickers. */
 
-import { FILTERS, THEMES, CHARS, EMOJI_STICKERS, dateLine, formatDate, filterCss, fontTracking, fontLineHeight, DATE_COLORS } from './data.js';
+import { FILTERS, THEMES, CHARS, CHAR_SVG, CHAR_NAMES, EMOJI_STICKERS, dateLine, formatDate, filterCss, fontTracking, fontLineHeight, DATE_COLORS } from './data.js';
 import { compose } from './composer.js';
+import { cameraCrop } from './camera.js';
 import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
 import bacUrl from './assets/bac.jpg';
 
@@ -11,6 +12,7 @@ const LAYOUT_ARN = { 1: 4 / 3, 3: 4 / 3, 4: 4 / 3, 6: 4 / 3 };
 
 const state = {
   stream: null,
+  cameraZoom: 1,
   filter: 'normal',
   layout: 3,
   theme: 'pastel',
@@ -538,8 +540,25 @@ function stopStream() {
 
 function applyMirror() {
   const v = $('video');
-  if (v) v.style.transform = state.mirror ? 'scaleX(-1)' : 'none';
+  if (v) v.style.transform = `scale(${state.mirror ? -state.cameraZoom : state.cameraZoom}, ${state.cameraZoom})`;
 }
+
+function setCameraZoom(value) {
+  state.cameraZoom = Math.round(Math.max(1, Math.min(3, Number(value) || 1)) * 10) / 10;
+  const slider = $('camera-zoom');
+  if (slider) slider.value = String(state.cameraZoom);
+  const reset = $('camera-zoom-reset');
+  if (reset) reset.textContent = state.cameraZoom.toFixed(1) + '×';
+  $('camera-zoom-out').disabled = state.cameraZoom <= 1;
+  $('camera-zoom-in').disabled = state.cameraZoom >= 3;
+  applyMirror();
+}
+
+$('camera-zoom').addEventListener('input', e => setCameraZoom(e.target.value));
+$('camera-zoom-out').onclick = () => setCameraZoom(state.cameraZoom - 0.1);
+$('camera-zoom-in').onclick = () => setCameraZoom(state.cameraZoom + 0.1);
+$('camera-zoom-reset').onclick = () => setCameraZoom(1);
+setCameraZoom(1);
 
 function doFlash() {
   const f = $('flash');
@@ -596,6 +615,7 @@ async function startCamera() {
       video: { facingMode: state.facing, width: { ideal: 1280 } }, audio: false,
     });
     state.stream = stream;
+    setCameraZoom(1);
     /* Kamera dicabut sistem (mis. perangkat dilepas): anggap stream sudah mati
        supaya layar kamera meminta ulang, bukan memotret frame kosong. */
     stream.getVideoTracks().forEach(track => track.addEventListener('ended', () => {
@@ -720,16 +740,13 @@ $('shutter').onclick = async () => {
 function capture() {
   const v = $('video');
   if (!state.stream || !v.videoWidth) return false;   // tidak ada frame nyata untuk dipotret
-  const vw = v.videoWidth, vh = v.videoHeight;
   const ar = LAYOUT_ARN[state.layout] || (4 / 3);
-  let cw = vw, ch = Math.round(vw / ar);
-  if (ch > vh) { ch = vh; cw = Math.round(vh * ar); }   // crop to preview aspect
-  const sx = (vw - cw) / 2, sy = (vh - ch) / 2;
+  const { width: cw, height: ch, sx, sy, sw, sh } = cameraCrop(v.videoWidth, v.videoHeight, ar, state.cameraZoom);
   const c = document.createElement('canvas');
   c.width = cw; c.height = ch;
   const x = c.getContext('2d');
   if (state.mirror) { x.translate(cw, 0); x.scale(-1, 1); }   // mirror like preview
-  x.drawImage(v, sx, sy, cw, ch, 0, 0, cw, ch);
+  x.drawImage(v, sx, sy, sw, sh, 0, 0, cw, ch);
   const photo = { id: Date.now() + Math.random(), canvas: c, filter: state.filter, zoom: 1, ox: 0, oy: 0 };   // filter + crop per foto
   warmPhotoUrl(c);
   if (state.replaceIndex != null && state.replaceIndex < state.photos.length) {
@@ -1766,7 +1783,7 @@ function renderUserStickers() {
     el.setAttribute('role', 'button');
     el.setAttribute('tabindex', '0');
     const label = st.type === 'text' ? (tr('st.text') + st.value)
-      : st.type === 'char' ? tr('st.char') : (tr('st.emoji') + st.value);
+      : st.type === 'char' ? tr('st.char') + ' ' + CHAR_NAMES[st.value] : (tr('st.emoji') + st.value);
     el.setAttribute('aria-label', label + '. ' + tr('st.hint'));
     el.addEventListener('focus', () => {
       state.selectedStickerId = st.id;
@@ -1927,6 +1944,11 @@ function initStickerPicker() {
 
   if (!modal) return;
 
+  // One artwork source keeps the picker, photo preview and PNG in sync.
+  $('sticker-defs').innerHTML = CHARS.map(c =>
+    `<symbol id="ch-${c}" viewBox="0 0 48 48">${CHAR_SVG[c]}</symbol>`
+  ).join('');
+
   if (btnOpen) btnOpen.onclick = () => openModal('sticker-modal');
   const btnPreviewSticker = $('btn-preview-sticker');
   if (btnPreviewSticker) btnPreviewSticker.onclick = () => openModal('sticker-modal');
@@ -1941,8 +1963,11 @@ function initStickerPicker() {
 
   charGrid.innerHTML = '';
   CHARS.forEach(c => {
-    const item = document.createElement('div');
+    const item = document.createElement('button');
+    item.type = 'button';
     item.className = 'sticker-item';
+    item.title = CHAR_NAMES[c];
+    item.setAttribute('aria-label', CHAR_NAMES[c]);
     item.innerHTML = `<svg><use href="#ch-${c}"/></svg>`;
     item.onclick = () => {
       addSticker('char', c);

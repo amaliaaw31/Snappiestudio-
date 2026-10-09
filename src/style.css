@@ -254,6 +254,15 @@ button:focus-visible, select:focus-visible, input:focus-visible, [tabindex]:focu
 .camwrap { position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: 0; overflow: hidden;
   border: 4px solid #23233a; background: #111; }
 video { width: 100%; height: 100%; display: block; transform: scaleX(-1); object-fit: cover; }
+.camera-zoom-controls { display: flex; align-items: center; gap: 8px; width: 100%;
+  margin: 4px 0; color: #8a5b7e; font-size: 13px; font-weight: 800; }
+.camera-zoom-controls input { flex: 1; min-width: 0; accent-color: #d63384; cursor: pointer; }
+.camera-zoom-controls button { min-width: 40px; min-height: 40px; padding: 4px 8px;
+  border: 1.5px solid #d9b8d0; border-radius: 999px; background: #fff; color: #8a5b7e;
+  font: inherit; cursor: pointer; }
+.camera-zoom-controls button:disabled { opacity: .4; cursor: default; }
+.dark-mode .camera-zoom-controls { color: #d8c8e8; }
+.dark-mode .camera-zoom-controls button { background: #2a2740; border-color: #4a4568; color: #ff8fc0; }
 #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
 #countdown { position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
   font-size: 110px; font-weight: 900; color: #fff; text-shadow: 0 4px 24px rgba(0,0,0,.5); }
@@ -443,9 +452,10 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 
 /* ---------- result ---------- */
 #scr-preview, #scr-result { min-height: 100vh; min-height: 100dvh; }
+#scr-preview .desc { margin-bottom: 6px; }
 #result-holder, #preview-holder { width: 100%; flex: 1 1 auto; min-height: 66vh; overflow: hidden;
-  display: flex; align-items: center; justify-content: center; margin-top: 6px; }
-#result-holder .frame-outer, #preview-holder .frame-outer { transform-origin: center center;
+  display: flex; align-items: flex-start; justify-content: center; margin-top: 4px; padding-top: 4px; }
+#result-holder .frame-outer, #preview-holder .frame-outer { transform-origin: top center;
   will-change: transform; backface-visibility: hidden; }
 .frame-outer.noframe { padding: 0; box-shadow: none; background: none; outline: none; }
 .frame-outer.noframe .frame { padding: 0; }
@@ -829,10 +839,8 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .user-sticker .char-inner {
   width: 50px;
   height: 50px;
-  background: #fff;
-  border-radius: 50%;
+  background: transparent;
   padding: 4px;
-  box-shadow: 0 4px 12px rgba(35, 35, 58, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;

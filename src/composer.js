@@ -450,10 +450,6 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
         const r = W * 0.058 * sc;
         const img = charImgs[st.value];
         if (img) {
-          x.shadowColor = 'rgba(35,35,58,.35)'; x.shadowBlur = 10; x.shadowOffsetY = 3;
-          x.fillStyle = '#ffffff';
-          x.beginPath(); x.arc(0, 0, r, 0, Math.PI * 2); x.fill();
-          x.shadowColor = 'transparent';
           x.drawImage(img, -r * 0.82, -r * 0.82, r * 1.64, r * 1.64);
         }
       } else if (st.type === 'text') {

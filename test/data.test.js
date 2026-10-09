@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FILTERS, THEMES, CAPTIONS, CHARS, CHAR_SVG, EMOJI_STICKERS, dateLine, filterCss,
+  FILTERS, THEMES, CAPTIONS, CHARS, CHAR_SVG, CHAR_NAMES, EMOJI_STICKERS, dateLine, filterCss,
 } from '../src/data.js';
 
 test('filters: unique ids, name + css present', () => {
@@ -43,6 +43,21 @@ test('no orphan captions', () => {
 
 test('character list matches the svg map', () => {
   assert.deepEqual([...CHARS].sort(), Object.keys(CHAR_SVG).sort());
+});
+
+test('character ids are unique and every character has a name', () => {
+  assert.equal(new Set(CHARS).size, CHARS.length);
+  for (const c of CHARS) assert.ok(CHAR_NAMES[c], `character "${c}" has no name`);
+});
+
+test('character svg fragments have balanced tags', () => {
+  for (const c of CHARS) {
+    const art = CHAR_SVG[c];
+    const opens = (art.match(/<(g|text)[\s>]/g) || []).length;
+    const closes = (art.match(/<\/(g|text)>/g) || []).length;
+    assert.equal(opens, closes, `character "${c}" has unbalanced tags`);
+    assert.ok(!/<(?!\/?(g|path|circle|ellipse|rect|text|polygon)[\s>\/])/.test(art), `character "${c}" has an unexpected tag`);
+  }
 });
 
 test('emoji stickers are non-empty and unique', () => {
