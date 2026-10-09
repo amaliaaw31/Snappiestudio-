@@ -543,27 +543,26 @@ function applyMirror() {
   if (v) v.style.transform = `scale(${state.mirror ? -state.cameraZoom : state.cameraZoom}, ${state.cameraZoom})`;
 }
 
+/* Zoom kamera: tiap tap tombol di bar atas pindah ke level berikutnya. */
+const ZOOM_STEPS = [1, 1.5, 2, 3];
 function setCameraZoom(value) {
   state.cameraZoom = Math.round(Math.max(1, Math.min(3, Number(value) || 1)) * 10) / 10;
-  const slider = $('camera-zoom');
-  if (slider) slider.value = String(state.cameraZoom);
-  const reset = $('camera-zoom-reset');
-  if (reset) reset.textContent = state.cameraZoom.toFixed(1) + '×';
-  $('camera-zoom-out').disabled = state.cameraZoom <= 1;
-  $('camera-zoom-in').disabled = state.cameraZoom >= 3;
+  const label = $('zoom-val');
+  if (label) label.textContent = state.cameraZoom.toFixed(1) + '×';
   applyMirror();
 }
 
-$('camera-zoom').addEventListener('input', e => setCameraZoom(e.target.value));
-$('camera-zoom-out').onclick = () => setCameraZoom(state.cameraZoom - 0.1);
-$('camera-zoom-in').onclick = () => setCameraZoom(state.cameraZoom + 0.1);
-$('camera-zoom-reset').onclick = () => setCameraZoom(1);
+$('btn-zoom').onclick = () => {
+  const next = ZOOM_STEPS.find(z => z > state.cameraZoom + 0.01);
+  setCameraZoom(next ?? ZOOM_STEPS[0]);
+};
 setCameraZoom(1);
 
 function doFlash() {
   const f = $('flash');
   if (!f) return;
   f.style.transition = 'none'; f.style.opacity = '.85';
+  void f.offsetWidth;   // paksa gaya dihitung dulu di .85, supaya transisi ke 0 benar-benar terlihat
   requestAnimationFrame(() => { f.style.transition = 'opacity .4s'; f.style.opacity = '0'; });
 }
 let ambientCanvas = null;   // dipakai ulang tiap cek (tidak alokasi canvas baru)
@@ -588,23 +587,22 @@ function shouldScreenFlash() {
 function videoTrack() {
   return (state.stream && state.stream.getVideoTracks) ? state.stream.getVideoTracks()[0] : null;
 }
-function trackSupportsTorch() {
-  const track = videoTrack();
-  if (!track || typeof track.getCapabilities !== 'function') return false;
-  try { return !!track.getCapabilities().torch; } catch (e) { return false; }
-}
+const TORCH_HOLD_MS = 1500;   // lama lampu belakang menyala setelah jepret (agar terasa seperti flash)
+let torchOffTimer = null;
 async function setTorch(on) {
   const track = videoTrack();
   if (!track || typeof track.applyConstraints !== 'function') return false;
   try { await track.applyConstraints({ advanced: [{ torch: !!on }] }); return true; }
   catch (e) { return false; }
 }
-/* Pakai lampu hanya untuk kamera belakang + mode flash yang minta cahaya. */
+/* Pakai lampu hanya untuk kamera belakang + mode flash yang minta cahaya.
+   Tidak mengandalkan getCapabilities().torch: beberapa Android tidak melaporkannya
+   padahal lampunya bisa dinyalakan. Kalau setTorch gagal, flash layar jadi cadangan. */
 function shouldUseTorch() {
   if (state.facing !== 'environment') return false;
   if (state.flash === 'off') return false;
   if (state.flash === 'auto' && !ambientIsDark()) return false;
-  return trackSupportsTorch();
+  return true;
 }
 
 async function startCamera() {
@@ -723,15 +721,17 @@ $('shutter').onclick = async () => {
   }
   /* Kamera hilang / pindah layar saat hitung mundur: batalkan jepretan. */
   if (cameraGone()) { state.busy = false; $('shutter').disabled = false; return; }
-  const useTorch = shouldUseTorch();
-  if (useTorch) {
-    await setTorch(true);
-    await sleep(700);   // beri waktu sensor menyesuaikan exposure agar hasil cerah
+  let torchOn = false;
+  if (shouldUseTorch()) {
+    clearTimeout(torchOffTimer);   // jepretan sebelumnya jangan mematikan lampu di tengah pemanasan ini
+    torchOn = await setTorch(true);
+    if (torchOn) await sleep(700);   // beri waktu sensor menyesuaikan exposure agar hasil cerah
   }
   const captured = capture();
-  if (useTorch) { setTimeout(() => setTorch(false), 500); }   // matikan setelah jepret
+  if (torchOn) { torchOffTimer = setTimeout(() => setTorch(false), TORCH_HOLD_MS); }   // lampu tetap menyala sebentar setelah jepret
   if (!captured) { state.busy = false; $('shutter').disabled = false; return; }
-  if (!useTorch && shouldScreenFlash()) doFlash();
+  /* Lampu gagal dinyalakan (browser melapor punya torch tapi menolak): pakai flash layar sebagai cadangan. */
+  if (!torchOn && shouldScreenFlash()) doFlash();
   if (state.sound) beep();
   state.busy = false; $('shutter').disabled = false;
   if (replacing || state.photos.length >= state.layout) { await sleep(400); goPreview(); }

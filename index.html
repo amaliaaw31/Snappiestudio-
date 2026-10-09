@@ -114,6 +114,9 @@
         <button type="button" id="btn-countdown" class="cam-ico" aria-label="Countdown" title="Countdown">
           <span class="cam-ico-glyph ms">timer</span><span class="cam-ico-val" id="countdown-val"></span>
         </button>
+        <button type="button" id="btn-zoom" class="cam-ico" aria-label="Zoom" title="Zoom: tap untuk ganti 1× / 1.5× / 2× / 3×">
+          <span class="cam-ico-val" id="zoom-val">1.0×</span>
+        </button>
         <button type="button" id="btn-sound" class="cam-ico" aria-label="Sound" title="Sound" aria-pressed="true">
           <span class="cam-ico-glyph ms" id="sound-glyph">volume_up</span>
         </button>
@@ -132,13 +135,6 @@
     </div>
   </div>
   <div id="camerr" data-i18n="err.generic">Kamera nggak bisa dibuka. Cek izin kamera / pakai HTTPS ya.</div>
-  <div class="camera-zoom-controls">
-    <label for="camera-zoom">Zoom</label>
-    <button type="button" id="camera-zoom-out" aria-label="Zoom −">−</button>
-    <input id="camera-zoom" type="range" min="1" max="3" step="0.1" value="1" aria-label="Zoom">
-    <button type="button" id="camera-zoom-in" aria-label="Zoom +">+</button>
-    <button type="button" id="camera-zoom-reset" aria-label="Reset zoom">1.0×</button>
-  </div>
   <div class="label" data-i18n="cam.filter">FILTER</div>
   <div class="filter-strip-wrap" id="filter-strip-wrap">
     <div class="filter-strip" id="filter-strip"></div>
