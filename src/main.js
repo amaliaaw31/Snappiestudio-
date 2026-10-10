@@ -1,8 +1,10 @@
 /* Photo Booth — app logic: camera, filters, countdown, capture, result, stickers. */
 
-import { FILTERS, THEMES, CHARS, CHAR_SVG, CHAR_NAMES, EMOJI_STICKERS, dateLine, formatDate, filterCss, fontTracking, fontLineHeight, DATE_COLORS } from './data.js';
+import { FILTERS, THEMES, CHARS, CHAR_SVG, CHAR_NAMES, dateLine, formatDate, filterCss, fontTracking, fontLineHeight, DATE_COLORS } from './data.js';
 import { compose } from './composer.js';
-import { cameraCrop } from './camera.js';
+import { emojiArtMarkup, splitEmojiRuns } from './emoji.js';
+import { EMOJI_CATEGORIES, findEmojiStickers } from './emoji-catalog.js';
+import { cameraCrop, openCameraStream, waitForFlashFrame } from './camera.js';
 import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
 import bacUrl from './assets/bac.jpg';
 
@@ -46,6 +48,30 @@ const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+async function updateVisitorCount() {
+  const displays = [...document.querySelectorAll('[data-visitor-count]')];
+  if (!displays.length) return;
+  let visitorId = '';
+  try {
+    visitorId = localStorage.getItem('snappie-visitor-id') || '';
+    if (!visitorId) {
+      visitorId = window.crypto.randomUUID();
+      localStorage.setItem('snappie-visitor-id', visitorId);
+    }
+  } catch { /* tetap tampilkan total meski storage tidak tersedia */ }
+  try {
+    const response = await window.fetch('/api/visitors', visitorId ? {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visitorId }), cache: 'no-store',
+    } : { cache: 'no-store' });
+    if (!response.ok) return;
+    const { total } = await response.json();
+    const formatted = new Intl.NumberFormat(getLang()).format(total);
+    displays.forEach(el => { el.textContent = formatted; });
+  } catch { /* hitungan tidak menghalangi penggunaan kamera */ }
+}
+updateVisitorCount();
 
 /* ============ preferences (localStorage) ============ */
 /* Catatan privasi: settingan BINGKAI (tema, warna, font, ukuran/caption frame)
@@ -532,8 +558,10 @@ function resetFrameSettings() {
 }
 
 /* ============ camera ============ */
+let cameraRequestId = 0;
 /* Hentikan semua track kamera dan lepaskan referensinya. */
 function stopStream() {
+  cameraRequestId++;
   if (state.stream) state.stream.getTracks().forEach(t => t.stop());
   state.stream = null;
 }
@@ -584,34 +612,137 @@ function shouldScreenFlash() {
 }
 
 /* ---- Lampu (torch) kamera belakang ---- */
+/* Capabilities bisa tidak lengkap: coba kontrol langsung dan periksa settings.
+   Browser yang tidak menyediakan kontrol lampu tetap tidak bisa dipaksa menyalakannya. */
 function videoTrack() {
   return (state.stream && state.stream.getVideoTracks) ? state.stream.getVideoTracks()[0] : null;
 }
-const TORCH_HOLD_MS = 1500;   // lama lampu belakang menyala setelah jepret (agar terasa seperti flash)
-let torchOffTimer = null;
-async function setTorch(on) {
+function trackCapabilities() {
   const track = videoTrack();
-  if (!track || typeof track.applyConstraints !== 'function') return false;
-  try { await track.applyConstraints({ advanced: [{ torch: !!on }] }); return true; }
-  catch (e) { return false; }
+  if (!track || typeof track.getCapabilities !== 'function') return {};
+  try { return track.getCapabilities() || {}; } catch (e) { return {}; }
 }
-/* Pakai lampu hanya untuk kamera belakang + mode flash yang minta cahaya.
-   Tidak mengandalkan getCapabilities().torch: beberapa Android tidak melaporkannya
-   padahal lampunya bisa dinyalakan. Kalau setTorch gagal, flash layar jadi cadangan. */
+function trackSupportsTorch() {
+  const torch = trackCapabilities().torch;
+  return torch === true || (Array.isArray(torch) && torch.includes(true));
+}
+
+/* Diagnostik di layar HP: aktif hanya kalau alamat berisi ?debug=1 (tidak mengganggu pengguna biasa). */
+const DEBUG_TORCH = /[?&]debug=1/.test(window.location.search);
+function torchLog(msg) {
+  if (!DEBUG_TORCH) return;
+  let box = document.getElementById('torch-debug');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'torch-debug';
+    box.style.cssText = 'position:fixed;left:6px;right:6px;bottom:6px;z-index:99999;background:rgba(0,0,0,.8);color:#fff;font:11px/1.4 monospace;padding:6px 8px;border-radius:8px;max-height:40vh;overflow:auto;white-space:pre-wrap';
+    document.body.appendChild(box);
+  }
+  box.textContent += msg + '\n';
+}
+
+/* Temporary investigation only (?debug=1). Do not expose persistent device IDs. */
+function torchSnapshot(event, track = videoTrack(), details = {}) {
+  if (!DEBUG_TORCH) return;
+  const read = method => {
+    try { return typeof track?.[method] === 'function' ? track[method]() : 'unavailable'; }
+    catch (err) { return { error: err.name, message: err.message }; }
+  };
+  const record = {
+    event, time: new Date().toISOString(), browser: navigator.userAgent,
+    requestedFacing: state.facing, flashMode: state.flash,
+    track: track ? { label: track.label, readyState: track.readyState, enabled: track.enabled, muted: track.muted } : null,
+    capabilities: read('getCapabilities'), settings: read('getSettings'),
+    constraints: read('getConstraints'), ...details,
+  };
+  torchLog(JSON.stringify(record, (key, value) =>
+    key === 'deviceId' || key === 'groupId' ? '<REDACTED>' : value));
+}
+
+/* Constraint wajib mencegah kegagalan diam-diam; advanced untuk browser lama.
+   Periksa keadaan lampu karena resolve saja tidak membuktikan constraint diterapkan. */
+async function setTorch(on, track = videoTrack()) {
+  const label = 'torch ' + (on ? 'ON' : 'OFF');
+  torchSnapshot('torch.request', track, { on });
+  if (!track || track.readyState !== 'live' || typeof track.applyConstraints !== 'function') {
+    torchLog(label + ': track tidak aktif');
+    return false;
+  }
+  let timer = null;
+  let expired = false;
+  const apply = (async () => {
+    for (const constraints of [{ torch: { exact: !!on } }, { advanced: [{ torch: !!on }] }]) {
+      const started = Date.now();
+      try {
+        torchSnapshot('constraint.before', track, { requestedConstraint: constraints });
+        await track.applyConstraints(constraints);
+        torchSnapshot('constraint.resolved', track, { requestedConstraint: constraints, elapsedMs: Date.now() - started });
+        if (expired) {
+          // A late ON must not leave the lamp lit after capture has timed out.
+          if (on && track.readyState === 'live') {
+            const cleanup = { torch: { exact: false }, advanced: [{ torch: false }] };
+            try {
+              torchSnapshot('cleanup.before', track, { requestedConstraint: cleanup });
+              await track.applyConstraints(cleanup);
+              torchSnapshot('cleanup.resolved', track);
+            } catch (e) {
+              torchSnapshot('cleanup.rejected', track, { error: { name: e.name, message: e.message, constraint: e.constraint } });
+            }
+          }
+          return false;
+        }
+        const settings = typeof track.getSettings === 'function' ? track.getSettings() : {};
+        let capability;
+        try { capability = track.getCapabilities?.().torch; } catch (e) { /* optional API */ }
+        const supported = capability === true || (Array.isArray(capability) && capability.includes(true));
+        if (settings.torch === !!on || (settings.torch === undefined && supported)) {
+          torchSnapshot('torch.accepted', track, { confirmedBySettings: settings.torch === !!on });
+          torchLog(label + ': berhasil');
+          return true;
+        }
+      } catch (err) {
+        torchSnapshot('constraint.rejected', track, {
+          requestedConstraint: constraints, elapsedMs: Date.now() - started,
+          error: { name: err.name, message: err.message, constraint: err.constraint },
+        });
+        torchLog(label + ': gagal ' + (err && err.name) + ' ' + (err && err.message));
+      }
+      if (expired || track.readyState !== 'live') return false;
+    }
+    torchSnapshot('torch.unconfirmed', track, { on });
+    return false;
+  })();
+  const timeout = new Promise(resolve => {
+    timer = setTimeout(() => {
+      expired = true;
+      torchSnapshot('torch.timeout', track, { on, timeoutMs: 1000 });
+      torchLog(label + ': tidak merespons 1 detik'); resolve(false);
+    }, 1000);
+  });
+  return Promise.race([apply, timeout]).finally(() => clearTimeout(timer));
+}
+
+/* Pakai lampu hanya untuk kamera belakang + mode flash yang minta cahaya. */
 function shouldUseTorch() {
   if (state.facing !== 'environment') return false;
   if (state.flash === 'off') return false;
   if (state.flash === 'auto' && !ambientIsDark()) return false;
-  return true;
+  return true;   // kemampuan yang tidak dilaporkan bukan alasan melewati percobaan
 }
 
 async function startCamera() {
   stopStream();
+  const requestId = cameraRequestId;
   const camerr = $('camerr');
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: state.facing, width: { ideal: 1280 } }, audio: false,
+    const stream = await openCameraStream(navigator.mediaDevices, state.facing, {
+      isCurrent: () => requestId === cameraRequestId,
+      onInspect: track => torchSnapshot('camera.candidate', track),
     });
+    if (requestId !== cameraRequestId) {
+      stream.getTracks().forEach(track => track.stop());
+      return false;
+    }
     state.stream = stream;
     setCameraZoom(1);
     /* Kamera dicabut sistem (mis. perangkat dilepas): anggap stream sudah mati
@@ -620,9 +751,11 @@ async function startCamera() {
       if (state.stream === stream) stopStream();
     }));
     $('video').srcObject = stream;
+    torchSnapshot('camera.opened');
     camerr.style.display = 'none';
     return true;
   } catch (e) {
+    if (requestId !== cameraRequestId) return false;
     state.stream = null;   // jangan simpan stream yang sudah mati
     const name = e && e.name;
     if (name === 'NotAllowedError' || name === 'SecurityError') {
@@ -721,17 +854,43 @@ $('shutter').onclick = async () => {
   }
   /* Kamera hilang / pindah layar saat hitung mundur: batalkan jepretan. */
   if (cameraGone()) { state.busy = false; $('shutter').disabled = false; return; }
+  /* Lampu belakang diminta tapi browser tidak bisa menyalakannya: beri tahu dengan jujur, jangan pura-pura menyala. */
+  if (DEBUG_TORCH) torchLog('cek: facing=' + state.facing + ' flash=' + state.flash + ' torchCap=' + trackSupportsTorch() + ' readyState=' + (videoTrack() && videoTrack().readyState) + ' ImageCapture=' + ('ImageCapture' in window));
+  torchSnapshot('capture.flashDecision', videoTrack(), { shouldUseTorch: shouldUseTorch() });
+  const shotStream = state.stream;
+  const shotTrack = videoTrack();
   let torchOn = false;
   if (shouldUseTorch()) {
-    clearTimeout(torchOffTimer);   // jepretan sebelumnya jangan mematikan lampu di tengah pemanasan ini
-    torchOn = await setTorch(true);
-    if (torchOn) await sleep(700);   // beri waktu sensor menyesuaikan exposure agar hasil cerah
+    torchOn = await setTorch(true, shotTrack);
+    if (!torchOn && !cameraGone() && state.stream === shotStream) {
+      state.flash = 'off';
+      syncFlashBtn();
+      savePrefs();
+      showToast(tr('toast.noTorch'));
+    }
+    if (torchOn) {
+      const frameReady = await waitForFlashFrame($('video'), {
+        isCurrent: () => !cameraGone() && state.stream === shotStream && shotTrack.readyState === 'live',
+      });
+      torchSnapshot('capture.flashFrame', shotTrack, { frameReady });
+      if (!frameReady) {
+        await setTorch(false, shotTrack);
+        if (!cameraGone() && state.stream === shotStream) showToast(tr('toast.frameNotReady'));
+        state.busy = false; $('shutter').disabled = false;
+        return;
+      }
+    }
+  }
+  if (cameraGone() || state.stream !== shotStream) {
+    if (torchOn) await setTorch(false, shotTrack);
+    state.busy = false; $('shutter').disabled = false;
+    return;
   }
   const captured = capture();
-  if (torchOn) { torchOffTimer = setTimeout(() => setTorch(false), TORCH_HOLD_MS); }   // lampu tetap menyala sebentar setelah jepret
+  if (torchOn) await setTorch(false, shotTrack);   // foto sudah disalin: lampu tidak perlu ditahan lagi
   if (!captured) { state.busy = false; $('shutter').disabled = false; return; }
-  /* Lampu gagal dinyalakan (browser melapor punya torch tapi menolak): pakai flash layar sebagai cadangan. */
-  if (!torchOn && shouldScreenFlash()) doFlash();
+  /* Flash layar itu untuk kamera depan. Di kamera belakang tidak dipakai sebagai cadangan lampu. */
+  if (!torchOn && state.facing === 'user' && shouldScreenFlash()) doFlash();
   if (state.sound) beep();
   state.busy = false; $('shutter').disabled = false;
   if (replacing || state.photos.length >= state.layout) { await sleep(400); goPreview(); }
@@ -1478,7 +1637,6 @@ const FONT_LABELS = {
   'Stay With Me': 'Stay With Me',
   'Streat Coffee': 'Streat Coffee',
   'Super Waffles': 'Super Waffles',
-  'Anak Bijak': 'Anak Bijak',
 };
 const fontLabel = v => FONT_LABELS[v] || v;
 const fontCss = v => '"' + v + '", "Quicksand", sans-serif';
@@ -1704,6 +1862,7 @@ if (flashMenu) flashMenu.querySelectorAll('[data-flash]').forEach(b => {
     flashMenu.hidden = true;
     syncFlashBtn();
     savePrefs();
+    torchSnapshot('flash.selection');
   };
 });
 if (flashBtn) flashBtn.onclick = (e) => {
@@ -1774,9 +1933,11 @@ function renderUserStickers() {
       innerContent = '<div class="text-inner' + (st.outline === false ? '' : ' has-outline') +
         '" style="font-family:\'' + fam + '\', Quicksand, sans-serif;color:' + col +
         ';letter-spacing:' + fontTracking(fam) + 'em">' +
-        esc(st.value) + '</div>';
+        splitEmojiRuns(st.value).map(run => run.emoji
+          ? emojiArtMarkup(run.emoji, 'text-emoji') : esc(run.value)).join('') + '</div>';
     } else {
-      innerContent = `<div class="sticker-inner">${st.value}</div>`;
+      innerContent = '<div class="sticker-inner">' +
+        (emojiArtMarkup(st.value) || esc(st.value)) + '</div>';
     }
 
     el.innerHTML = innerContent;
@@ -1939,7 +2100,6 @@ function initStickerPicker() {
   const modal = $('sticker-modal');
   const btnOpen = $('btn-add-sticker');
   const btnClose = $('btn-close-sticker');
-  const charGrid = $('char-sticker-grid');
   const emojiGrid = $('emoji-sticker-grid');
 
   if (!modal) return;
@@ -1961,32 +2121,69 @@ function initStickerPicker() {
     if (e.target === modal) closeModal('sticker-modal');
   };
 
-  charGrid.innerHTML = '';
-  CHARS.forEach(c => {
-    const item = document.createElement('button');
-    item.type = 'button';
-    item.className = 'sticker-item';
-    item.title = CHAR_NAMES[c];
-    item.setAttribute('aria-label', CHAR_NAMES[c]);
-    item.innerHTML = `<svg><use href="#ch-${c}"/></svg>`;
-    item.onclick = () => {
-      addSticker('char', c);
-      modal.classList.remove('open');
+  const tabs = [...modal.querySelectorAll('[role="tab"]')];
+  function selectTab(tab) {
+    tabs.forEach(button => {
+      const selected = button === tab;
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+      $(button.getAttribute('aria-controls')).hidden = !selected;
+    });
+  }
+  tabs.forEach((tab, index) => {
+    tab.onclick = () => selectTab(tab);
+    tab.onkeydown = e => {
+      let next;
+      if (e.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
+      if (e.key === 'ArrowLeft') next = tabs[(index + tabs.length - 1) % tabs.length];
+      if (e.key === 'Home') next = tabs[0];
+      if (e.key === 'End') next = tabs[tabs.length - 1];
+      if (next) { e.preventDefault(); selectTab(next); next.focus(); }
     };
-    charGrid.appendChild(item);
   });
 
-  emojiGrid.innerHTML = '';
-  EMOJI_STICKERS.forEach(em => {
-    const item = document.createElement('div');
-    item.className = 'sticker-item';
-    item.textContent = em;
-    item.onclick = () => {
-      addSticker('emoji', em);
-      modal.classList.remove('open');
+  const search = $('emoji-search');
+  const categories = $('emoji-categories');
+  let category = 'all';
+  const allCategories = [{ id: 'all' }, ...EMOJI_CATEGORIES];
+  allCategories.forEach(group => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'emoji-category';
+    button.dataset.category = group.id;
+    button.dataset.i18n = 'st.cat.' + group.id;
+    button.textContent = tr(button.dataset.i18n);
+    button.setAttribute('aria-pressed', String(group.id === category));
+    button.onclick = () => {
+      category = group.id;
+      categories.querySelectorAll('button').forEach(item =>
+        item.setAttribute('aria-pressed', String(item === button)));
+      renderEmojiPicker();
     };
-    emojiGrid.appendChild(item);
+    categories.appendChild(button);
   });
+
+  function renderEmojiPicker() {
+    const entries = findEmojiStickers(search.value, category);
+    emojiGrid.innerHTML = '';
+    entries.forEach(entry => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'sticker-item';
+      item.title = entry.name;
+      item.setAttribute('aria-label', entry.name + ' ' + entry.value);
+      item.innerHTML = emojiArtMarkup(entry.value);
+      item.onclick = () => {
+        addSticker('emoji', entry.value);
+        closeModal('sticker-modal');
+      };
+      emojiGrid.appendChild(item);
+    });
+    $('emoji-count').textContent = String(entries.length);
+    $('emoji-empty').hidden = entries.length > 0;
+  }
+  search.oninput = renderEmojiPicker;
+  renderEmojiPicker();
 
   const textInput = $('sticker-text-input');
   const btnAddText = $('btn-add-text');

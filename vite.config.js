@@ -6,6 +6,9 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 // viteSingleFile() inlines JS+CSS into dist/index.html → one portable file.
 export default defineConfig({
   base: './',
+  server: {
+    proxy: { '/api': 'http://127.0.0.1:3001' },
+  },
   build: {
     // Inline semua aset (gambar/JS/CSS) KECUALI font dan foto, supaya
     // dist/index.html tetap ringan. Butuh useRecommendedBuildConfig:false

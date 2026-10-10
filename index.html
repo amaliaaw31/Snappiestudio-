@@ -95,6 +95,7 @@
   <h1>Snappie Studio</h1>
   <p class="tagline">"your little photo moment"</p>
   <p class="desc" data-i18n-html="start.desc">Jepret foto kece pakai filter,<br>hias dengan stiker lucu, lalu bagikan ke sosmed!</p>
+  <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
   <button class="btn" id="btn-start" data-i18n="start.open">Buka Kamera</button>
   <button class="btn ghost" id="btn-gallery-start" style="margin-top:12px;"><span class="ms">image</span><span data-i18n="start.gallery">Pilih dari Galeri</span></button>
   <p class="desc start-foot" data-i18n-html="start.footer">Butuh izin kamera &amp; koneksi HTTPS.<br>Foto cuma diproses di perangkatmu.</p>
@@ -135,6 +136,7 @@
     </div>
   </div>
   <div id="camerr" data-i18n="err.generic">Kamera nggak bisa dibuka. Cek izin kamera / pakai HTTPS ya.</div>
+  <p class="visitor-count cam-visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
   <div class="label" data-i18n="cam.filter">FILTER</div>
   <div class="filter-strip-wrap" id="filter-strip-wrap">
     <div class="filter-strip" id="filter-strip"></div>
@@ -206,7 +208,6 @@
         <option value="Stay With Me">Stay With Me</option>
         <option value="Streat Coffee">Streat Coffee</option>
         <option value="Super Waffles">Super Waffles</option>
-        <option value="Anak Bijak">Anak Bijak</option>
         <option value="Scripty">Scripty</option>
         <option value="Carefour">Carefour</option>
         <option value="JW Script">JW Script</option>
@@ -244,7 +245,6 @@
       <option value="Stay With Me">Stay With Me</option>
       <option value="Streat Coffee">Streat Coffee</option>
       <option value="Super Waffles">Super Waffles</option>
-      <option value="Anak Bijak">Anak Bijak</option>
       <option value="Scripty">Scripty</option>
       <option value="Carefour">Carefour</option>
       <option value="JW Script">JW Script</option>
@@ -275,13 +275,25 @@
 </div>
 
 <!-- STICKER MODAL -->
-<div id="sticker-modal" class="modal-overlay" role="dialog" aria-modal="true">
+<div id="sticker-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sticker-title">
   <div class="modal-card">
     <div class="modal-header">
-      <h2><span class="ms">auto_awesome</span><span data-i18n="md.stickerTitle">Pilih Stiker / Add Sticker</span></h2>
+      <h2 id="sticker-title"><span class="ms">auto_awesome</span><span data-i18n="md.stickerTitle">Pilih Stiker / Add Sticker</span></h2>
       <button id="btn-close-sticker" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
+      <div class="sticker-tabs" role="tablist" data-i18n-aria="st.tabs" aria-label="Jenis stiker">
+        <button type="button" class="sticker-tab" id="sticker-emoji-tab" role="tab" aria-selected="true" aria-controls="sticker-emoji-panel" data-i18n="st.emojis">Emoji</button>
+        <button type="button" class="sticker-tab" id="sticker-text-tab" role="tab" aria-selected="false" aria-controls="sticker-text-panel" tabindex="-1" data-i18n="md.text">Teks</button>
+      </div>
+      <section class="sticker-panel" id="sticker-emoji-panel" role="tabpanel" aria-labelledby="sticker-emoji-tab">
+        <input type="search" id="emoji-search" class="custom-text-input emoji-search" data-i18n-ph="st.search" data-i18n-aria="st.search" placeholder="Cari emoji…" aria-label="Cari emoji" autocomplete="off">
+        <div class="emoji-categories" id="emoji-categories" data-i18n-aria="st.categories" aria-label="Kategori emoji" role="group"></div>
+        <p class="emoji-results" aria-live="polite" aria-atomic="true"><span id="emoji-count">120</span> <span data-i18n="st.results">emoji</span></p>
+        <div class="sticker-grid" id="emoji-sticker-grid"></div>
+        <p class="emoji-empty" id="emoji-empty" data-i18n="st.noEmoji" hidden>Emoji tidak ditemukan. Coba kata lain.</p>
+      </section>
+      <section class="sticker-panel" id="sticker-text-panel" role="tabpanel" aria-labelledby="sticker-text-tab" hidden>
       <div class="sticker-section-title" data-i18n="md.text">Teks</div>
       <div class="sticker-text-row">
         <input type="text" id="sticker-text-input" class="custom-text-input" maxlength="40"
@@ -301,7 +313,6 @@
           <option value="Stay With Me">Stay With Me</option>
           <option value="Streat Coffee">Streat Coffee</option>
           <option value="Super Waffles">Super Waffles</option>
-          <option value="Anak Bijak">Anak Bijak</option>
           <option value="Scripty">Scripty</option>
           <option value="Carefour">Carefour</option>
           <option value="JW Script">JW Script</option>
@@ -320,10 +331,7 @@
         <button type="button" id="sticker-color" class="sticker-color" data-color="#23233a" style="background:#23233a" aria-label="Warna" title="Warna"></button>
         <label class="sticker-outline"><input type="checkbox" id="sticker-outline" checked> <span data-i18n="st.outline">Outline</span></label>
       </div>
-      <div class="sticker-section-title" data-i18n="md.chars">Karakter Lucu</div>
-      <div class="sticker-grid" id="char-sticker-grid"></div>
-      <div class="sticker-section-title" data-i18n="md.emoji">Emoji &amp; Simbol</div>
-      <div class="sticker-grid" id="emoji-sticker-grid"></div>
+      </section>
     </div>
   </div>
 </div>
@@ -430,7 +438,6 @@
           <option value="Stay With Me">Stay With Me</option>
           <option value="Streat Coffee">Streat Coffee</option>
           <option value="Super Waffles">Super Waffles</option>
-          <option value="Anak Bijak">Anak Bijak</option>
           <option value="Scripty">Scripty</option>
           <option value="Carefour">Carefour</option>
           <option value="JW Script">JW Script</option>

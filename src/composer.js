@@ -4,6 +4,7 @@
 
 import { CHARS, CHAR_SVG, filterCss, dateLine, fontTracking, DATE_COLORS } from './data.js';
 import { getLang } from './i18n.js';
+import { loadEmojiImgs, splitEmojiRuns, drawEmojiArt, drawStickerText } from './emoji.js';
 
 /* Dicache sebagai Promise: pemanggil paralel ikut menunggu decode yang sama
    (bukan dapat objek kosong). Kalau gagal, cache dibuang agar bisa dicoba lagi. */
@@ -47,12 +48,17 @@ function coverDraw(x, img, X, Y, W, H, zoom = 1, ox = 0, oy = 0) {
 
 /** Compose the final framed strip. Returns a <canvas>. */
 export async function compose(photos, layout, theme, stickers = [], showDate = false, customText = '', showFrame = true, captionFont = 'Matcha Iced', customFrame = null, captionFit = null, dateFont = 'Matcha Iced', captionColor = '', dateColor = '', frameOutline = true, customDate = '') {
-  const charImgs = await loadCharImgs();
+  const charImgs = stickers.some(st => st.type === 'char') ? await loadCharImgs() : {};
+  const emojiImgs = await loadEmojiImgs(stickers.flatMap(st => {
+    if (st.type === 'emoji') return [st.value];
+    if (st.type === 'text') return splitEmojiRuns(st.value).filter(run => run.emoji).map(run => run.emoji);
+    return [];
+  }));
   if (document.fonts && document.fonts.load) {
     const families = [
       'Matcha Iced', 'The Magic Cookie', 'Orange Lovely', 'Quicksand', 'Fredoka',
       'Always Classy', 'Melon Tea', 'Smart Water', 'Stay With Me', 'Streat Coffee',
-      'Super Waffles', 'Anak Bijak', 'Scripty', 'Carefour', 'JW Script',
+      'Super Waffles', 'Scripty', 'Carefour', 'JW Script',
       'MiloScript', 'Love Script', 'Script Soft', 'Happiness Machine',
       'Happiness Machine Script', 'Monobit', 'Nuka Mono', 'Solid Mono',
       'Always Monoline', 'Always Smiling', 'Smiling',
@@ -453,7 +459,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
           x.drawImage(img, -r * 0.82, -r * 0.82, r * 1.64, r * 1.64);
         }
       } else if (st.type === 'text') {
-        const fontSize = Math.round(W * 0.045 * sc);
+        const fontSize = 28 * scale * sc;  // .text-inner in preview pixels
         const stickerFont = st.font || 'Matcha Iced';
         x.font = '700 ' + fontSize + 'px "' + stickerFont + '", "Trebuchet MS", sans-serif';
         x.letterSpacing = (fontTracking(stickerFont) * fontSize) + 'px';
@@ -463,19 +469,23 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
         if (st.outline !== false) {
           x.lineWidth = Math.max(3, fontSize * 0.14);
           x.strokeStyle = 'rgba(255,255,255,.9)';
-          x.strokeText(st.value, 0, 0);
         }
         x.fillStyle = st.color || '#23233a';
-        x.fillText(st.value, 0, 0);
+        drawStickerText(x, st.value, emojiImgs, fontSize, st.outline !== false);
       } else if (st.type === 'emoji') {
-        const fontSize = Math.round(W * 0.08 * sc);
-        x.font = fontSize + 'px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-        x.textAlign = 'center';
-        x.textBaseline = 'middle';
+        const size = 44 * scale * sc;   // .sticker-inner .emoji-art, in preview pixels
         x.shadowColor = 'rgba(0,0,0,0.2)';
-        x.shadowBlur = 8;
-        x.shadowOffsetY = 2;
-        x.fillText(st.value, 0, 0);
+        x.shadowBlur = 4 * scale;
+        x.shadowOffsetY = 2 * scale;
+        const image = emojiImgs[st.value];
+        if (image) {
+          drawEmojiArt(x, image, -size / 2, -size / 2, size);
+        } else {
+          x.font = size + 'px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+          x.textAlign = 'center';
+          x.textBaseline = 'middle';
+          x.fillText(st.value, 0, 0);
+        }
       }
       x.restore();
     });
