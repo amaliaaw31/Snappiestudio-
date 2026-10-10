@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Dashboard CMS — Snappie Studio</title>
+  <link rel="stylesheet" href="/cms.css">
+</head>
+<body>
+  <main>
+    <div class="topbar">
+      <div class="brand">Snappie Studio</div>
+      <button id="logout" type="button">Keluar</button>
+    </div>
+    <h1>Jumlah Pengunjung</h1>
+    <p class="sub">Browser unik yang pernah membuka situs, beserta lokasinya.</p>
+    <section class="metric" aria-live="polite">
+      <span class="metric-label">Total browser unik</span>
+      <strong id="total">—</strong>
+      <span id="since">Memuat data…</span>
+    </section>
+    <section class="summary" aria-label="Ringkasan lokasi">
+      <div><strong id="countries">—</strong><span>Negara</span></div>
+      <div><strong id="cities">—</strong><span>Kota</span></div>
+      <div><strong id="unknown">—</strong><span>Lokasi tidak diketahui</span></div>
+    </section>
+    <h2>Lokasi pengunjung</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Negara</th><th>Kota</th><th class="num">Pengunjung</th><th>Porsi</th></tr>
+        </thead>
+        <tbody id="locations"></tbody>
+      </table>
+      <p id="empty" class="empty" hidden>Belum ada pengunjung tercatat.</p>
+    </div>
+    <div class="actions">
+      <button id="refresh" type="button">Muat ulang</button>
+      <button id="reset" type="button">Reset hitungan</button>
+    </div>
+    <p id="status" role="status"></p>
+    <p class="note">Lokasi (negara dan kota) ditentukan dari IP saat kunjungan pertama, lalu hanya negara dan kota yang disimpan; alamat IP tidak disimpan. Satu browser dihitung sekali; pengguna dapat dihitung ulang jika data browser dihapus atau memakai perangkat lain. Lokasi berdasarkan <a href="https://db-ip.com" rel="noopener">IP Geolocation by DB-IP</a> dan bersifat perkiraan.</p>
+  </main>
+  <script>
+    const AUTH_KEY = 'snappieCmsAuth';
+    const $ = (id) => document.getElementById(id);
+    const number = new Intl.NumberFormat('id-ID');
+    const percent = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 });
+    const authorization = (() => {
+      try { return sessionStorage.getItem(AUTH_KEY) || ''; } catch { return ''; }
+    })();
+    if (!authorization) location.replace('/cms');
+
+    function leave() {
+      try { sessionStorage.removeItem(AUTH_KEY); } catch {}
+      location.replace('/cms');
+    }
+
+    function cell(text, className) {
+      const td = document.createElement('td');
+      if (className) td.className = className;
+      td.textContent = text;
+      return td;
+    }
+
+    function renderLocations(data) {
+      const body = $('locations');
+      body.replaceChildren();
+      const total = data.total || 0;
+      const known = data.locations.filter((row) => row.country_code);
+      $('countries').textContent = number.format(new Set(known.map((row) => row.country_code)).size);
+      $('cities').textContent = number.format(new Set(known.filter((row) => row.city).map((row) => `${row.country_code}|${row.city}`)).size);
+      const unknown = data.locations.filter((row) => !row.country_code).reduce((sum, row) => sum + row.count, 0);
+      $('unknown').textContent = number.format(unknown);
+      $('empty').hidden = data.locations.length > 0;
+      for (const row of data.locations) {
+        const share = total ? (row.count / total) * 100 : 0;
+        const tr = document.createElement('tr');
+        tr.append(
+          cell(row.country || 'Tidak diketahui'),
+          cell(row.city || '—'),
+          cell(number.format(row.count), 'num'),
+        );
+        const barCell = document.createElement('td');
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        bar.setAttribute('role', 'img');
+        bar.setAttribute('aria-label', `${percent.format(share)}%`);
+        const fill = document.createElement('i');
+        fill.style.width = `${share}%`;
+        bar.append(fill);
+        barCell.append(bar);
+        tr.append(barCell);
+        body.append(tr);
+      }
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, { cache: 'no-store', ...options, headers: { Authorization: authorization } });
+      if (response.status === 401 || response.status === 403) {
+        leave();
+        throw new Error('Sesi berakhir');
+      }
+      if (!response.ok) throw new Error('Permintaan gagal');
+      return response.json();
+    }
+
+    async function loadData() {
+      $('status').textContent = 'Memuat…';
+      try {
+        const [stats, locations] = await Promise.all([api('/api/admin/stats'), api('/api/admin/locations')]);
+        $('total').textContent = number.format(stats.total);
+        $('since').textContent = stats.since ? `Mulai dihitung ${new Date(`${stats.since.replace(' ', 'T')}Z`).toLocaleString('id-ID')}` : 'Belum ada pengunjung tercatat';
+        renderLocations(locations);
+        $('status').textContent = 'Data terbaru.';
+      } catch {
+        $('status').textContent = 'Tidak dapat memuat data. Pastikan layanan penghitung aktif.';
+      }
+    }
+
+    $('refresh').addEventListener('click', loadData);
+    $('logout').addEventListener('click', leave);
+    $('reset').addEventListener('click', async () => {
+      if (!window.confirm('Reset total pengunjung menjadi 0? Data lokasi juga ikut terhapus. Tindakan ini tidak dapat dibatalkan.')) return;
+      $('status').textContent = 'Mereset…';
+      try {
+        await api('/api/admin/reset', { method: 'POST' });
+        await loadData();
+      } catch {
+        $('status').textContent = 'Reset gagal. Coba lagi.';
+      }
+    });
+    if (authorization) loadData();
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+[Unit]
+Description=Snappie Studio anonymous visitor counter
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/Snappiestudio-
+Environment=PORT=3001
+Environment=VISITOR_DB_PATH=/var/lib/snappiestudio-counter/visitors.sqlite
+Environment=GEOIP_DB_PATH=/var/lib/snappiestudio-counter/geo/dbip-city-lite.mmdb
+ExecStart=/home/ubuntu/.nvm/versions/node/v24.21.0/bin/node /home/ubuntu/Snappiestudio-/server/visitor-counter.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+StateDirectory=snappiestudio-counter
+StateDirectoryMode=0750
+
+[Install]
+WantedBy=multi-user.target

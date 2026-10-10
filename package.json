@@ -6,6 +6,7 @@
   "description": "Snappie Studio — Web Photo Booth (camera + gallery, filters, themes, stickers) built with Vite",
   "scripts": {
     "dev": "vite",
+    "start:counter": "node server/visitor-counter.js",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src test",
@@ -17,6 +18,7 @@
     "vite-plugin-singlefile": "^2.3.3"
   },
   "dependencies": {
-    "heic2any": "^0.0.4"
+    "heic2any": "^0.0.4",
+    "maxmind": "5.0.7"
   }
 }

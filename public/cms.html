@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Login CMS — Snappie Studio</title>
+  <link rel="stylesheet" href="/cms.css">
+</head>
+<body>
+  <main>
+    <div class="brand">Snappie Studio</div>
+    <h1>Login CMS</h1>
+    <p class="sub">Masuk untuk melihat jumlah dan lokasi pengunjung.</p>
+    <form id="login" class="login">
+      <label for="username">Username admin</label>
+      <input id="username" name="username" value="admin" autocomplete="username" required>
+      <label for="password">Password admin</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button id="login-submit" type="submit">Masuk</button>
+    </form>
+    <p id="status" role="status"></p>
+    <p class="note">Kredensial hanya tersimpan selama tab CMS terbuka dan dihapus saat keluar.</p>
+  </main>
+  <script>
+    const AUTH_KEY = 'snappieCmsAuth';
+    const status = document.getElementById('status');
+    document.getElementById('login').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submit = document.getElementById('login-submit');
+      const password = document.getElementById('password');
+      const authorization = `Basic ${btoa(`${document.getElementById('username').value}:${password.value}`)}`;
+      submit.disabled = true;
+      status.textContent = 'Memeriksa…';
+      try {
+        const response = await fetch('/api/admin/stats', { cache: 'no-store', headers: { Authorization: authorization } });
+        if (!response.ok) throw new Error('Login ditolak');
+        sessionStorage.setItem(AUTH_KEY, authorization);
+        location.replace('/cms/dashboard');
+      } catch {
+        status.textContent = 'Login gagal. Periksa username, password, atau layanan counter.';
+        password.value = '';
+      } finally {
+        submit.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
