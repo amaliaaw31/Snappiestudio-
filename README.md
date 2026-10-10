@@ -27,7 +27,7 @@ vite-app/
 ├── vite.config.js        # base './' + vite-plugin-singlefile (output 1 file)
 ├── eslint.config.js      # flat config ESLint
 ├── package.json
-├── public/               # aset statis: logo.png, icon.svg, og.png,
+├── public/               # aset statis: logo.png, icon.svg, og-share.png,
 │                         #   manifest.webmanifest, robots.txt, sitemap.xml
 ├── src/
 │   ├── main.js           # logika aplikasi (kamera, galeri, filter, frame, stiker, share)
