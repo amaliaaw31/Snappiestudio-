@@ -2572,6 +2572,23 @@ function initShareButtons() {
   if ($('tt-video')) $('tt-video').onclick = shareTiktok;
   if ($('tt-photo')) $('tt-photo').onclick = shareTiktok;
   if ($('tt-story')) $('tt-story').onclick = shareTiktok;
+
+  // Threads — foto lewat share sheet; kalau tidak didukung, buka composer Threads berisi caption & link
+  const th = $('share-th');
+  if (th) {
+    th.addEventListener('pointerdown', primeShareFile, { passive: true });
+    th.onclick = async () => {
+      copyShareText();
+      try {
+        const r = await sharePhoto(await currentShareFile());
+        if (r === 'shared') { offerAnotherSession(); }
+        else if (r === 'unsupported') {
+          const threadsText = encodeURIComponent(shareCaption() + '\n' + shareUrl());
+          window.open('https://www.threads.net/intent/post?text=' + threadsText, '_blank', 'noopener');
+        }
+      } catch (e) { /* batal — abaikan */ }
+    };
+  }
 }
 
 initShareButtons();
