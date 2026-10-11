@@ -1002,6 +1002,14 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .dark-mode .ig-option { background: #2a2740; border-color: #4a4568; color: #e8e5f2; }
 .dark-mode .ig-option:hover { background: #332f4d; border-color: #ff8fc0; }
 .dark-mode .ig-option-sub { color: #b7a9d6; }
+.ig-option:disabled { opacity: .55; cursor: wait; }
+.share-caption-panel { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.share-caption-panel label { font-weight: 800; }
+.share-caption-text { box-sizing: border-box; width: 100%; resize: vertical; min-height: 88px; padding: 10px 12px;
+  border: 2px solid #d9b8d0; border-radius: 12px; background: #fff; color: #23233a; font-family: inherit; font-size: 16px; line-height: 1.4; }
+.share-caption-panel .btn { align-self: flex-start; padding: 9px 16px; font-size: 14px; }
+.share-caption-status { margin: 0; line-height: 1.5; }
+.dark-mode .share-caption-text { background: #2a2740; border-color: #4a4568; color: #e8e5f2; }
 
 /* ---------- mobile responsive (otomatis di layar < 720px) ---------- */
 @media (max-width: 719px) {

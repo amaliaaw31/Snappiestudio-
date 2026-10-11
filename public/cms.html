@@ -20,30 +20,8 @@
       <button id="login-submit" type="submit">Masuk</button>
     </form>
     <p id="status" role="status"></p>
-    <p class="note">Kredensial hanya tersimpan selama tab CMS terbuka dan dihapus saat keluar.</p>
+    <p class="note">Password tidak disimpan di browser. Sesi berakhir setelah 30 menit tidak aktif atau saat keluar.</p>
   </main>
-  <script>
-    const AUTH_KEY = 'snappieCmsAuth';
-    const status = document.getElementById('status');
-    document.getElementById('login').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const submit = document.getElementById('login-submit');
-      const password = document.getElementById('password');
-      const authorization = `Basic ${btoa(`${document.getElementById('username').value}:${password.value}`)}`;
-      submit.disabled = true;
-      status.textContent = 'Memeriksa…';
-      try {
-        const response = await fetch('/api/admin/stats', { cache: 'no-store', headers: { Authorization: authorization } });
-        if (!response.ok) throw new Error('Login ditolak');
-        sessionStorage.setItem(AUTH_KEY, authorization);
-        location.replace('/cms/dashboard');
-      } catch {
-        status.textContent = 'Login gagal. Periksa username, password, atau layanan counter.';
-        password.value = '';
-      } finally {
-        submit.disabled = false;
-      }
-    });
-  </script>
+  <script type="module" src="/cms-login.js"></script>
 </body>
 </html>

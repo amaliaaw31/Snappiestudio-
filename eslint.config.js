@@ -1,5 +1,18 @@
 export default [
   {
+    files: ['server/**/*.js', 'vite.config.js'],
+    languageOptions: { ecmaVersion: 'latest', sourceType: 'module',
+      globals: { process: 'readonly', Buffer: 'readonly', URL: 'readonly', console: 'readonly' } },
+    rules: { 'no-undef': 'error', 'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }], 'no-unreachable': 'error' },
+  },
+  {
+    files: ['public/cms-*.js'],
+    languageOptions: { ecmaVersion: 'latest', sourceType: 'module', globals: {
+      window: 'readonly', document: 'readonly', sessionStorage: 'readonly', localStorage: 'readonly', location: 'readonly', fetch: 'readonly',
+    } },
+    rules: { 'no-undef': 'error', 'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }], 'no-unreachable': 'error' },
+  },
+  {
     files: ['src/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',

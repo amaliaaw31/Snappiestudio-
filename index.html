@@ -555,6 +555,12 @@
       <button id="btn-close-fb" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
+      <div class="share-caption-panel">
+        <label for="fb-caption" data-i18n="sh.captionLabel">Caption & link situs</label>
+        <textarea id="fb-caption" class="share-caption-text" rows="3" readonly aria-describedby="fb-caption-status"></textarea>
+        <button type="button" class="btn ghost" id="fb-copy-caption" data-i18n="sh.copy">Salin Caption & Link</button>
+        <p id="fb-caption-status" class="share-caption-status" role="status"></p>
+      </div>
       <div class="ig-grid">
         <button type="button" class="ig-option" id="fb-feed">
           <span class="ms">feed</span>
@@ -570,6 +576,36 @@
           <span class="ms">movie</span>
           <span class="ig-option-title" data-i18n="sh.fbReels">Reels</span>
           <span class="ig-option-sub" data-i18n="sh.fbReelsSub">Posting sebagai Reels</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THREADS SHARE MODAL -->
+<div id="th-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="th-title">
+  <div class="modal-card ig-card">
+    <div class="modal-header">
+      <h2 id="th-title"><span class="ms">alternate_email</span><span data-i18n="sh.thTitle">Bagikan ke Threads</span></h2>
+      <button id="btn-close-th" class="modal-close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="share-caption-panel">
+        <label for="th-caption" data-i18n="sh.captionLabel">Caption & link situs</label>
+        <textarea id="th-caption" class="share-caption-text" rows="3" readonly aria-describedby="th-caption-status"></textarea>
+        <button type="button" class="btn ghost" id="th-copy-caption" data-i18n="sh.copy">Salin Caption & Link</button>
+        <p id="th-caption-status" class="share-caption-status" role="status"></p>
+      </div>
+      <div class="ig-grid">
+        <button type="button" class="ig-option" id="th-photo">
+          <span class="ms">image</span>
+          <span class="ig-option-title" data-i18n="sh.thPhoto">Foto</span>
+          <span class="ig-option-sub" data-i18n="sh.thPhotoSub">Bagikan foto, lalu tempel caption & link</span>
+        </button>
+        <button type="button" class="ig-option" id="th-text">
+          <span class="ms">link</span>
+          <span class="ig-option-title" data-i18n="sh.thText">Caption & link</span>
+          <span class="ig-option-sub" data-i18n="sh.thTextSub">Tanpa foto, dengan preview link</span>
         </button>
       </div>
     </div>

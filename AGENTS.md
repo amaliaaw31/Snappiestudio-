@@ -21,9 +21,11 @@ Selalu jalankan `npm run lint`, `npm test`, dan `npm run build` setelah mengubah
 
 ## Penghitung pengunjung
 - `server/visitor-counter.js` — API jumlah browser unik tersimpan di SQLite.
-- `public/cms.html` — dashboard admin; Caddy melindungi `/cms` dan `/api/admin/*` dengan HTTP Basic Auth.
+- `public/cms.html` — login admin; backend memproteksi seluruh alias dashboard dan `/api/admin/*` dengan cookie sesi HttpOnly dan CSRF.
+- Login CMS mengaktifkan pengecualian visitor untuk browser admin, termasuk menghapus kunjungan sebelumnya dari total. Pengecualian berupa hash UUID dan tetap berlaku setelah reset counter.
 - Produksi menjalankan `snappiestudio-counter.service`; database tinggal di `/var/lib/snappiestudio-counter`.
 - Setiap browser mengirim UUID acak sekali-sekali; server hanya menyimpan SHA-256-nya. Foto tidak ikut dikirim.
+- Saat mengubah autentikasi, routing server, atau CSP, baca `SECURITY.md` dan jalankan tes keamanan. Pertahankan jalur CMS melalui backend; CSP produksi dibuat otomatis saat build.
 
 ## Arsitektur
 - **Tanpa framework**: HTML + ES module + Canvas. Tidak ada TypeScript.

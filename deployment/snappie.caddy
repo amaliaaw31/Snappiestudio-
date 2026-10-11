@@ -1,0 +1,45 @@
+# Included from the existing snappiestudio.com / www.snappiestudio.com site block.
+header {
+    -Server
+    Strict-Transport-Security "max-age=31536000"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), clipboard-write=(self), web-share=(self)"
+    Cross-Origin-Opener-Policy "same-origin"
+    Cross-Origin-Resource-Policy "same-origin"
+    ?Content-Security-Policy "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+}
+
+@sensitive path_regexp sensitive (?i)(^|/)\.[^/]+|\.(sqlite3?|db|bak|old|log|sql|map)$
+handle @sensitive {
+    respond "Not found" 404
+}
+
+@api path /api /api/*
+handle @api {
+    request_body {
+        max_size 2KB
+    }
+    reverse_proxy 127.0.0.1:3001
+}
+
+@cms path /cms /cms/* /cms.html /cms-dashboard.html
+handle @cms {
+    header Cache-Control "no-store"
+    header X-Robots-Tag "noindex, nofollow, noarchive"
+    reverse_proxy 127.0.0.1:3001
+}
+
+@staticWrite {
+    not method GET HEAD
+}
+handle @staticWrite {
+    respond "Method not allowed" 405
+}
+
+handle {
+    root * /var/www/snappie
+    try_files {path} /index.html
+    file_server
+}

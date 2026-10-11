@@ -54,6 +54,15 @@ async function updateVisitorCount() {
   if (!displays.length) return;
   let visitorId = '';
   try {
+    if (localStorage.getItem('snappie-maintenance') === '1') {
+      const response = await window.fetch('/api/visitors', { cache: 'no-store' });
+      if (response.ok) {
+        const { total } = await response.json();
+        const formatted = new Intl.NumberFormat(getLang()).format(total);
+        displays.forEach(el => { el.textContent = formatted; });
+      }
+      return;
+    }
     visitorId = localStorage.getItem('snappie-visitor-id') || '';
     if (!visitorId) {
       visitorId = window.crypto.randomUUID();
@@ -2635,6 +2644,31 @@ async function copyShareText(prefix) {
   }
 }
 
+/* Siapkan clipboard pada klik pembuka modal, sebelum klik yang membuka aplikasi.
+   Klik share berikutnya tetap punya user activation, termasuk pada iOS. */
+function initCaptionShare(platform, photoIds) {
+  const field = $(platform + '-caption');
+  const copyButton = $(platform + '-copy-caption');
+  const status = $(platform + '-caption-status');
+  const photoButtons = photoIds.map(id => $(id)).filter(Boolean);
+  const copy = async () => {
+    copyButton.disabled = true;
+    photoButtons.forEach(button => { button.disabled = true; });
+    status.textContent = tr('sh.captionCopying');
+    const copied = await copyShareText();
+    status.textContent = tr(copied ? 'sh.captionReady' : 'sh.captionManual');
+    copyButton.disabled = false;
+    photoButtons.forEach(button => { button.disabled = false; });
+  };
+  copyButton.onclick = copy;
+  field.onclick = () => field.select();
+  return () => {
+    field.value = shareCaption() + '\n' + shareUrl();
+    openModal(platform + '-modal');
+    if (!copyButton.disabled) copy();
+  };
+}
+
 /* Buka aplikasi sosmed yang terpasang di perangkat lewat skema URL.
    Kalau ada 2 varian (mis. WhatsApp & WhatsApp Business), sistem Android yang menanya. */
 function launchApp(scheme) {
@@ -2683,7 +2717,7 @@ function initShareButtons() {
     if (!navigator.share) return 'unsupported';
     if (navigator.canShare && !navigator.canShare({ files: [file] })) return 'unsupported';
     try {
-      await navigator.share({ title: 'Snappie Studio', text: shareCaption() + '\n' + shareUrl(), files: [file] });
+      await navigator.share({ title: 'Snappie Studio', text: shareCaption(), url: shareUrl(), files: [file] });
       return 'shared';
     } catch (e) {
       if (e && e.name === 'AbortError') return 'cancelled';
@@ -2735,13 +2769,13 @@ function initShareButtons() {
   };
 
   // Facebook — pilih Feed / Story / Reels
-  fb.onclick = () => { primeShareFile(); openModal('fb-modal'); };
+  const openFacebookShare = initCaptionShare('fb', ['fb-feed', 'fb-story', 'fb-reels']);
+  fb.onclick = () => { primeShareFile(); openFacebookShare(); };
   const fbModal = $('fb-modal');
   if ($('btn-close-fb')) $('btn-close-fb').onclick = () => closeModal('fb-modal');
   if (fbModal) fbModal.onclick = (e) => { if (e.target === fbModal) closeModal('fb-modal'); };
   const shareFacebook = async (fallbackScheme) => {
     closeModal('fb-modal');
-    copyShareText();
     try {
       const r = await sharePhoto(await currentShareFile());
       if (r === 'shared') { offerAnotherSession(); }
@@ -2770,20 +2804,31 @@ function initShareButtons() {
   if ($('tt-photo')) $('tt-photo').onclick = shareTiktok;
   if ($('tt-story')) $('tt-story').onclick = shareTiktok;
 
-  // Threads — foto lewat share sheet; kalau tidak didukung, buka composer Threads berisi caption & link
+  // Threads — sediakan caption untuk ditempel jika aplikasi hanya menerima foto.
   const th = $('share-th');
   if (th) {
     th.addEventListener('pointerdown', primeShareFile, { passive: true });
-    th.onclick = async () => {
-      copyShareText();
+    const openThreadsShare = initCaptionShare('th', ['th-photo']);
+    th.onclick = () => { primeShareFile(); openThreadsShare(); };
+    const thModal = $('th-modal');
+    if ($('btn-close-th')) $('btn-close-th').onclick = () => closeModal('th-modal');
+    if (thModal) thModal.onclick = (e) => { if (e.target === thModal) closeModal('th-modal'); };
+    const openThreadsComposer = () => {
+      const threadsText = encodeURIComponent(shareCaption() + '\n' + shareUrl());
+      window.open('https://www.threads.net/intent/post?text=' + threadsText, '_blank', 'noopener');
+    };
+    if ($('th-photo')) $('th-photo').onclick = async () => {
+      closeModal('th-modal');
       try {
         const r = await sharePhoto(await currentShareFile());
         if (r === 'shared') { offerAnotherSession(); }
-        else if (r === 'unsupported') {
-          const threadsText = encodeURIComponent(shareCaption() + '\n' + shareUrl());
-          window.open('https://www.threads.net/intent/post?text=' + threadsText, '_blank', 'noopener');
-        }
+        else if (r === 'unsupported') openThreadsComposer();
       } catch (e) { /* batal — abaikan */ }
+    };
+    if ($('th-text')) $('th-text').onclick = () => {
+      closeModal('th-modal');
+      openThreadsComposer();
+      offerAnotherSession();
     };
   }
 }

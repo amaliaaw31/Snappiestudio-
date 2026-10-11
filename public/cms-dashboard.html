@@ -8,23 +8,76 @@
   <link rel="stylesheet" href="/cms.css">
 </head>
 <body>
-  <main>
+  <main class="dashboard">
     <div class="topbar">
       <div class="brand">Snappie Studio</div>
       <button id="logout" type="button">Keluar</button>
     </div>
-    <h1>Jumlah Pengunjung</h1>
-    <p class="sub">Browser unik yang pernah membuka situs, beserta lokasinya.</p>
+    <h1>Statistik Pengunjung</h1>
+    <p class="sub">Pantau pengunjung, waktu kunjungan, dan perkembangan Snappie Studio.</p>
     <section class="metric" aria-live="polite">
       <span class="metric-label">Total browser unik</span>
       <strong id="total">—</strong>
       <span id="since">Memuat data…</span>
+    </section>
+    <section class="summary daily-summary" aria-label="Browser unik per periode, seluruh lokasi">
+      <div><strong id="today">—</strong><span>Hari ini</span></div>
+      <div><strong id="yesterday">—</strong><span>Kemarin</span></div>
+      <div><strong id="week">—</strong><span>Minggu ini (Senin–Minggu)</span></div>
+      <div><strong id="month">—</strong><span>Bulan ini</span></div>
+    </section>
+    <p id="tracking-note" class="note"></p>
+    <form id="filters" class="filters">
+      <div><label for="from">Dari tanggal (WIB)</label><input id="from" name="from" type="date" min="2000-01-01" max="2099-12-31"></div>
+      <div><label for="to">Sampai tanggal (WIB)</label><input id="to" name="to" type="date" min="2000-01-01" max="2099-12-31"></div>
+      <div class="search-field"><label for="search">Cari negara atau kota</label><input id="search" name="q" type="search" maxlength="100" placeholder="Contoh: Indonesia atau Jakarta"></div>
+      <div class="filter-buttons"><button type="submit">Terapkan</button><button id="clear-filters" type="button">Semua data</button></div>
+      <div class="presets" aria-label="Pilihan periode">
+        <button type="button" data-period="today">Hari ini</button>
+        <button type="button" data-period="7">7 hari</button>
+        <button type="button" data-period="30">30 hari</button>
+        <button type="button" data-period="month">Bulan ini</button>
+      </div>
+    </form>
+    <p id="status" role="status"></p>
+    <p id="filter-summary" class="note"></p>
+    <section class="charts" aria-label="Grafik pengunjung">
+      <div class="chart-card">
+        <h2>Perkembangan pengunjung</h2>
+        <p id="trend-summary" class="chart-description"></p>
+        <canvas id="trend-chart" role="img" aria-label="Grafik browser unik per periode"></canvas>
+        <details><summary>Lihat angka grafik</summary><div class="table-wrap"><table><thead><tr><th>Periode (WIB)</th><th class="num">Browser unik</th></tr></thead><tbody id="trend-data"></tbody></table></div></details>
+      </div>
+      <div class="chart-card">
+        <h2>Jam paling ramai</h2>
+        <p id="hour-summary" class="chart-description"></p>
+        <canvas id="hour-chart" role="img" aria-label="Grafik browser aktif per jam WIB"></canvas>
+        <details><summary>Lihat angka grafik</summary><div class="table-wrap"><table><thead><tr><th>Jam (WIB)</th><th class="num">Browser aktif*</th></tr></thead><tbody id="hour-data"></tbody></table></div></details>
+        <p class="chart-description">*Satu browser dihitung sekali per jam, dijumlahkan sepanjang periode grafik.</p>
+      </div>
     </section>
     <section class="summary" aria-label="Ringkasan lokasi">
       <div><strong id="countries">—</strong><span>Negara</span></div>
       <div><strong id="cities">—</strong><span>Kota</span></div>
       <div><strong id="unknown">—</strong><span>Lokasi tidak diketahui</span></div>
     </section>
+    <div class="section-heading"><h2>Daftar pengunjung</h2><button id="export" type="button" title="Unduh semua halaman sesuai filter">Unduh CSV</button></div>
+    <p id="visits-summary" class="visits-summary">Waktu kunjungan pertama dan terakhir dalam WIB (UTC+7).</p>
+    <div class="table-wrap visits-table">
+      <table aria-label="Waktu kunjungan pertama dan terakhir pengunjung">
+        <thead>
+          <tr><th scope="col">Kunjungan pertama (WIB)</th><th scope="col">Kunjungan terakhir (WIB)</th><th scope="col">Negara</th><th scope="col">Kota</th></tr>
+        </thead>
+        <tbody id="visits"></tbody>
+      </table>
+      <p id="visits-empty" class="empty" hidden>Tidak ada pengunjung yang sesuai filter.</p>
+    </div>
+    <nav class="pagination" aria-label="Halaman daftar pengunjung">
+      <label for="page-size">Per halaman <select id="page-size"><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>
+      <button id="previous" type="button" disabled>Sebelumnya</button>
+      <span id="page-info" aria-live="polite">Halaman 1</span>
+      <button id="next" type="button" disabled>Berikutnya</button>
+    </nav>
     <h2>Lokasi pengunjung</h2>
     <div class="table-wrap">
       <table>
@@ -33,105 +86,17 @@
         </thead>
         <tbody id="locations"></tbody>
       </table>
-      <p id="empty" class="empty" hidden>Belum ada pengunjung tercatat.</p>
+      <p id="empty" class="empty" hidden>Tidak ada lokasi pengunjung yang sesuai filter.</p>
     </div>
     <div class="actions">
       <button id="refresh" type="button">Muat ulang</button>
+      <label class="auto-refresh"><input id="auto-refresh" type="checkbox" checked> Otomatis setiap 30 detik</label>
       <button id="reset" type="button">Reset hitungan</button>
     </div>
-    <p id="status" role="status"></p>
-    <p class="note">Lokasi (negara dan kota) ditentukan dari IP saat kunjungan pertama, lalu hanya negara dan kota yang disimpan; alamat IP tidak disimpan. Satu browser dihitung sekali; pengguna dapat dihitung ulang jika data browser dihapus atau memakai perangkat lain. Lokasi berdasarkan <a href="https://db-ip.com" rel="noopener">IP Geolocation by DB-IP</a> dan bersifat perkiraan.</p>
+    <p class="note">Pembaruan otomatis dijeda ketika tab disembunyikan atau setelah 5 menit tanpa interaksi. Gunakan “Muat ulang” untuk mengambil data kapan saja.</p>
+    <p id="maintenance-status" class="note" role="status"></p>
+    <p class="note">Total menghitung satu browser sekali. Statistik periode menghitung browser yang berkunjung dalam periode tersebut, termasuk yang kembali. Waktu terakhir diperbarui saat situs dibuka kembali. Lokasi ditentukan saat kunjungan pertama; alamat IP dan foto tidak disimpan. Browser dapat dihitung ulang jika data browser dihapus atau memakai perangkat lain. Lokasi berdasarkan <a href="https://db-ip.com" rel="noopener">IP Geolocation by DB-IP</a> dan bersifat perkiraan.</p>
   </main>
-  <script>
-    const AUTH_KEY = 'snappieCmsAuth';
-    const $ = (id) => document.getElementById(id);
-    const number = new Intl.NumberFormat('id-ID');
-    const percent = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 });
-    const authorization = (() => {
-      try { return sessionStorage.getItem(AUTH_KEY) || ''; } catch { return ''; }
-    })();
-    if (!authorization) location.replace('/cms');
-
-    function leave() {
-      try { sessionStorage.removeItem(AUTH_KEY); } catch {}
-      location.replace('/cms');
-    }
-
-    function cell(text, className) {
-      const td = document.createElement('td');
-      if (className) td.className = className;
-      td.textContent = text;
-      return td;
-    }
-
-    function renderLocations(data) {
-      const body = $('locations');
-      body.replaceChildren();
-      const total = data.total || 0;
-      const known = data.locations.filter((row) => row.country_code);
-      $('countries').textContent = number.format(new Set(known.map((row) => row.country_code)).size);
-      $('cities').textContent = number.format(new Set(known.filter((row) => row.city).map((row) => `${row.country_code}|${row.city}`)).size);
-      const unknown = data.locations.filter((row) => !row.country_code).reduce((sum, row) => sum + row.count, 0);
-      $('unknown').textContent = number.format(unknown);
-      $('empty').hidden = data.locations.length > 0;
-      for (const row of data.locations) {
-        const share = total ? (row.count / total) * 100 : 0;
-        const tr = document.createElement('tr');
-        tr.append(
-          cell(row.country || 'Tidak diketahui'),
-          cell(row.city || '—'),
-          cell(number.format(row.count), 'num'),
-        );
-        const barCell = document.createElement('td');
-        const bar = document.createElement('div');
-        bar.className = 'bar';
-        bar.setAttribute('role', 'img');
-        bar.setAttribute('aria-label', `${percent.format(share)}%`);
-        const fill = document.createElement('i');
-        fill.style.width = `${share}%`;
-        bar.append(fill);
-        barCell.append(bar);
-        tr.append(barCell);
-        body.append(tr);
-      }
-    }
-
-    async function api(path, options = {}) {
-      const response = await fetch(path, { cache: 'no-store', ...options, headers: { Authorization: authorization } });
-      if (response.status === 401 || response.status === 403) {
-        leave();
-        throw new Error('Sesi berakhir');
-      }
-      if (!response.ok) throw new Error('Permintaan gagal');
-      return response.json();
-    }
-
-    async function loadData() {
-      $('status').textContent = 'Memuat…';
-      try {
-        const [stats, locations] = await Promise.all([api('/api/admin/stats'), api('/api/admin/locations')]);
-        $('total').textContent = number.format(stats.total);
-        $('since').textContent = stats.since ? `Mulai dihitung ${new Date(`${stats.since.replace(' ', 'T')}Z`).toLocaleString('id-ID')}` : 'Belum ada pengunjung tercatat';
-        renderLocations(locations);
-        $('status').textContent = 'Data terbaru.';
-      } catch {
-        $('status').textContent = 'Tidak dapat memuat data. Pastikan layanan penghitung aktif.';
-      }
-    }
-
-    $('refresh').addEventListener('click', loadData);
-    $('logout').addEventListener('click', leave);
-    $('reset').addEventListener('click', async () => {
-      if (!window.confirm('Reset total pengunjung menjadi 0? Data lokasi juga ikut terhapus. Tindakan ini tidak dapat dibatalkan.')) return;
-      $('status').textContent = 'Mereset…';
-      try {
-        await api('/api/admin/reset', { method: 'POST' });
-        await loadData();
-      } catch {
-        $('status').textContent = 'Reset gagal. Coba lagi.';
-      }
-    });
-    if (authorization) loadData();
-  </script>
+  <script type="module" src="/cms-dashboard.js"></script>
 </body>
 </html>

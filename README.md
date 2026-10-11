@@ -3,7 +3,7 @@
 Aplikasi web photo booth: ambil foto dari **kamera** atau **galeri**, pilih
 **filter** (18) & **bingkai** (22 tema), atur **frame & warna custom**, tambah
 **stiker/emoji/teks**, lalu **unduh PNG** atau **bagikan ke sosmed**.
-Tanpa backend — semua diproses di browser. Mendukung **16 bahasa**.
+Foto diproses di browser. Backend terpisah menangani counter anonim dan CMS admin. Mendukung **16 bahasa**.
 
 ## Fitur
 - Kamera: ganti depan/belakang, toggle mirror, hitung mundur (0/3/5/10 dtk), flash & suara on/off
@@ -24,7 +24,7 @@ Tanpa backend — semua diproses di browser. Mendukung **16 bahasa**.
 ```
 vite-app/
 ├── index.html            # entry HTML (meta/OG + favicon logo)
-├── vite.config.js        # base './' + vite-plugin-singlefile (output 1 file)
+├── vite.config.js        # entry JS inline + CSP dengan hash otomatis
 ├── eslint.config.js      # flat config ESLint
 ├── package.json
 ├── public/               # aset statis: logo.png, og-icon.png,
@@ -53,6 +53,7 @@ npm test           # unit test (node --test)
 
 ## Catatan
 - Kamera butuh secure context: HTTPS, `localhost`, atau `file://` di Chrome.
-- `dist/` **di-`.gitignore`** — dihasilkan lewat `npm run build`. JS/CSS/gambar di-inline ke `index.html`, sedangkan **font dibuat file terpisah** (`dist/*.ttf|otf`) agar `index.html` tetap ringan. Aset `public/` disalin ke `dist/`.
+- `dist/` **di-`.gitignore`** — dihasilkan lewat `npm run build`. Entry JS di-inline ke `index.html`; CSS, foto, font, dan chunk HEIC tetap berupa file terpisah. Aset `public/` disalin ke `dist/`.
+- Login CMS otomatis mengaktifkan mode maintenance agar browser admin tidak dihitung sebagai visitor. Lihat `SECURITY.md` untuk autentikasi dan deploy backend.
 - Logo/favicon: `public/logo.png`.
 - Karakter stiker adalah gambar orisinal (SVG), bukan karakter berhak cipta.
