@@ -7,7 +7,7 @@ import { websiteStatus } from './discord-status.js';
 
 const snowflake = value => typeof value === 'string' && /^\d{15,22}$/.test(value);
 const DAY = 86400000;
-const reply = content => ({ type: 4, data: { content, flags: 64, allowed_mentions: { parse: [] } } });
+const reply = content => ({ type: 4, data: { content, flags: 0, allowed_mentions: { parse: [] } } });
 const bad = message => Object.assign(new Error(message), { status: 400 });
 
 export function validateBotConfig(value) {

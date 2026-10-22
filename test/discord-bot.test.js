@@ -29,10 +29,18 @@ async function app(t, discordStatusFetch) {
   const request = (path, options) => fetch(base + path, options);
   const payload = (name, sub, options = {}, extra = {}) => ({ type: 2, id: String(++nonce), application_id: config.applicationId, guild_id: config.guildId,
     channel_id: config.channelId, member: { user: { id: config.allowedUserIds[0] } }, data: { name, options: [{ type: 1, name: sub, options: Object.entries(options).map(([name, value]) => ({ type: typeof value === 'boolean' ? 5 : typeof value === 'number' ? 4 : 3, name, value })) }] }, ...extra });
-  const send = (value, options = {}) => {
+  const send = async (value, options = {}) => {
     const body = JSON.stringify(value); const timestamp = String(Math.floor((time + (options.offset || 0)) / 1000));
     const signature = sign(null, Buffer.from(timestamp + body), privateKey).toString('hex');
-    return request('/api/discord/interactions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature-Ed25519': options.signature || signature, 'X-Signature-Timestamp': timestamp }, body: options.tamper ? body + ' ' : body });
+    const response = await request('/api/discord/interactions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Signature-Ed25519': options.signature || signature, 'X-Signature-Timestamp': timestamp }, body: options.tamper ? body + ' ' : body });
+    if (response.ok) {
+      const result = await response.clone().json();
+      if (result.type === 4) {
+        assert.equal(result.data.flags, 0, 'command replies remain visible in the channel');
+        assert.deepEqual(result.data.allowed_mentions, { parse: [] });
+      }
+    }
+    return response;
   };
   const run = (fetchImpl = async () => Response.json({ id: '100000000000000010' })) => runMigrationSchedule({ dbPath, env: { CMS_DISCORD_WEBHOOK: webhook }, now: () => time, fetchImpl });
   const rows = () => { const db = new DatabaseSync(dbPath); try { return db.prepare('SELECT * FROM discord_migrations ORDER BY created_at').all(); } finally { db.close(); } };
@@ -56,14 +64,14 @@ test('Discord PING verifies Ed25519 signatures, supports payloads over 2KB, and 
   assert.equal((await api.request('/api/admin/discord')).status, 401);
 });
 
-test('only the configured application, guild, channel and user can publish; replies are private and replay is idempotent', async t => {
+test('only the configured application, guild, channel and user can publish; replies are public and replay is idempotent', async t => {
   const api = await app(t);
   for (const override of [{ application_id: '100000000000000099' }, { guild_id: '100000000000000099' }, { channel_id: '100000000000000099' }, { member: { user: { id: '100000000000000099' }, permissions: '8' } }, { member: { user: { id: api.config.allowedUserIds[0], bot: true } } }]) {
     const result = await (await api.send(api.payload('pengumuman', 'pasang', { pesan: 'unauthorized' }, override))).json(); assert.match(result.data.content, /tidak diizinkan/);
   }
   assert.equal((await (await api.request('/api/site-content')).json()).enabled, false);
   const command = api.payload('pengumuman', 'pasang', { pesan: '<script>plain text only</script>', judul: 'Migrasi' });
-  const result = await (await api.send(command)).json(); assert.equal(result.data.flags, 64); assert.deepEqual(result.data.allowed_mentions, { parse: [] });
+  const result = await (await api.send(command)).json(); assert.equal(result.data.flags, 0); assert.deepEqual(result.data.allowed_mentions, { parse: [] });
   assert.equal((await (await api.request('/api/site-content')).json()).message, '<script>plain text only</script>');
   const first = await readFile(join(api.directory, 'site-content.json'), 'utf8'); api.advance(1000);
   await api.send({ ...command, data: api.payload('pengumuman', 'hapus').data });
@@ -129,7 +137,24 @@ test('command registration upserts named commands without deleting existing comm
 });
 
 
-test('/status authenticates before probing, replies privately, and reuses cached interactions', async t => {
+test('status subcommands, validation errors and unknown commands also return channel messages', async t => {
+  const api = await app(t);
+  for (const command of [
+    api.payload('pengumuman', 'status'),
+    api.payload('migrasi', 'status'),
+    api.payload('pengumuman', 'pasang'),
+    api.payload('migrasi', 'selesai', { id: 'invalid' }),
+    api.payload('unknown'),
+  ]) {
+    const response = await api.send(command);
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.equal(result.type, 4);
+    assert.equal(typeof result.data.content, 'string');
+  }
+});
+
+test('/status authenticates before probing, replies publicly, and reuses cached interactions', async t => {
   const calls = [];
   const api = await app(t, async (url, options) => {
     calls.push({ url, method: options.method });
@@ -146,7 +171,7 @@ test('/status authenticates before probing, replies privately, and reuses cached
   assert.equal(calls.length, 0);
   const interaction = status();
   const result = await (await api.send(interaction)).json();
-  assert.equal(result.type, 4); assert.equal(result.data.flags, 64);
+  assert.equal(result.type, 4); assert.equal(result.data.flags, 0);
   assert.deepEqual(result.data.allowed_mentions, { parse: [] });
   for (const name of ['Website', 'API pengunjung', 'API pengumuman']) assert.ok(result.data.content.includes(name + ': OK'));
   assert.deepEqual(calls, [

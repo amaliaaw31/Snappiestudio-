@@ -16,7 +16,7 @@ sudo bash deploy/configure-discord-bot.sh
 ```
 
 6. Isi Application ID, Public Key, server ID, channel ID, dan user ID yang diizinkan. Untuk beberapa akun, pisahkan user ID dengan koma. Script menampilkan tautan untuk memasang aplikasi pada server Discord; buka tautan itu sebelum melanjutkan. Scope aplikasi hanya `applications.commands`, tanpa izin administrator bot dan tanpa koneksi Gateway.
-7. Tempel token pada prompt tersembunyi. Script mendaftarkan `/pengumuman` dan `/migrasi`, lalu menyimpan konfigurasi ID/public key dengan izin privat. Token tidak menjadi argumen proses, tidak dicetak, dan tidak disimpan. Jika pendaftaran gagal, konfigurasi sebelumnya tetap dipertahankan; jalankan ulang setelah izin dan pemasangan aplikasi benar.
+7. Tempel token pada prompt tersembunyi. Script mendaftarkan `/status`, `/pengumuman`, dan `/migrasi`, lalu menyimpan konfigurasi ID/public key dengan izin privat. Token tidak menjadi argumen proses, tidak dicetak, dan tidak disimpan. Jika pendaftaran gagal, konfigurasi sebelumnya tetap dipertahankan; jalankan ulang setelah izin dan pemasangan aplikasi benar.
 8. Pada General Information di Developer Portal, isi Interactions Endpoint URL:
 
 ```text
@@ -35,7 +35,7 @@ Perintah secara default hanya terlihat bagi administrator server Discord. Untuk 
 /pengumuman hapus
 ```
 
-Pesan maksimal 500 karakter, judul maksimal 80. Teks diperlakukan sebagai teks biasa. Balasan perintah hanya terlihat oleh pemohon. Pengumuman publik tampil pada pembukaan website dan diperbarui setiap satu menit ketika tab aktif. Menutup pengumuman tidak membuat pesan yang sama muncul berulang pada tab tersebut; pesan baru tetap muncul.
+Pesan maksimal 500 karakter, judul maksimal 80. Teks diperlakukan sebagai teks biasa. Semua balasan perintah tampil sebagai pesan biasa pada kanal yang dikonfigurasi, terlihat bagi anggota yang memiliki akses kanal, dan tersimpan sampai dihapus. Balasan sementara yang sudah dikirim sebelumnya tidak berubah. Pengumuman publik tampil pada pembukaan website dan diperbarui setiap satu menit ketika tab aktif. Menutup pengumuman tidak membuat pesan yang sama muncul berulang pada tab tersebut; pesan baru tetap muncul.
 
 ## Pengingat dan pengumuman otomatis
 
@@ -78,7 +78,7 @@ CMS → Pengaturan → Bot Discord dan jadwal migrasi menampilkan konfigurasi, w
 
 ## Memeriksa website dengan /status
 
-Jalankan `/status` pada kanal dan akun yang sudah diizinkan. Bot menjawab secara privat dengan hasil website, `/api/visitors`, dan `/api/site-content`: OK beserta waktu respons, gangguan HTTP, atau tidak dapat diverifikasi. Pemeriksaan berlangsung dari server saat perintah dijalankan; hasil ini bukan riwayat uptime dan tidak menjamin koneksi dari semua lokasi.
+Jalankan `/status` pada kanal dan akun yang sudah diizinkan. Bot menjawab di kanal dengan hasil website, `/api/visitors`, dan `/api/site-content`: OK beserta waktu respons, gangguan HTTP, atau tidak dapat diverifikasi. Pemeriksaan berlangsung dari server saat perintah dijalankan; hasil ini bukan riwayat uptime dan tidak menjamin koneksi dari semua lokasi.
 
 Pemeriksaan memakai HEAD untuk halaman utama dan GET untuk dua API publik. Alamat tujuan tetap, redirect ditolak, dan tiap pemeriksaan dibatasi 1,5 detik secara paralel. Tidak ada login CMS, penambahan pengunjung, perubahan pengumuman, pemeriksaan kredensial, atau pembacaan informasi privat server. Jika backend bot sendiri mati, bot tidak dapat menjawab `/status`; gunakan pemantau terpisah untuk kondisi tersebut.
 
@@ -102,3 +102,5 @@ Konfigurasi bot berada di `/etc/snappiestudio/discord-bot.json`, root:ubuntu 064
 Backup mencakup jadwal, cache interaction, audit, serta konfigurasi bot bila tersedia. Saat memulihkan backup, periksa jadwal aktif sebelum menyalakan timer; tutup jadwal lama yang tidak lagi relevan. Tinjau kembali allowlist setelah pemulihan. Menghentikan timer tidak menghapus pengumuman yang sudah aktif; selesaikan/batalkan jadwal atau ubah pengumuman manual di CMS untuk menghentikannya.
 
 Referensi: [HTTP interactions dan tanda tangan Discord](https://docs.discord.com/developers/interactions/overview), [application commands](https://docs.discord.com/developers/interactions/application-commands).
+
+Perubahan visibilitas balasan berlaku pada command baru setelah backend memuat kode terbaru. Tidak perlu mendaftarkan ulang command untuk perubahan ini karena nama dan opsi command tetap sama. Mention tetap dinonaktifkan pada balasan.
