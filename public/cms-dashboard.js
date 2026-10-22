@@ -322,7 +322,7 @@ function autoRefresh() {
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) autoRefresh(); });
 new window.ResizeObserver(drawCharts).observe($('trend-chart').parentElement);
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawCharts);
+window.addEventListener('cms-theme-change', drawCharts);
 $('logout').addEventListener('click', async () => {
   $('logout').disabled = true;
   requestController?.abort();
