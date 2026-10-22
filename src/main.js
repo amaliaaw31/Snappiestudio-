@@ -3159,7 +3159,7 @@ function addHeaders() {
     h.className = 'mini-header';
     h.setAttribute('aria-label', tr('hdr.home'));
     h.innerHTML = '<span class="mh-title">Snappie Studio</span>' +
-      '<span class="mh-tag">your little photo moment</span>';
+      '<span class="mh-tag" lang="en">your little photo moment</span>';
     h.onclick = goHome;
     scr.insertBefore(h, scr.firstChild);
     const nav = document.createElement('nav');

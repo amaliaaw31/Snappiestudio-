@@ -68,6 +68,16 @@ async function screenshot(name) {
   const { data } = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   writeFileSync(`/tmp/snappie-${name}.png`, Buffer.from(data, 'base64'));
 }
+async function checkHeader() {
+  await check(`(() => {
+    const screen = document.querySelector('.screen.active');
+    const header = screen.querySelector('.mini-header'), slogan = header.querySelector('.mh-tag');
+    const box = slogan.getBoundingClientRect(), bounds = header.getBoundingClientRect();
+    return slogan.textContent === 'your little photo moment' && slogan.lang === 'en'
+      && box.width > 0 && box.height > 0 && box.left >= bounds.left && box.right <= bounds.right
+      && box.bottom <= bounds.bottom && bounds.bottom <= screen.querySelector('.workflow').getBoundingClientRect().top;
+  })()`, 'active header displays exact slogan without overlapping navigation');
+}
 async function importPhotos(count) {
   await evaluate(`(async () => {
     const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480;
@@ -99,6 +109,7 @@ try {
   await waitFor("document.querySelector('#btn-start')?.onclick != null");
   await check("[...document.querySelectorAll('[role=dialog]')].every(m => m.getAttribute('aria-label') || document.getElementById(m.getAttribute('aria-labelledby'))?.textContent.trim())", 'all dialogs have accessible names');
   await check("[...document.querySelectorAll('.modal-overlay')].every(m => m.inert)", 'closed dialogs cannot receive focus');
+  await check("[...document.querySelectorAll('.tagline, .mh-tag')].length === 4 && [...document.querySelectorAll('.tagline, .mh-tag')].every(el => el.textContent === 'your little photo moment' && el.lang === 'en')", 'all four main screens use the exact English brand slogan');
   await click('[data-demo-theme=film]');
   await check("document.querySelector('#demo-frame .frame-outer').classList.contains('th-film') && document.querySelector('[data-demo-theme=film]').getAttribute('aria-pressed') === 'true'", 'demo switches real frame styles and selected state');
   await check("document.querySelector('.start-demo figcaption').textContent.includes('foto')", 'example is labelled as photo example');
@@ -185,6 +196,11 @@ try {
   await waitFor("document.querySelector('#scr-cam').classList.contains('active')");
   await check("getComputedStyle(document.body, '::before').content === 'none' && getComputedStyle(document.body, '::before').maskImage === 'none'", 'restored background appears only on homepage');
   await check("document.querySelector('#video').srcObject.active && [...document.querySelectorAll('[data-camera-status]')].every(el => el.style.display === 'none') && !document.querySelector('#btn-start').disabled", 'retry succeeds and clears camera status');
+  for (const width of [320, 390, 600, 719, 720, 1000, 1440]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
+    await checkHeader();
+    if (width === 390) await screenshot('camera-header-390');
+  }
   await click('#filter-strip [data-id=bw]');
   await check("document.querySelector('#video').style.filter === 'grayscale(1)' && document.querySelector('#filter-strip [data-id=bw]').getAttribute('aria-pressed') === 'true' && document.querySelector('#filter-strip [data-id=normal]').getAttribute('aria-pressed') === 'false'", 'camera strip applies effects immediately and exposes selected filter');
   await click('#filter-strip [data-id=normal]');
@@ -227,6 +243,10 @@ try {
   }
 
   await importPhotos(1);
+  for (const width of [320, 390, 600, 719, 720, 1000, 1440]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
+    await checkHeader();
+  }
   await check("document.querySelector('#preview-holder .frame-outer').classList.contains('th-film')", 'chosen demo theme carries into a new session');
   await evaluate("document.querySelector('#preview-holder .slot-img').focus()");
   await key('+');
@@ -298,6 +318,7 @@ try {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
     await new Promise(resolve => setTimeout(resolve, 50));
     await check('document.documentElement.scrollWidth <= innerWidth', `result editor fits ${width}px`);
+    await checkHeader();
     await check("[...document.querySelectorAll('.result-actions button')].filter(el => el.getClientRects().length).every(el => el.getBoundingClientRect().width >= 40)", 'save and share controls retain usable touch width');
     await check("(() => { const download = document.querySelector('#btn-download').getBoundingClientRect(), share = document.querySelector('#btn-share').getBoundingClientRect(); return Math.abs(download.top - share.top) < 2 && document.querySelector('.result-actions').getBoundingClientRect().height <= 76; })()", 'download footer is compact and inline');
     await click('#btn-share');

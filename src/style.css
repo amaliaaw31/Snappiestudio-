@@ -1311,8 +1311,13 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
   opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+@media (max-width: 719px) {
+  .mini-header { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .mini-header .mh-title { font-size: clamp(28px, 6vw, 36px); }
+  .mini-header .mh-tag { font-size: 16px; line-height: 1.25; }
+  .screen:not(#scr-start) { padding-top: 112px; }
+}
 @media (max-width: 599px) {
-  .mini-header .mh-tag { display: none; }
   .theme-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .history-controls .btn { padding-inline: 14px; font-size: 14px; }
 }
