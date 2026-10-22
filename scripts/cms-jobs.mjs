@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { pipeline } from 'node:stream/promises';
 import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
+import { sendNotification } from '../server/notifications.js';
 import { createAnalytics, reportFilters } from '../server/analytics.js';
 import { createAudit, readState } from '../server/cms-operations.js';
 import { writePrivateJson } from '../server/admin-account.js';
@@ -105,15 +106,11 @@ export async function checkMonitor(stateDirectory, env = process.env, fetchImpl 
   const offsite = await readState(stateDirectory, 'offsite-status.json');
   if (offsite?.configured && offsite.ok === false) issues.push('offsite');
   const previous = await readState(stateDirectory, 'monitor-status.json', {});
-  const state = { checkedAt: new Date(now()).toISOString(), ok: !issues.length, issues, notificationsConfigured: !!env.CMS_ALERT_WEBHOOK, notifiedState: previous.notifiedState ?? null, notificationOk: previous.notificationOk ?? null };
+  const state = { checkedAt: new Date(now()).toISOString(), ok: !issues.length, issues, notificationsConfigured: !!(env.CMS_DISCORD_WEBHOOK || env.CMS_ALERT_WEBHOOK), notificationChannel: env.CMS_DISCORD_WEBHOOK || /^https:\/\/discord\.com\//.test(env.CMS_ALERT_WEBHOOK || '') ? 'discord' : env.CMS_ALERT_WEBHOOK ? 'webhook' : null, notifiedState: previous.notifiedState ?? null, notificationOk: previous.notificationOk ?? null };
   const signature = issues.join(',') || 'recovered';
-  if (env.CMS_ALERT_WEBHOOK && signature !== state.notifiedState && (issues.length || previous.notifiedState)) {
+  if (state.notificationsConfigured && signature !== state.notifiedState && (issues.length || previous.notifiedState)) {
     try {
-      const url = new URL(env.CMS_ALERT_WEBHOOK);
-      if (url.protocol !== 'https:' || url.username || url.password) throw new Error('HTTPS webhook required');
-      const response = await fetchImpl(url, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(10000), headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: issues.length ? 'Snappie Studio: gangguan ' + issues.join(', ') : 'Snappie Studio: layanan pulih.', issues, at: state.checkedAt }) });
-      if (!response.ok) throw new Error('Notification rejected'); await response.body?.cancel();
+      await sendNotification(env, issues, state.checkedAt, fetchImpl);
       state.notifiedState = signature; state.notificationOk = true;
     } catch { state.notificationOk = false; }
   }

@@ -97,3 +97,18 @@ CMS_BACKUP_KEY_FILE=/path/backup-encryption.key node scripts/cms-jobs.mjs decryp
 ```
 
 Perintah menolak output yang sudah ada dan hanya menerbitkan plaintext setelah tag autentikasi benar. Ekstrak tar ke direktori kosong privat, jalankan `verify-backup` pada hasil ekstraksi, lalu ikuti prosedur pemulihan produksi di atas. Pemulihan penuh juga mencakup pengumuman bila tersedia. Arsip baru tetap kompatibel dengan verifier yang sudah menyertakan `site-content.json`; jangan gunakan verifier lama setelah file tersebut masuk snapshot. Migrasi tabel audit/laporan bersifat tambahan dan mempertahankan tabel visitor serta akun.
+
+
+### Notifikasi Discord
+
+Discord memakai `CMS_DISCORD_WEBHOOK`, dengan prioritas di atas webhook umum. URL harus HTTPS pada `discord.com`, mengikuti endpoint incoming webhook; query `thread_id` didukung untuk kanal forum. Pesan memakai `content` dan `allowed_mentions.parse=[]`. Pengirim memaksa `wait=true` dan hanya mencatat berhasil jika Discord mengembalikan ID pesan. Respons gagal, termasuk 429 atau balasan tanpa konfirmasi, tetap dicoba ulang pada pemeriksaan berikutnya. URL tidak masuk status CMS maupun pesan notifikasi. URL Discord yang sudah dipasang pada `CMS_ALERT_WEBHOOK` juga otomatis memakai format Discord.
+
+Buat incoming webhook pada kanal Discord milik Anda, lalu jalankan di server:
+
+```sh
+sudo bash deploy/configure-discord.sh
+```
+
+Tempel URL pada prompt tersembunyi. Installer memvalidasi bentuk URL tanpa mengirim pesan, mempertahankan konfigurasi lain, dan memasang `maintenance.env` secara atomik dengan pemilik root:ubuntu serta izin 0640. URL tidak menjadi argumen command line, tidak tampil pada terminal, dan tidak ditulis dalam repo. Jangan kirim URL webhook melalui chat karena URL tersebut berisi token. Timer monitor memakai konfigurasi baru pada eksekusi berikutnya; restart backend tidak diperlukan. Jika belum ada gangguan, monitor tidak mengirim pesan pembuka atau mengklaim pengiriman sudah berhasil.
+
+Referensi implementasi: [Discord Execute Webhook](https://docs.discord.com/developers/resources/webhook#execute-webhook).
