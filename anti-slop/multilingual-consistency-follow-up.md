@@ -35,3 +35,11 @@ Rilis gabungan dideploy melalui helper dengan backup `/var/backups/snappiestudio
 Arahan terbaru pengguna mengganti enam foto menjadi dua kolom dengan tiga baris. Preview/hasil dan PNG memakai dua kolom, lebar dasar 440px, serta area perhitungan caption yang sesuai. Empat foto tetap satu kolom vertikal. Regresi posisi slot dan pembacaan piksel PNG mengikuti susunan terbaru.
 
 Koreksi lulus lint, 92 unit test, build, regresi browser rilis dan produksi, serta pemeriksaan screenshot 390px. Deploy selesai dengan backup `/var/backups/snappiestudio/deploy-bhUXxgZk`; HTML dan CSP produksi cocok dengan build koreksi.
+
+## Tambahan 8 foto
+
+Permintaan berikutnya menambahkan delapan foto dalam dua kolom dan empat baris. Pilihan jumlah foto menjadi 1/3/4/6/8, dengan label delapan foto di seluruh 16 bahasa sehingga masing-masing kamus mempunyai 260 kunci. Pilihan kamera tersimpan dalam preferensi; impor dari halaman awal memilih layout delapan foto untuk jumlah berkas di atas enam.
+
+Preview, hasil dan PNG memakai geometri dua kolom yang sama dengan enam foto, dengan empat baris untuk delapan foto. Tombol jumlah foto memakai lima kolom agar semua pilihan tetap terlihat dan terjangkau di ponsel. Regresi mencakup pilihan kamera, preferensi, delapan foto dari galeri, posisi slot, serta urutan delapan warna pada PNG.
+
+Rilis final diselaraskan dengan commit CMS terbaru dan lulus lint, 100 unit test, build, serta regresi browser rilis/produksi. Semua lima tombol jumlah foto diperiksa pada lebar 320px untuk 16 bahasa; layout delapan foto diperiksa pada lima lebar layar dan screenshot 390px. Ekspor dengan/tanpa bingkai lulus, termasuk pemeriksaan urutan delapan foto melalui piksel PNG. Deploy memakai backup `/var/backups/snappiestudio/deploy-h8fnrYPD`; HTML dan CSP publik cocok dengan build rilis.

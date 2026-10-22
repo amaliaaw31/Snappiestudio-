@@ -9,8 +9,8 @@ import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
 import filterSampleUrl from './assets/sample-group.jpeg';
 
 /* ============ state ============ */
-const LAYOUT_AR = { 1: '4 / 3', 3: '4 / 3', 4: '4 / 3', 6: '4 / 3' };
-const LAYOUT_ARN = { 1: 4 / 3, 3: 4 / 3, 4: 4 / 3, 6: 4 / 3 };
+const LAYOUT_AR = { 1: '4 / 3', 3: '4 / 3', 4: '4 / 3', 6: '4 / 3', 8: '4 / 3' };
+const LAYOUT_ARN = { 1: 4 / 3, 3: 4 / 3, 4: 4 / 3, 6: 4 / 3, 8: 4 / 3 };
 
 const state = {
   stream: null,
@@ -1174,7 +1174,8 @@ function layoutForCount(n) {
   if (n <= 1) return 1;
   if (n <= 3) return 3;
   if (n <= 4) return 4;
-  return 6;
+  if (n <= 6) return 6;
+  return 8;
 }
 function setLayout(n) {
   state.layout = n;
@@ -1296,7 +1297,7 @@ function currentDateText() { return state.customDate ? formatDate(state.customDa
 
 /* Layout caption dan tanggal terpisah (font bisa berbeda). */
 function captionLayout() {
-  const innerW = state.layout === 6 ? 380 : 240;   // lebar dalam bingkai (px CSS)
+  const innerW = state.layout >= 6 ? 380 : 240;   // lebar dalam bingkai (px CSS)
   const cap = lineLayout(state.customText || '', state.captionFont || 'Matcha Iced', innerW);
   const date = lineLayout(state.showDate ? currentDateText() : '', state.dateFont || 'Matcha Iced', innerW);
   return { cap, date };
@@ -1327,7 +1328,7 @@ function customFrameAttr() {
 
 function frameHTML() {
   const lay = state.layout === 1 ? 'single' : state.layout === 3 ? 'strip' : 'grid' + state.layout;
-  const cls = state.layout === 1 ? 'photos-single' : state.layout === 6 ? 'photos-grid' : 'photos-strip';
+  const cls = state.layout === 1 ? 'photos-single' : state.layout >= 6 ? 'photos-grid' : 'photos-strip';
   let slots = '';
   state.photos.forEach((p, i) => {
     slots += '<div class="slot">' + slotMedia(p, i, false) + '</div>';
@@ -1415,7 +1416,7 @@ function fitFrame(holderId) {
     holder.dataset.fitScale = String(s);
     frame.style.transform = 'scale(' + s.toFixed(4) + ')';
   }
-  if (frame.classList.contains('grid6')) holder.style.height = (fh * s + 8).toFixed(1) + 'px';
+  if (frame.querySelector('.photos-grid')) holder.style.height = (fh * s + 8).toFixed(1) + 'px';
 }
 
 function renderResult() {
@@ -1434,7 +1435,7 @@ function renderResult() {
 
 function previewHTML() {
   const lay = state.layout === 1 ? 'single' : state.layout === 3 ? 'strip' : 'grid' + state.layout;
-  const cls = state.layout === 1 ? 'photos-single' : state.layout === 6 ? 'photos-grid' : 'photos-strip';
+  const cls = state.layout === 1 ? 'photos-single' : state.layout >= 6 ? 'photos-grid' : 'photos-strip';
   let slots = '';
   state.photos.forEach((p, i) => {
     slots += '<div class="slot preview-slot" data-i="' + i + '">' +

@@ -84,7 +84,7 @@ async function importPhotos(count) {
   await evaluate(`(async () => {
     const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480;
     const context = canvas.getContext('2d');
-    const colors = ['#d22f27', '#239b56', '#2874a6', '#f1c40f', '#a569bd', '#17a589'];
+    const colors = ['#d22f27', '#239b56', '#2874a6', '#f1c40f', '#a569bd', '#17a589', '#e67e22', '#795548'];
     const transfer = new DataTransfer();
     for (let i = 0; i < ${count}; i++) {
       context.fillStyle = colors[i]; context.fillRect(0, 0, 640, 480);
@@ -108,7 +108,7 @@ async function checkExport(label) {
 }
 async function checkPhotoLayout(holder, count) {
   await check(`(() => {
-    const cols = ${count === 6 ? 2 : 1};
+    const cols = ${count >= 6 ? 2 : 1};
     const slots = [...document.querySelectorAll('${holder} .slot')].map(el => el.getBoundingClientRect());
     return slots.length === ${count} && slots.every((box, i) => {
       const rowStart = Math.floor(i / cols) * cols;
@@ -117,7 +117,7 @@ async function checkPhotoLayout(holder, count) {
         && (i < cols || box.top > slots[i - cols].bottom)
         && Math.abs(box.left - slots[i % cols].left) < 1;
     });
-  })()`, `${count} photos keep ${count === 6 ? 'two columns and three rows' : 'one vertical column'} in ${holder}`);
+  })()`, `${count} photos keep ${count >= 6 ? 'two columns and ' + (count / 2) + ' rows' : 'one vertical column'} in ${holder}`);
 }
 
 try {
@@ -157,6 +157,8 @@ try {
     await click('#btn-start');
     await waitFor("document.querySelector('#scr-cam').classList.contains('active')");
     await check(`document.querySelector('#btn-switch-cam').title === window.languageMessages['${code}']['cam.switch'] && document.querySelector('#countdown-val').textContent === window.languageMessages['${code}']['cam.s3'] && document.querySelector('#scr-cam .mini-header').getAttribute('aria-label') === window.languageMessages['${code}']['hdr.home']`, `${code}: camera settings and home control update`);
+    await send('Emulation.setDeviceMetricsOverride', { width: 320, height: 900, deviceScaleFactor: 1, mobile: true });
+    await check("(() => { const bounds = document.querySelector('#layoutseg').getBoundingClientRect(); return [...document.querySelectorAll('#layoutseg button')].length === 5 && [...document.querySelectorAll('#layoutseg button')].every(button => { const box = button.getBoundingClientRect(); return box.width >= 44 && box.height >= 44 && box.left >= bounds.left && box.right <= bounds.right + 1; }); })()", `${code}: all five photo counts fit a phone with usable touch targets`);
     await click('#scr-cam .mini-header');
     await importPhotos(3);
     await check(`document.querySelector('#preview-holder img').alt === window.languageMessages['${code}']['photo.alt'].replace('{number}', new Intl.NumberFormat('${code}', { useGrouping: false }).format(1))`, `${code}: photo description is localized`);
@@ -263,6 +265,9 @@ try {
   await waitFor("document.querySelector('#scr-cam').classList.contains('active')");
   await check("getComputedStyle(document.body, '::before').content === 'none' && getComputedStyle(document.body, '::before').maskImage === 'none'", 'restored background appears only on homepage');
   await check("document.querySelector('#video').srcObject.active && [...document.querySelectorAll('[data-camera-status]')].every(el => el.style.display === 'none') && !document.querySelector('#btn-start').disabled", 'retry succeeds and clears camera status');
+  await click('#layoutseg [data-layout="8"]');
+  await check("document.querySelector('#layoutseg [data-layout=\"8\"]').classList.contains('sel') && document.querySelector('#shot-count').textContent === '0 / 8' && JSON.parse(localStorage.getItem('snappie-prefs-v1')).layout === 8", 'camera selects eight photos and remembers the preference');
+  await click('#layoutseg [data-layout="3"]');
   for (const width of [320, 390, 600, 719, 720, 1000, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
     await checkHeader();
@@ -409,7 +414,7 @@ try {
   await click('#share-ig');
   await check("document.querySelector('#ig-modal').classList.contains('open') && !document.querySelector('#share-options').matches(':popover-open')", 'social action closes Share and opens its existing dialog');
   await key('Escape');
-  for (const count of [3, 4, 6]) {
+  for (const count of [3, 4, 6, 8]) {
     await click('#scr-result .mini-header');
     await importPhotos(count);
     await check(`document.querySelectorAll('#preview-holder .slot').length === ${count}`, `${count}-photo layout preserves every imported photo`);
@@ -423,7 +428,7 @@ try {
       await check("JSON.stringify(window.frameDimensions(document.querySelector('#result-holder'))) === JSON.stringify(window.demoDimensions['1440-film'])", 'homepage frame dimensions match three-photo result');
     }
     await checkExport(`${count}-photo layout`);
-    if (count === 4 || count === 6) {
+    if (count >= 4) {
       for (const width of [320, 390, 720, 1000, 1440]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
         await checkPhotoLayout('#result-holder', count);
@@ -433,9 +438,9 @@ try {
       await click('#scr-result .workflow [data-screen=scr-preview]');
       await click('#toggle-frame');
       await click('#btn-preview-fix');
-      await evaluate(`window.exportLayoutSpec = { cols: ${count === 6 ? 2 : 1}, rows: ${count === 6 ? 3 : 4} }`);
+      await evaluate(`window.exportLayoutSpec = { cols: ${count >= 6 ? 2 : 1}, rows: ${count >= 6 ? count / 2 : 4} }`);
       const png = await checkExport(`${count}-photo layout without frame`);
-      assert.deepEqual(png.samples, [[210,47,39], [35,155,86], [40,116,166], [241,196,15], [165,105,189], [23,165,137]].slice(0, count), `${count}: PNG preserves every photo in intended order`);
+      assert.deepEqual(png.samples, [[210,47,39], [35,155,86], [40,116,166], [241,196,15], [165,105,189], [23,165,137], [230,126,34], [121,85,72]].slice(0, count), `${count}: PNG preserves every photo in intended order`);
       assert.ok(count === 4 ? png.height > png.width * 3 : png.height > png.width, `${count}: PNG orientation matches requested layout`);
       await evaluate('window.exportLayoutSpec = null');
     }
