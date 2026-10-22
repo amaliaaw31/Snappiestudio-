@@ -91,14 +91,25 @@
 <div class="screen active" id="scr-start">
   <button id="btn-lang" class="lang-fab" type="button" aria-label="Language" title="Language"><span class="ms">language</span></button>
   <button id="toggle-dark" class="theme-fab" type="button" aria-label="Dark mode" title="Dark mode"><span class="ms" id="dark-ico">dark_mode</span></button>
+  <div class="start-intro">
   <h1>Snappie Studio</h1>
   <p class="tagline">"your little photo moment"</p>
   <p class="desc" data-i18n-html="start.desc">Jepret foto kece pakai filter,<br>hias dengan stiker lucu, lalu bagikan ke sosmed!</p>
-  <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
   <button class="btn" id="btn-start" data-i18n="start.open">Buka Kamera</button>
   <p id="start-cam-status" class="camera-status" data-camera-status role="status" aria-live="polite"></p>
   <button class="btn ghost" id="btn-gallery-start" style="margin-top:12px;"><span class="ms">image</span><span data-i18n="start.gallery">Pilih dari Galeri</span></button>
   <p class="desc start-foot" data-i18n-html="start.footer">Butuh izin kamera &amp; koneksi HTTPS.<br>Foto cuma diproses di perangkatmu.</p>
+  </div>
+  <figure class="start-demo">
+    <div id="demo-frame" aria-hidden="true"></div>
+    <figcaption data-i18n="start.example">Contoh bingkai dengan ilustrasi</figcaption>
+    <div class="demo-themes" role="group" data-i18n-aria="start.tryTheme" aria-label="Coba tema bingkai">
+      <button type="button" data-demo-theme="pastel" aria-pressed="true" data-i18n="theme.pastel">Princess Pastel</button>
+      <button type="button" data-demo-theme="film" aria-pressed="false" data-i18n="theme.film">35mm Film</button>
+      <button type="button" data-demo-theme="minimal" aria-pressed="false" data-i18n="theme.minimal">Seoul Minimal</button>
+    </div>
+  </figure>
+  <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
 </div>
 
 <!-- CAMERA -->
@@ -136,7 +147,6 @@
     </div>
   </div>
   <div id="camerr" class="camera-status" data-camera-status role="status" aria-live="polite"></div>
-  <p class="visitor-count cam-visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
   <div class="label" data-i18n="cam.filter">FILTER</div>
   <div class="filter-strip-wrap" id="filter-strip-wrap">
     <div class="filter-strip" id="filter-strip"></div>
@@ -149,13 +159,20 @@
     <button data-layout="6" data-i18n="cam.n6">6 foto</button>
   </div>
   <button class="btn" id="btn-to-preview" style="margin-top:12px; display:none;"><span class="ms">check</span><span data-i18n="cam.preview">Preview / Selesai</span></button>
+  <p class="visitor-count cam-visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
 </div>
 
 <!-- PREVIEW -->
 <div class="screen" id="scr-preview">
-  <h1 style="margin-top:4px"><span data-i18n="pv.title">Preview</span></h1>
-  <p class="desc" data-i18n="pv.desc">Cek tiap foto — buang, jepret ulang, atau ganti dari galeri. Tambah stiker, lalu tekan Fix.</p>
+  <h1 style="margin-top:4px"><span data-i18n="pv.title">Cek Foto</span></h1>
+  <p class="desc" data-i18n="pv.desc">Cek tiap foto, jepret ulang, atau ganti dari galeri. Setelah siap, lanjut ke hasil.</p>
   <div id="preview-holder"></div>
+  <p class="gesture-hint" data-i18n="edit.photoHint">Geser foto untuk mengatur posisi. Cubit atau gulir untuk zoom. Keyboard: pilih foto, lalu gunakan panah dan +/−.</p>
+  <p class="gesture-hint sticker-hint" data-i18n="edit.stickerHint" hidden>Geser stiker untuk memindahkan. Cubit untuk ukuran dan putaran. Keyboard: panah, +/−, [ ], Delete.</p>
+  <div class="history-controls" role="group" data-i18n-aria="edit.history" aria-label="Riwayat perubahan">
+    <button type="button" class="btn ghost small undo-btn" disabled><span class="ms" aria-hidden="true">undo</span><span data-i18n="edit.undo">Urungkan</span></button>
+    <button type="button" class="btn ghost small redo-btn" disabled><span class="ms" aria-hidden="true">redo</span><span data-i18n="edit.redo">Ulangi</span></button>
+  </div>
   <div class="toggle-row">
     <label class="date-toggle" for="toggle-frame">
       <input type="checkbox" id="toggle-frame" checked>
@@ -174,20 +191,33 @@
     </label>
   </div>
   <div class="btnrow">
-    <button class="btn ghost" id="btn-preview-sticker"><span class="ms">add</span><span data-i18n="pv.sticker">Add Sticker</span></button>
-    <button class="btn" id="btn-preview-fix"><span class="ms">check</span><span data-i18n="pv.fix">Fix</span></button>
+    <button class="btn ghost" id="btn-preview-sticker"><span class="ms">add</span><span data-i18n="pv.sticker">Tambah Stiker</span></button>
+    <button class="btn" id="btn-preview-fix"><span class="ms">check</span><span data-i18n="pv.fix">Lanjut ke Hasil</span></button>
   </div>
 </div>
 
 <!-- RESULT -->
 <div class="screen" id="scr-result">
   <h1 style="margin-top:4px"><span data-i18n="rs.title">Hasilnya!</span></h1>
+  <div class="result-workspace">
+  <div class="result-canvas">
   <div id="result-holder"></div>
+  <p class="gesture-hint sticker-hint" data-i18n="edit.stickerHint" hidden>Geser stiker untuk memindahkan. Cubit untuk ukuran dan putaran. Keyboard: panah, +/−, [ ], Delete.</p>
+  <div class="history-controls" role="group" data-i18n-aria="edit.history" aria-label="Riwayat perubahan">
+    <button type="button" class="btn ghost small undo-btn" disabled><span class="ms" aria-hidden="true">undo</span><span data-i18n="edit.undo">Urungkan</span></button>
+    <button type="button" class="btn ghost small redo-btn" disabled><span class="ms" aria-hidden="true">redo</span><span data-i18n="edit.redo">Ulangi</span></button>
+  </div>
+  </div>
+  <div class="editor-panel">
+  <details class="editor-group" open>
+  <summary data-i18n="edit.frame">Bingkai</summary>
   <div class="label" data-i18n="rs.theme">GANTI TEMA</div>
   <div class="theme-pick-row">
     <button type="button" id="themepick2" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
-    <button class="btn ghost" id="btn-add-sticker"><span class="ms">add</span><span data-i18n="rs.sticker">Sticker</span></button>
   </div>
+  </details>
+  <details class="editor-group" id="text-tools">
+  <summary data-i18n="edit.text">Teks &amp; Tanggal</summary>
   <div class="toggle-row">
     <label class="date-toggle" for="toggle-date">
       <input type="checkbox" id="toggle-date">
@@ -230,7 +260,7 @@
     <span class="ms">edit_calendar</span><span id="date-edit-label">Tanggal</span>
   </button>
   <input type="text" id="custom-text" class="custom-text-input" maxlength="28"
-    data-i18n-ph="rs.namePh" placeholder="Tulis nama / ucapan (opsional)" autocomplete="off">
+    data-i18n-ph="rs.namePh" data-i18n-aria="rs.namePh" aria-label="Tulis nama / ucapan (opsional)" placeholder="Tulis nama / ucapan (opsional)" autocomplete="off">
   <div class="setting result-font">
     <span class="ms font-sym">text_fields</span>
     <select id="caption-font" class="filter-select small" aria-label="Font">
@@ -262,6 +292,15 @@
     </select>
     <button type="button" class="font-color" id="caption-color" data-color="#8a5b7e" aria-label="Warna" title="Warna"></button>
   </div>
+  </details>
+  <details class="editor-group" open>
+  <summary data-i18n="edit.stickers">Stiker</summary>
+  <button class="btn ghost" id="btn-add-sticker"><span class="ms">add</span><span data-i18n="pv.sticker">Tambah Stiker</span></button>
+  <p class="tool-note" data-i18n="edit.stickerNote">Pilih emoji atau tulis teks, lalu atur langsung di fotomu.</p>
+  </details>
+  </div>
+  </div>
+  <div class="result-actions">
   <div class="btnrow">
     <button class="btn" id="btn-download"><span class="ms" id="download-ico">download</span><span id="download-label" data-i18n="rs.download">Unduh PNG</span></button>
   </div>
@@ -271,6 +310,7 @@
   <button type="button" class="share-social-btn fb" id="share-fb" aria-label="Facebook" title="Facebook"><svg class="soc-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg></button>
   <button type="button" class="share-social-btn tt" id="share-tt" aria-label="TikTok" title="TikTok"><svg class="soc-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg></button>
   <button type="button" class="share-social-btn th" id="share-th" aria-label="Threads" title="Threads"><span class="soc-at" aria-hidden="true">@</span></button>
+  </div>
   </div>
 </div>
 
@@ -344,6 +384,14 @@
       <button id="btn-close-theme" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
+      <label class="tool-note" for="theme-category" data-i18n="theme.groupLabel">Kelompok tema</label>
+      <select id="theme-category" class="filter-select">
+        <option value="all" data-i18n="theme.groupAll">Semua tema</option>
+        <option value="soft" data-i18n="theme.groupSoft">Lembut &amp; Minimal</option>
+        <option value="bold" data-i18n="theme.groupBold">Retro &amp; Berani</option>
+        <option value="occasion" data-i18n="theme.groupOccasion">Momen Spesial</option>
+        <option value="custom" data-i18n="theme.groupCustom">Bingkai Custom</option>
+      </select>
       <div class="theme-grid" id="theme-grid"></div>
     </div>
   </div>

@@ -7,6 +7,7 @@ import { EMOJI_CATEGORIES, findEmojiStickers } from './emoji-catalog.js';
 import { cameraCrop, openCameraStream, waitForFlashFrame } from './camera.js';
 import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
 import bacUrl from './assets/bac.jpg';
+import filterSampleUrl from './assets/filter-sample.svg';
 
 /* ============ state ============ */
 const LAYOUT_AR = { 1: '4 / 3', 3: '4 / 3', 4: '4 / 3', 6: '4 / 3' };
@@ -118,6 +119,7 @@ document.body.classList.add('on-start');
 let currentScreen = 'scr-start';
 let historyWorks = true;
 let updateFilterEdges = () => {};
+let demoTheme = 'pastel';
 
 function activateScreen(id) {
   if ((id === 'scr-preview' || id === 'scr-result') && !state.photos.length) id = 'scr-start';
@@ -127,12 +129,14 @@ function activateScreen(id) {
   el.classList.add('active');
   window.scrollTo(0, 0);
   currentScreen = id;
+  syncWorkflow();
   /* Latar bermotif (fixed + mask besar) hanya di halaman awal — di halaman lain
      bikin komposit/repaint berat di HP lemah, jadi dimatikan. */
   document.body.classList.toggle('on-start', id === 'scr-start');
   if (id === 'scr-start' && state.stream) stopStream();
   if (id === 'scr-cam') {
     renderDots(); renderThumbs();
+    refreshPhotoSamples();
     requestAnimationFrame(updateFilterEdges);
     if (!state.stream) startCamera().then(ok => { if (ok) applyMirror(); });
   }
@@ -183,6 +187,7 @@ function openModal(id) {
   if (!m || m.classList.contains('open')) return;
   modalStack.push({ modal: m, trigger: document.activeElement });
   m.classList.add('open');
+  refreshPhotoSamples();
   syncModalInteraction();
   const close = m.querySelector('.modal-close');
   if (close) close.focus();
@@ -336,6 +341,38 @@ function themeThumbHTML(t) {
     '<span class="frame"><span class="thumb-slots"><i></i><i></i><i></i></span>' +
     '<span class="thumb-stamp"></span></span></span>';
 }
+
+function refreshPhotoSamples() {
+  const sample = state.photos[state.selectedPhotoIndex ?? 0];
+  document.querySelectorAll('#theme-grid .thumb-slots').forEach(slots => {
+    slots.innerHTML = state.photos.length ? state.photos.slice(0, 3).map((p, i) =>
+      '<i><img data-photo="' + i + '" alt="" style="filter:' + filterCss(p.filter) + ';transform:' + imgTransform(p) + '"></i>'
+    ).join('') : '<i></i><i></i><i></i>';
+  });
+  if (state.photos.length) hydrateSlotImages($('theme-grid'));
+  document.querySelectorAll('.filter-sample').forEach(el => {
+    if (!sample) { el.style.backgroundImage = ''; return; }
+    photoUrl(sample.canvas).then(url => {
+      if (url && el.isConnected && state.photos.includes(sample)) el.style.backgroundImage = 'url("' + url + '")';
+    });
+  });
+}
+
+function renderDemo() {
+  const holder = $('demo-frame');
+  if (!holder) return;
+  holder.innerHTML = themeThumbHTML({ id: demoTheme });
+  holder.querySelector('.thumb-slots').innerHTML = ['none', filterCss('bw'), filterCss('warm')].map(filter =>
+    '<i><img src="' + filterSampleUrl + '" alt="" style="filter:' + filter + '"></i>'
+  ).join('');
+  document.querySelectorAll('[data-demo-theme]').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.demoTheme === demoTheme));
+  });
+}
+document.querySelectorAll('[data-demo-theme]').forEach(button => {
+  button.onclick = () => { demoTheme = button.dataset.demoTheme; renderDemo(); };
+});
+renderDemo();
 function syncThemePickers() {
   themeBtns.forEach(b => { if (b) b.textContent = themeName(); });
   document.querySelectorAll('#theme-grid .theme-option').forEach(x => {
@@ -466,6 +503,9 @@ function buildThemePicker() {
     b.type = 'button';
     b.className = 'theme-option' + (t.id === state.theme ? ' sel' : '');
     b.dataset.id = t.id;
+    b.dataset.group = t.id === 'custom' ? 'custom'
+      : ['birthday', 'wedding', 'lebaran', 'natal', 'valentine', 'baby'].includes(t.id) ? 'occasion'
+      : ['pastel', 'cream', 'floral', 'coquette', 'minimal'].includes(t.id) ? 'soft' : 'bold';
     b.innerHTML = themeThumbHTML(t) + '<span class="theme-option-name">' + tr('theme.' + t.id) + '</span>';
     b.onclick = () => {
       state.theme = t.id;
@@ -491,6 +531,12 @@ function buildThemePicker() {
   syncThemePickers();
 }
 buildThemePicker();
+if ($('theme-category')) $('theme-category').onchange = () => {
+  const group = $('theme-category').value;
+  document.querySelectorAll('#theme-grid .theme-option').forEach(button => {
+    button.hidden = group !== 'all' && button.dataset.group !== group;
+  });
+};
 
 function refreshPickers() {
   document.querySelectorAll('#filter-grid .filter-option, #filter-strip .filter-chip').forEach(x => {
@@ -511,6 +557,7 @@ function applyLang(code) {
   setLang(code);
   applyI18n();
   refreshPickers();
+  syncWorkflow();
   const grid = $('lang-grid');
   if (grid) grid.querySelectorAll('.lang-option').forEach(x => x.classList.toggle('sel', x.dataset.code === code));
   if (currentScreen === 'scr-preview') renderPreview();
@@ -1300,7 +1347,7 @@ function fitFrame(holderId) {
   if (!fw || !fh || aw < 20 || ah < 20) return;
   const s = Math.max(0.05, Math.min((aw - 8) / fw, (ah - 8) / fh));
   const prev = parseFloat(holder.dataset.fitScale || '0');
-  if (Math.abs(s - prev) > 0.01) {   // hysteresis: jangan re-raster tiap render
+  if (Math.abs(s - prev) > 0.01 || !frame.style.transform) {   // hysteresis: jangan re-raster tiap render
     holder.dataset.fitScale = String(s);
     frame.style.transform = 'scale(' + s.toFixed(4) + ')';
   }
@@ -1364,6 +1411,24 @@ function attachSlotGestures(img, p, index) {
     p.oy = Math.max(-lim, Math.min(lim, p.oy || 0));
   };
   const apply = () => { img.style.transform = imgTransform(p); };
+  img.tabIndex = 0;
+  img.setAttribute('aria-label', tr('edit.photoHint'));
+  img.addEventListener('keydown', e => {
+    const step = e.shiftKey ? .05 : .01;
+    switch (e.key) {
+      case 'ArrowLeft': p.ox = (p.ox || 0) - step; break;
+      case 'ArrowRight': p.ox = (p.ox || 0) + step; break;
+      case 'ArrowUp': p.oy = (p.oy || 0) - step; break;
+      case 'ArrowDown': p.oy = (p.oy || 0) + step; break;
+      case '+': case '=': p.zoom = Math.min(6, (p.zoom || 1) + .1); break;
+      case '-': case '_': p.zoom = Math.max(1, (p.zoom || 1) - .1); break;
+      default: return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    state.slotSelected = index;
+    clampPan(); apply(); applySlotSelection(); commitHistory();
+  });
 
   img.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.slot-btn')) return;
@@ -1421,6 +1486,7 @@ function attachSlotGestures(img, p, index) {
     p.zoom = Math.max(1, Math.min(6, (p.zoom || 1) * (e.deltaY < 0 ? 1.08 : 0.92)));
     if (p.zoom <= 1.02) { p.zoom = 1; p.ox = 0; p.oy = 0; }
     clampPan(); apply();
+    commitHistory();
   }, { passive: false });
 }
 
@@ -1967,6 +2033,7 @@ function renderUserStickers() {
   const active = document.querySelector('.screen.active');
   const layer = active ? active.querySelector('.sticker-layer') : null;
   if (!layer) return;
+  document.querySelectorAll('.sticker-hint').forEach(hint => { hint.hidden = !state.stickers.length; });
   layer.innerHTML = '';
   const frameOuter = layer.closest('.frame-outer');   // frame hasil (bukan preview tema)
 
@@ -3026,6 +3093,8 @@ function initHistory() {
 function startNewSession() {
   resetPhotos();
   resetFrameSettings();
+  state.theme = demoTheme;
+  syncThemePickers();
   initHistory();
 }
 
@@ -3115,9 +3184,40 @@ function addHeaders() {
       '<span class="mh-tag">your little photo moment</span>';
     h.onclick = goHome;
     scr.insertBefore(h, scr.firstChild);
+    const nav = document.createElement('nav');
+    nav.className = 'workflow';
+    nav.dataset.i18nAria = 'flow.label';
+    nav.setAttribute('aria-label', tr('flow.label'));
+    const list = document.createElement('ol');
+    ['scr-cam', 'scr-preview', 'scr-result'].forEach((target, index) => {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.screen = target;
+      const label = document.createElement('span');
+      label.dataset.i18n = ['flow.photo', 'flow.review', 'flow.finish'][index];
+      label.textContent = tr(label.dataset.i18n);
+      button.append(String(index + 1) + '. ', label);
+      button.onclick = () => show(target);
+      item.appendChild(button);
+      list.appendChild(item);
+    });
+    nav.appendChild(list);
+    scr.insertBefore(nav, h.nextSibling);
+  });
+}
+function syncWorkflow() {
+  const screens = ['scr-cam', 'scr-preview', 'scr-result'];
+  const current = screens.indexOf(currentScreen);
+  document.querySelectorAll('.workflow button').forEach(button => {
+    const index = screens.indexOf(button.dataset.screen);
+    button.disabled = index > 0 && !state.photos.length;
+    if (index === current) button.setAttribute('aria-current', 'step');
+    else button.removeAttribute('aria-current');
   });
 }
 addHeaders();
+syncWorkflow();
 
 /* undo/redo: tombol + pintasan papan tombol */
 document.querySelectorAll('.undo-btn').forEach(b => b.addEventListener('click', undo));

@@ -19,6 +19,10 @@ Selalu jalankan `npm run lint`, `npm test`, dan `npm run build` setelah mengubah
 - Setelah build berhasil, salin hasilnya dengan `sudo -n cp -a dist/. /var/www/snappie/` (folder produksi dimiliki administrator dan memerlukan akses tulis di luar workspace), lalu verifikasi situs produksi sudah memuat perubahan.
 - Lanjutkan deploy tanpa menanyakan konfirmasi tambahan kepada pengguna; tetap patuhi izin yang diwajibkan sistem.
 
+## Git
+- Pengguna mengaktifkan auto-commit dan push setelah pemeriksaan lulus. Commit hanya berkas terkait pekerjaan yang dikerjakan; jangan sertakan perubahan lain yang belum disetujui.
+- Gunakan remote SSH `git@github.com:amaliaaw31/Snappiestudio-.git` dan konfigurasi key lokal repo; jangan ubah konfigurasi SSH global.
+
 ## Penghitung pengunjung
 - `server/visitor-counter.js` — API jumlah browser unik tersimpan di SQLite.
 - `public/cms.html` — login admin; backend memproteksi seluruh alias dashboard dan `/api/admin/*` dengan cookie sesi HttpOnly dan CSRF.
