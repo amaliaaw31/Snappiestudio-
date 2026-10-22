@@ -1,4 +1,5 @@
 /* Original iPhone-inspired artwork. See public/emoji/iphone-inspired/README.md. */
+import { EMOJI_LOCALES } from './emoji-locales.js';
 export const EMOJI_CATEGORIES = [
   {"id":"faces","label":"Ekspresi","en":"Faces"},
   {"id":"hearts","label":"Hati","en":"Hearts"},
@@ -131,12 +132,15 @@ export const EMOJI_CATALOG = [
   {"value":"🔥","category":"party","index":19,"name":"Orange red fire flame","keywords":"api"},
 ];
 
-export function findEmojiStickers(query = '', category = 'all') {
-  const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-  return EMOJI_CATALOG.filter(entry =>
+export function findEmojiStickers(query = '', category = 'all', lang = 'id') {
+  const words = query.trim().toLocaleLowerCase(lang).split(/\s+/).filter(Boolean);
+  return EMOJI_CATALOG.map(entry => {
+    const local = EMOJI_LOCALES[lang]?.[entry.value];
+    return local ? { ...entry, name: local.name, keywords: entry.name + ' ' + entry.keywords + ' ' + local.keywords } : entry;
+  }).filter(entry =>
     (category === 'all' || entry.category === category) &&
     words.every(word => (entry.value + ' ' + entry.name + ' ' + entry.keywords)
-      .toLocaleLowerCase().includes(word))
+      .toLocaleLowerCase(lang).includes(word))
   );
 }
 

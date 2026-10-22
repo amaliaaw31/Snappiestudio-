@@ -1,6 +1,8 @@
 // Run with Chrome's --remote-debugging-port=9337, then: node scripts/verify-ui.mjs [site URL]
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
+import { LANGS, translations } from '../src/i18n.js';
+import { EMOJI_LOCALES } from '../src/emoji-locales.js';
 
 const url = process.argv[2] || 'http://127.0.0.1:5173/';
 const endpoint = 'http://127.0.0.1:9337';
@@ -81,11 +83,15 @@ async function checkHeader() {
 async function importPhotos(count) {
   await evaluate(`(async () => {
     const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480;
-    const context = canvas.getContext('2d'); context.fillStyle = '#64748b'; context.fillRect(0, 0, 640, 480);
-    context.fillStyle = '#fff'; context.fillRect(40, 40, 160, 120);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve));
+    const context = canvas.getContext('2d');
+    const colors = ['#d22f27', '#239b56', '#2874a6', '#f1c40f', '#a569bd', '#17a589'];
     const transfer = new DataTransfer();
-    for (let i = 0; i < ${count}; i++) transfer.items.add(new File([blob], 'test-photo-' + i + '.png', { type: 'image/png' }));
+    for (let i = 0; i < ${count}; i++) {
+      context.fillStyle = colors[i]; context.fillRect(0, 0, 640, 480);
+      context.fillStyle = '#fff'; context.fillRect(40, 40, 160, 120);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve));
+      transfer.items.add(new File([blob], 'test-photo-' + i + '.png', { type: 'image/png' }));
+    }
     document.querySelector('#file-input').files = transfer.files;
     document.querySelector('#btn-gallery-start').click();
     await document.querySelector('#file-input').onchange();
@@ -98,6 +104,20 @@ async function checkExport(label) {
   assert.ok(png.width > 0 && png.height > 0 && png.type === 'image/png', label);
   await check("document.querySelector('#again-modal').classList.contains('open')", `${label}: PNG ready with next-session dialog`);
   await click('#btn-close-again');
+  return png;
+}
+async function checkPhotoLayout(holder, count) {
+  await check(`(() => {
+    const cols = ${count === 6 ? 3 : 1};
+    const slots = [...document.querySelectorAll('${holder} .slot')].map(el => el.getBoundingClientRect());
+    return slots.length === ${count} && slots.every((box, i) => {
+      const rowStart = Math.floor(i / cols) * cols;
+      return box.width > 0 && Math.abs(box.top - slots[rowStart].top) < 1
+        && (i % cols === 0 || box.left > slots[i - 1].right)
+        && (i < cols || box.top > slots[i - cols].bottom)
+        && Math.abs(box.left - slots[i % cols].left) < 1;
+    });
+  })()`, `${count} photos keep ${count === 6 ? 'three columns and two rows' : 'one vertical column'} in ${holder}`);
 }
 
 try {
@@ -107,6 +127,53 @@ try {
   await send('Page.addScriptToEvaluateOnNewDocument', { source: "localStorage.setItem('snappie-lang', 'id'); localStorage.removeItem('snappie-prefs-v1');" });
   await send('Page.navigate', { url });
   await waitFor("document.querySelector('#btn-start')?.onclick != null");
+  await evaluate(`window.languageMessages = ${JSON.stringify(translations)}; window.emojiNames = ${JSON.stringify(Object.fromEntries(LANGS.map(({ code }) => [code, EMOJI_LOCALES[code]['😀'].name])))};`);
+  await evaluate(`navigator.mediaDevices.getUserMedia = async () => {
+    const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480;
+    window.testCameraCanvas = canvas;
+    return canvas.captureStream(10);
+  }`);
+  for (const { code } of LANGS) {
+    await click('#btn-lang');
+    await click(`#lang-grid [data-code=${code}]`);
+    await check(`document.documentElement.lang === '${code}' && document.documentElement.dir === '${code === 'ar' ? 'rtl' : 'ltr'}'`, `${code}: language and text direction update`);
+    await check(`(() => {
+      const messages = window.languageMessages['${code}'];
+      const bindings = [['data-i18n', 'textContent'], ['data-i18n-aria', 'aria-label'], ['data-i18n-title', 'title'], ['data-i18n-ph', 'placeholder']];
+      return bindings.every(([binding, attribute]) => [...document.querySelectorAll('[' + binding + ']')].every(el => {
+        const value = attribute === 'textContent' ? el.textContent : el.getAttribute(attribute);
+        return value === messages[el.getAttribute(binding)];
+      })) && document.querySelector('#emoji-sticker-grid button').title === window.emojiNames['${code}']
+        && document.title === messages['page.title'];
+    })()`, `${code}: menu text, tooltips, accessible labels and emoji names use selected language`);
+    for (const width of [320, 390, 720, 1440]) {
+      await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
+      await check('document.documentElement.scrollWidth <= innerWidth', `${code}: homepage fits ${width}px`);
+    }
+    await click('#demo-filter');
+    await check(`document.querySelector('#btn-apply-filter').textContent === window.languageMessages['${code}']['filter.apply']`, `${code}: effect confirmation is translated`);
+    await click('#filter-grid [data-id=bw]');
+    await click('#btn-apply-filter');
+    await click('#btn-start');
+    await waitFor("document.querySelector('#scr-cam').classList.contains('active')");
+    await check(`document.querySelector('#btn-switch-cam').title === window.languageMessages['${code}']['cam.switch'] && document.querySelector('#countdown-val').textContent === window.languageMessages['${code}']['cam.s3'] && document.querySelector('#scr-cam .mini-header').getAttribute('aria-label') === window.languageMessages['${code}']['hdr.home']`, `${code}: camera settings and home control update`);
+    await click('#scr-cam .mini-header');
+    await importPhotos(3);
+    await check(`document.querySelector('#preview-holder img').alt === window.languageMessages['${code}']['photo.alt'].replace('{number}', new Intl.NumberFormat('${code}', { useGrouping: false }).format(1))`, `${code}: photo description is localized`);
+    await click('#btn-preview-fix');
+    for (const width of [320, 390, 720, 1440]) {
+      await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
+      await check('document.documentElement.scrollWidth <= innerWidth', `${code}: editor fits ${width}px`);
+    }
+    if (['ar', 'ja'].includes(code)) {
+      await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
+      await screenshot(`result-${code}-390`);
+    }
+    await check("[...document.querySelectorAll('.tagline, .mh-tag')].every(el => el.textContent === 'your little photo moment')", `${code}: brand slogan stays unchanged`);
+    await click('#scr-result .mini-header');
+  }
+  await send('Page.navigate', { url });
+  await waitFor("document.documentElement?.lang === 'id' && document.querySelector('#btn-start')?.onclick != null");
   await check("[...document.querySelectorAll('[role=dialog]')].every(m => m.getAttribute('aria-label') || document.getElementById(m.getAttribute('aria-labelledby'))?.textContent.trim())", 'all dialogs have accessible names');
   await check("[...document.querySelectorAll('.modal-overlay')].every(m => m.inert)", 'closed dialogs cannot receive focus');
   await check("[...document.querySelectorAll('.tagline, .mh-tag')].length === 4 && [...document.querySelectorAll('.tagline, .mh-tag')].every(el => el.textContent === 'your little photo moment' && el.lang === 'en')", 'all four main screens use the exact English brand slogan');
@@ -302,6 +369,16 @@ try {
         const blob = blobs.get(this.href);
         const image = await createImageBitmap(blob);
         const result = { type: blob.type, width: image.width, height: image.height };
+        if (window.exportLayoutSpec) {
+          const { cols, rows } = window.exportLayoutSpec;
+          const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
+          const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
+          const gapX = cols > 1 ? (image.width - cols * 640) / (cols - 1) : 0;
+          const gapY = rows > 1 ? (image.height - rows * 480) / (rows - 1) : 0;
+          result.samples = Array.from({ length: cols * rows }, (_, i) => [...context.getImageData(
+            Math.round(320 + (i % cols) * (640 + gapX)),
+            Math.round(240 + Math.floor(i / cols) * (480 + gapY)), 1, 1).data].slice(0, 3));
+        }
         image.close(); return result;
       })();
     };
@@ -336,14 +413,32 @@ try {
     await click('#scr-result .mini-header');
     await importPhotos(count);
     await check(`document.querySelectorAll('#preview-holder .slot').length === ${count}`, `${count}-photo layout preserves every imported photo`);
+    await checkPhotoLayout('#preview-holder', count);
     if (count === 3) {
       await check("JSON.stringify(window.frameDimensions(document.querySelector('#preview-holder'))) === JSON.stringify(window.demoDimensions['1440-film'])", 'homepage frame dimensions match three-photo preview');
     }
     await click('#btn-preview-fix');
+    await checkPhotoLayout('#result-holder', count);
     if (count === 3) {
       await check("JSON.stringify(window.frameDimensions(document.querySelector('#result-holder'))) === JSON.stringify(window.demoDimensions['1440-film'])", 'homepage frame dimensions match three-photo result');
     }
     await checkExport(`${count}-photo layout`);
+    if (count === 4 || count === 6) {
+      for (const width of [320, 390, 720, 1000, 1440]) {
+        await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
+        await checkPhotoLayout('#result-holder', count);
+        await check('document.documentElement.scrollWidth <= innerWidth', `${count}-photo result fits ${width}px`);
+        if (width === 390) await screenshot(`layout-${count}-390`);
+      }
+      await click('#scr-result .workflow [data-screen=scr-preview]');
+      await click('#toggle-frame');
+      await click('#btn-preview-fix');
+      await evaluate(`window.exportLayoutSpec = { cols: ${count === 6 ? 3 : 1}, rows: ${count === 6 ? 2 : 4} }`);
+      const png = await checkExport(`${count}-photo layout without frame`);
+      assert.deepEqual(png.samples, [[210,47,39], [35,155,86], [40,116,166], [241,196,15], [165,105,189], [23,165,137]].slice(0, count), `${count}: PNG preserves every photo in intended order`);
+      assert.ok(count === 4 ? png.height > png.width * 3 : png.width > png.height, `${count}: PNG orientation matches requested layout`);
+      await evaluate('window.exportLayoutSpec = null');
+    }
   }
   await click('#scr-result .workflow [data-screen=scr-cam]');
   await waitFor("[...document.querySelectorAll('.filter-sample')].every(el => el.style.backgroundImage.startsWith('url(\"blob:'))");

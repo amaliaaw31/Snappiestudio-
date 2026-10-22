@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
-const code = source.slice(source.indexOf('async function updateVisitorCount()'), source.indexOf('\nupdateVisitorCount();'));
+const code = source.slice(source.indexOf('let visitorTotal = null;'), source.indexOf('\nupdateVisitorCount();'));
 
 test('maintenance browser displays totals without registering a visit', async () => {
   const requests = [];

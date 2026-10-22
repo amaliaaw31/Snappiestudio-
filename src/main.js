@@ -48,6 +48,14 @@ const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const localNumber = value => new Intl.NumberFormat(getLang(), { useGrouping: false }).format(value);
+let visitorTotal = null;
+
+function renderVisitorCount() {
+  if (visitorTotal === null) return;
+  const formatted = new Intl.NumberFormat(getLang()).format(visitorTotal);
+  document.querySelectorAll('[data-visitor-count]').forEach(el => { el.textContent = formatted; });
+}
 
 async function updateVisitorCount() {
   const displays = [...document.querySelectorAll('[data-visitor-count]')];
@@ -58,8 +66,8 @@ async function updateVisitorCount() {
       const response = await window.fetch('/api/visitors', { cache: 'no-store' });
       if (response.ok) {
         const { total } = await response.json();
-        const formatted = new Intl.NumberFormat(getLang()).format(total);
-        displays.forEach(el => { el.textContent = formatted; });
+        visitorTotal = total;
+        renderVisitorCount();
       }
       return;
     }
@@ -76,8 +84,8 @@ async function updateVisitorCount() {
     } : { cache: 'no-store' });
     if (!response.ok) return;
     const { total } = await response.json();
-    const formatted = new Intl.NumberFormat(getLang()).format(total);
-    displays.forEach(el => { el.textContent = formatted; });
+    visitorTotal = total;
+    renderVisitorCount();
   } catch { /* hitungan tidak menghalangi penggunaan kamera */ }
 }
 updateVisitorCount();
@@ -118,6 +126,7 @@ document.body.classList.add('on-start');
 let currentScreen = 'scr-start';
 let historyWorks = true;
 let updateFilterEdges = () => {};
+let refreshEmojiPicker = () => {};
 let demoTheme = 'pastel';
 let pendingDemoFilter = null;
 
@@ -605,6 +614,11 @@ function applyLang(code) {
   setLang(code);
   applyI18n();
   refreshPickers();
+  refreshEmojiPicker();
+  renderVisitorCount();
+  updateDateButton();
+  if (dateWheel) dateWheel.refresh();
+  renderUserStickers();
   syncWorkflow();
   const grid = $('lang-grid');
   if (grid) grid.querySelectorAll('.lang-option').forEach(x => x.classList.toggle('sel', x.dataset.code === code));
@@ -869,6 +883,8 @@ async function startCamera() {
   const requestId = cameraRequestId;
   const setCameraStatus = key => {
     document.querySelectorAll('[data-camera-status]').forEach(el => {
+      if (key) el.dataset.i18n = key;
+      else delete el.dataset.i18n;
       el.textContent = key ? tr(key) : '';
       el.style.display = key ? 'block' : 'none';
     });
@@ -1239,7 +1255,7 @@ function prunePhotoUrls() {
 function slotMedia(p, i, gesture) {
   const style = 'filter:' + filterCss(p.filter) + ';transform:' + imgTransform(p);
   const src = photoUrlReady.get(p.canvas);
-  return '<img' + (gesture ? ' class="slot-img"' : '') + ' data-photo="' + i + '" draggable="false" alt="Foto ' + (i + 1) +
+  return '<img' + (gesture ? ' class="slot-img"' : '') + ' data-photo="' + i + '" draggable="false" alt="' + esc(tr('photo.alt', { number: localNumber(i + 1) })) +
     '" style="' + style + '"' + (src ? ' src="' + src + '"' : '') + '>';
 }
 /* Isi src gambar yang belum siap setelah render (encode async), tanpa re-render. */
@@ -1280,7 +1296,7 @@ function currentDateText() { return state.customDate ? formatDate(state.customDa
 
 /* Layout caption dan tanggal terpisah (font bisa berbeda). */
 function captionLayout() {
-  const innerW = (state.layout === 1 || state.layout === 3) ? 240 : 380;   // lebar dalam bingkai (px CSS)
+  const innerW = state.layout === 6 ? 600 : 240;   // lebar dalam bingkai (px CSS)
   const cap = lineLayout(state.customText || '', state.captionFont || 'Matcha Iced', innerW);
   const date = lineLayout(state.showDate ? currentDateText() : '', state.dateFont || 'Matcha Iced', innerW);
   return { cap, date };
@@ -1311,7 +1327,7 @@ function customFrameAttr() {
 
 function frameHTML() {
   const lay = state.layout === 1 ? 'single' : state.layout === 3 ? 'strip' : 'grid' + state.layout;
-  const cls = state.layout === 1 ? 'photos-single' : state.layout === 3 ? 'photos-strip' : 'photos-grid';
+  const cls = state.layout === 1 ? 'photos-single' : state.layout === 6 ? 'photos-grid' : 'photos-strip';
   let slots = '';
   state.photos.forEach((p, i) => {
     slots += '<div class="slot">' + slotMedia(p, i, false) + '</div>';
@@ -1399,6 +1415,7 @@ function fitFrame(holderId) {
     holder.dataset.fitScale = String(s);
     frame.style.transform = 'scale(' + s.toFixed(4) + ')';
   }
+  if (frame.classList.contains('grid6')) holder.style.height = (fh * s + 8).toFixed(1) + 'px';
 }
 
 function renderResult() {
@@ -1417,7 +1434,7 @@ function renderResult() {
 
 function previewHTML() {
   const lay = state.layout === 1 ? 'single' : state.layout === 3 ? 'strip' : 'grid' + state.layout;
-  const cls = state.layout === 1 ? 'photos-single' : state.layout === 3 ? 'photos-strip' : 'photos-grid';
+  const cls = state.layout === 1 ? 'photos-single' : state.layout === 6 ? 'photos-grid' : 'photos-strip';
   let slots = '';
   state.photos.forEach((p, i) => {
     slots += '<div class="slot preview-slot" data-i="' + i + '">' +
@@ -1684,7 +1701,7 @@ function initDateWheel() {
   const pad = n => String(n).padStart(2, '0');
   const range = (a, b) => { const r = []; for (let i = a; i <= b; i++) r.push(i); return r; };
   const daysIn = (yy, mm) => new Date(yy, mm, 0).getDate();
-  const fill = (el, arr) => { el.innerHTML = arr.map(v => '<div class="dw-item">' + v + '</div>').join(''); };
+  const fill = (el, arr) => { el.innerHTML = arr.map(v => '<div class="dw-item" data-value="' + v + '">' + localNumber(v) + '</div>').join(''); };
   const indexOf = el => Math.max(0, Math.min(el.children.length - 1, Math.round(el.scrollTop / ITEM)));
   const scrollTo = (el, i) => { el.scrollTop = i * ITEM; };
 
@@ -1735,7 +1752,10 @@ function initDateWheel() {
       if (m) cur = { y: +m[1], m: +m[2], d: +m[3] };
       else { const n = new Date(); cur = { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate() }; }
     },
-    refresh() { withGuard(position); },
+    refresh() {
+      [dayEl, monEl, yearEl].forEach(el => [...el.children].forEach(item => { item.textContent = localNumber(+item.dataset.value); }));
+      withGuard(position);
+    },
   };
   dateWheel.set(state.customDate);
 
@@ -1834,7 +1854,8 @@ function buildFontPicker(select) {
   toggle.className = 'font-pick-toggle';
   toggle.setAttribute('aria-haspopup', 'listbox');
   toggle.setAttribute('aria-expanded', 'false');
-  toggle.setAttribute('aria-label', select.getAttribute('aria-label') || 'Font');
+  toggle.dataset.i18nAria = select.dataset.i18nAria || 'ui.font';
+  toggle.setAttribute('aria-label', tr(toggle.dataset.i18nAria));
   const tSample = document.createElement('span');
   tSample.className = 'font-pick-sample';
   tSample.textContent = 'Aa';
@@ -1987,7 +2008,7 @@ function countdownLabel(v) {
 function syncCountdown() {
   if (countdownBtn) countdownBtn.textContent = countdownLabel(state.countdown);
   const val = $('countdown-val');
-  if (val) val.textContent = state.countdown === 0 ? '—' : state.countdown + 's';
+  if (val) val.textContent = state.countdown === 0 ? '—' : countdownLabel(state.countdown);
   const grid = $('countdown-grid');
   if (grid) grid.querySelectorAll('.cd-option').forEach(b => b.classList.toggle('sel', +b.dataset.v === state.countdown));
 }
@@ -2335,7 +2356,7 @@ function initStickerPicker() {
   });
 
   function renderEmojiPicker() {
-    const entries = findEmojiStickers(search.value, category);
+    const entries = findEmojiStickers(search.value, category, getLang());
     emojiGrid.innerHTML = '';
     entries.forEach(entry => {
       const item = document.createElement('button');
@@ -2350,10 +2371,11 @@ function initStickerPicker() {
       };
       emojiGrid.appendChild(item);
     });
-    $('emoji-count').textContent = String(entries.length);
+    $('emoji-count').textContent = localNumber(entries.length);
     $('emoji-empty').hidden = entries.length > 0;
   }
   search.oninput = renderEmojiPicker;
+  refreshEmojiPicker = renderEmojiPicker;
   renderEmojiPicker();
 
   const textInput = $('sticker-text-input');
@@ -2613,7 +2635,10 @@ function buildPalettePicker() {
     const p = RECOMMENDED_PALETTES[idx];
     if (!p) return;
     toggle.dataset.idx = String(idx);
-    if (nameEl) nameEl.textContent = p.name;
+    if (nameEl) {
+      nameEl.dataset.i18n = 'palette.' + idx;
+      nameEl.textContent = tr(nameEl.dataset.i18n);
+    }
     if (chipsEl) chipsEl.innerHTML = chips(p.colors);
     if (swatches) {
       swatches.innerHTML = '';
@@ -2643,7 +2668,7 @@ function buildPalettePicker() {
     b.className = 'pal-option';
     b.dataset.i = String(idx);
     b.setAttribute('role', 'option');
-    b.innerHTML = '<span class="pal-option-name">' + p.name + '</span>' +
+    b.innerHTML = '<span class="pal-option-name" data-i18n="palette.' + idx + '">' + tr('palette.' + idx) + '</span>' +
       '<span class="pal-option-chips">' + chips(p.colors) + '</span>';
     b.onclick = () => { selectPalette(idx); closeMenu(); };
     menu.appendChild(b);
@@ -3157,6 +3182,7 @@ function addHeaders() {
     const h = document.createElement('button');
     h.type = 'button';
     h.className = 'mini-header';
+    h.dataset.i18nAria = 'hdr.home';
     h.setAttribute('aria-label', tr('hdr.home'));
     h.innerHTML = '<span class="mh-title">Snappie Studio</span>' +
       '<span class="mh-tag" lang="en">your little photo moment</span>';

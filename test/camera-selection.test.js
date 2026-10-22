@@ -43,7 +43,7 @@ const multiLens = [
 
 test('actual camera startup selects a rear track with torch instead of the default rear without it', async () => {
   const { mediaDevices, opened } = setup(multiLens);
-  const nodes = { video: {}, camerr: { style: {} }, startStatus: { style: {} } };
+  const nodes = { video: {}, camerr: { style: {}, dataset: {} }, startStatus: { style: {}, dataset: {} } };
   const state = { facing: 'environment', stream: null };
   const context = vm.createContext({
     ...cameraModule, state, cameraRequestId: 0, navigator: { mediaDevices },
@@ -65,7 +65,7 @@ test('camera permission failures show recovery messages on both entry and camera
     ['NotAllowedError', 'err.denied'], ['NotFoundError', 'err.notfound'],
     ['NotReadableError', 'err.inuse'], ['UnknownError', 'err.generic'],
   ]) {
-    const statuses = [{ style: {} }, { style: {} }];
+    const statuses = [{ style: {}, dataset: {} }, { style: {}, dataset: {} }];
     let rejectCamera;
     const context = vm.createContext({
       state: { facing: 'user', stream: null }, cameraRequestId: 0,
@@ -79,6 +79,7 @@ test('camera permission failures show recovery messages on both entry and camera
     rejectCamera(Object.assign(new Error('camera unavailable'), { name }));
     assert.equal(await pending, false);
     assert.ok(statuses.every(el => el.textContent === message && el.style.display === 'block'));
+    assert.ok(statuses.every(el => el.dataset.i18n === message));
     assert.equal(context.state.stream, null);
   }
 });

@@ -87,8 +87,8 @@
 
 <!-- START -->
 <div class="screen active" id="scr-start">
-  <button id="btn-lang" class="lang-fab" type="button" aria-label="Language" title="Language"><span class="ms">language</span></button>
-  <button id="toggle-dark" class="theme-fab" type="button" aria-label="Dark mode" title="Dark mode"><span class="ms" id="dark-ico">dark_mode</span></button>
+  <button id="btn-lang" class="lang-fab" type="button" data-i18n-aria="start.lang" aria-label="Language" data-i18n-title="start.lang" title="Language"><span class="ms">language</span></button>
+  <button id="toggle-dark" class="theme-fab" type="button" data-i18n-aria="start.dark" aria-label="Dark mode" data-i18n-title="start.dark" title="Dark mode"><span class="ms" id="dark-ico">dark_mode</span></button>
   <div class="start-intro">
   <h1>Snappie Studio</h1>
   <p class="tagline" lang="en">your little photo moment</p>
@@ -121,16 +121,16 @@
       <div id="flash"></div>
       <div id="countdown"></div>
       <div class="cam-top-controls">
-        <button type="button" id="btn-flash" class="cam-ico" aria-label="Flash" title="Flash" aria-haspopup="true" aria-expanded="false">
+        <button type="button" id="btn-flash" class="cam-ico" data-i18n-aria="cam.flash" aria-label="Flash" data-i18n-title="cam.flash" title="Flash" aria-haspopup="true" aria-expanded="false">
           <span class="cam-ico-glyph ms" id="flash-glyph">flash_on</span><span class="cam-ico-val" id="flash-val"></span>
         </button>
-        <button type="button" id="btn-countdown" class="cam-ico" aria-label="Countdown" title="Countdown">
+        <button type="button" id="btn-countdown" class="cam-ico" data-i18n-aria="cam.countdown" aria-label="Countdown" data-i18n-title="cam.countdown" title="Countdown">
           <span class="cam-ico-glyph ms">timer</span><span class="cam-ico-val" id="countdown-val"></span>
         </button>
-        <button type="button" id="btn-zoom" class="cam-ico" aria-label="Zoom" title="Zoom: tap untuk ganti 1× / 1.5× / 2× / 3×">
+        <button type="button" id="btn-zoom" class="cam-ico" data-i18n-aria="cam.zoom" aria-label="Zoom" data-i18n-title="cam.zoomHint" title="Zoom: tap untuk ganti 1× / 1.5× / 2× / 3×">
           <span class="cam-ico-val" id="zoom-val">1.0×</span>
         </button>
-        <button type="button" id="btn-sound" class="cam-ico" aria-label="Sound" title="Sound" aria-pressed="true">
+        <button type="button" id="btn-sound" class="cam-ico" data-i18n-aria="cam.sound" aria-label="Sound" data-i18n-title="cam.sound" title="Sound" aria-pressed="true">
           <span class="cam-ico-glyph ms" id="sound-glyph">volume_up</span>
         </button>
         <span class="cam-count" id="shot-count">0 / 3</span>
@@ -141,9 +141,9 @@
         </div>
       </div>
       <div class="cam-bottom-controls">
-        <button type="button" id="btn-switch-cam" class="cam-round" aria-label="Ganti kamera" title="Ganti kamera"><span class="ms">cameraswitch</span></button>
-        <button id="shutter" aria-label="Jepret"></button>
-        <button type="button" id="toggle-mirror" class="cam-round active" aria-label="Mirror" title="Mirror" aria-pressed="true"><span class="ms">flip</span></button>
+        <button type="button" id="btn-switch-cam" class="cam-round" data-i18n-aria="cam.switch" aria-label="Ganti kamera" data-i18n-title="cam.switch" title="Ganti kamera"><span class="ms">cameraswitch</span></button>
+        <button id="shutter" data-i18n-aria="cam.shutter" aria-label="Jepret"></button>
+        <button type="button" id="toggle-mirror" class="cam-round active" data-i18n-aria="cam.mirror" aria-label="Mirror" data-i18n-title="cam.mirror" title="Mirror" aria-pressed="true"><span class="ms">flip</span></button>
       </div>
     </div>
   </div>
@@ -227,7 +227,7 @@
     </label>
     <div class="setting result-font">
       <span class="ms font-sym">text_fields</span>
-      <select id="date-font" class="filter-select small" aria-label="Font">
+      <select id="date-font" class="filter-select small" data-i18n-aria="ui.font" aria-label="Font">
         <option value="Matcha Iced">Matcha Iced</option>
         <option value="The Magic Cookie">The Magic Cookie</option>
         <option value="Orange Lovely">Orange Lovely</option>
@@ -254,7 +254,7 @@
         <option value="Always Smiling">Always Smiling</option>
         <option value="Smiling">Smiling</option>
       </select>
-      <button type="button" class="font-color" id="date-color" data-color="#8a5b7e" aria-label="Warna" title="Warna"></button>
+      <button type="button" class="font-color" id="date-color" data-color="#8a5b7e" data-i18n-aria="ui.color" aria-label="Warna" data-i18n-title="ui.color" title="Warna"></button>
     </div>
   </div>
   <button type="button" id="date-edit-btn" class="date-edit-btn">
@@ -264,7 +264,7 @@
     data-i18n-ph="rs.namePh" data-i18n-aria="rs.namePh" aria-label="Tulis nama / ucapan (opsional)" placeholder="Tulis nama / ucapan (opsional)" autocomplete="off">
   <div class="setting result-font">
     <span class="ms font-sym">text_fields</span>
-    <select id="caption-font" class="filter-select small" aria-label="Font">
+    <select id="caption-font" class="filter-select small" data-i18n-aria="ui.font" aria-label="Font">
       <option value="Matcha Iced">Matcha Iced</option>
       <option value="The Magic Cookie">The Magic Cookie</option>
       <option value="Orange Lovely">Orange Lovely</option>
@@ -291,7 +291,7 @@
       <option value="Always Smiling">Always Smiling</option>
       <option value="Smiling">Smiling</option>
     </select>
-    <button type="button" class="font-color" id="caption-color" data-color="#8a5b7e" aria-label="Warna" title="Warna"></button>
+    <button type="button" class="font-color" id="caption-color" data-color="#8a5b7e" data-i18n-aria="ui.color" aria-label="Warna" data-i18n-title="ui.color" title="Warna"></button>
   </div>
   </details>
   <details class="editor-group" open>
@@ -321,7 +321,7 @@
   <div class="modal-card">
     <div class="modal-header">
       <h2 id="sticker-title"><span class="ms">auto_awesome</span><span data-i18n="md.stickerTitle">Pilih Stiker / Add Sticker</span></h2>
-      <button id="btn-close-sticker" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-sticker" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <div class="sticker-tabs" role="tablist" data-i18n-aria="st.tabs" aria-label="Jenis stiker">
@@ -339,11 +339,11 @@
       <div class="sticker-section-title" data-i18n="md.text">Teks</div>
       <div class="sticker-text-row">
         <input type="text" id="sticker-text-input" class="custom-text-input" maxlength="40"
-          data-i18n-ph="md.textPh" placeholder="Tulis teks, lalu Tambah (bisa dipindah)" autocomplete="off">
+          data-i18n-aria="md.textPh" data-i18n-ph="md.textPh" placeholder="Tulis teks, lalu Tambah (bisa dipindah)" autocomplete="off">
         <button type="button" class="btn" id="btn-add-text" data-i18n="md.add">Tambah</button>
       </div>
       <div class="sticker-style-row">
-        <select id="sticker-font" class="filter-select small" aria-label="Font">
+        <select id="sticker-font" class="filter-select small" data-i18n-aria="ui.font" aria-label="Font">
           <option value="Matcha Iced">Matcha Iced</option>
           <option value="The Magic Cookie">The Magic Cookie</option>
           <option value="Orange Lovely">Orange Lovely</option>
@@ -370,7 +370,7 @@
           <option value="Always Smiling">Always Smiling</option>
           <option value="Smiling">Smiling</option>
         </select>
-        <button type="button" id="sticker-color" class="sticker-color" data-color="#23233a" style="background:#23233a" aria-label="Warna" title="Warna"></button>
+        <button type="button" id="sticker-color" class="sticker-color" data-color="#23233a" style="background:#23233a" data-i18n-aria="ui.color" aria-label="Warna" data-i18n-title="ui.color" title="Warna"></button>
         <label class="sticker-outline"><input type="checkbox" id="sticker-outline" checked> <span data-i18n="st.outline">Outline</span></label>
       </div>
       </section>
@@ -383,7 +383,7 @@
   <div class="modal-card theme-modal-card">
     <div class="modal-header">
       <h2 id="theme-title"><span class="ms">auto_awesome</span><span data-i18n="md.themeTitle">Pilih Tema Bingkai</span></h2>
-      <button id="btn-close-theme" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-theme" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <label class="tool-note" for="theme-category" data-i18n="theme.groupLabel">Kelompok tema</label>
@@ -404,16 +404,16 @@
   <div class="modal-card cf-modal-card">
     <div class="modal-header">
       <h2 id="cf-modal-title"><span class="ms">palette</span><span data-i18n="cf.title">Bingkai Custom</span></h2>
-      <button id="btn-close-customframe" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-customframe" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <div class="cf-subtitle" data-i18n="cf.style">Gaya Bingkai</div>
       <div class="cf-styles" id="cf-styles"></div>
       <div class="cf-subtitle" data-i18n="cf.colors">Warna</div>
       <div class="cf-colors">
-        <div class="cf-item"><button type="button" class="cf-color" id="cf-bg" data-color="#ffffff" aria-label="Frame"></button><span data-i18n="cf.bg">Bingkai</span></div>
-        <div class="cf-item"><button type="button" class="cf-color" id="cf-outline" data-color="#d63384" aria-label="Outline"></button><span data-i18n="cf.outline">Outline</span></div>
-        <div class="cf-item"><button type="button" class="cf-color" id="cf-slot" data-color="#ffffff" aria-label="Photo border"></button><span data-i18n="cf.slot">Garis Foto</span></div>
+        <div class="cf-item"><button type="button" class="cf-color" id="cf-bg" data-color="#ffffff" data-i18n-aria="cf.bg" aria-label="Frame"></button><span data-i18n="cf.bg">Bingkai</span></div>
+        <div class="cf-item"><button type="button" class="cf-color" id="cf-outline" data-color="#d63384" data-i18n-aria="cf.outline" aria-label="Outline"></button><span data-i18n="cf.outline">Outline</span></div>
+        <div class="cf-item"><button type="button" class="cf-color" id="cf-slot" data-color="#ffffff" data-i18n-aria="cf.slot" aria-label="Photo border"></button><span data-i18n="cf.slot">Garis Foto</span></div>
       </div>
       <label class="cf-check date-toggle" for="cf-outline-on">
         <input type="checkbox" id="cf-outline-on" checked>
@@ -445,7 +445,7 @@
   <div class="modal-card filter-modal-card">
     <div class="modal-header">
       <h2 id="filter-title"><span class="ms">palette</span><span data-i18n="md.filterTitle">Pilih Filter</span></h2>
-      <button id="btn-close-filter" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-filter" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <figure id="filter-modal-preview" class="filter-modal-preview" hidden>
@@ -465,7 +465,7 @@
   <div class="modal-card cd-card">
     <div class="modal-header">
       <h2 id="cd-title"><span class="ms">timer</span><span data-i18n="cam.countdown">Hitung mundur</span></h2>
-      <button id="btn-close-countdown" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-countdown" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <div class="cd-grid" id="countdown-grid"></div>
@@ -478,12 +478,12 @@
   <div class="modal-card text-edit-card">
     <div class="modal-header">
       <h2 id="text-edit-title"><span class="ms">edit</span><span data-i18n="md.editTitle">Edit Teks</span></h2>
-      <button id="btn-close-text-edit" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-text-edit" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
-      <input type="text" id="text-edit-input" class="custom-text-input" maxlength="40" autocomplete="off">
+      <input type="text" id="text-edit-input" data-i18n-aria="md.text" class="custom-text-input" maxlength="40" autocomplete="off">
       <div class="sticker-style-row">
-        <select id="edit-font" class="filter-select small" aria-label="Font">
+        <select id="edit-font" class="filter-select small" data-i18n-aria="ui.font" aria-label="Font">
           <option value="Matcha Iced">Matcha Iced</option>
           <option value="The Magic Cookie">The Magic Cookie</option>
           <option value="Orange Lovely">Orange Lovely</option>
@@ -510,7 +510,7 @@
           <option value="Always Smiling">Always Smiling</option>
           <option value="Smiling">Smiling</option>
         </select>
-        <button type="button" id="edit-color" class="sticker-color" data-color="#23233a" style="background:#23233a" aria-label="Warna" title="Warna"></button>
+        <button type="button" id="edit-color" class="sticker-color" data-color="#23233a" style="background:#23233a" data-i18n-aria="ui.color" aria-label="Warna" data-i18n-title="ui.color" title="Warna"></button>
         <label class="sticker-outline"><input type="checkbox" id="edit-outline" checked> <span data-i18n="st.outline">Outline</span></label>
       </div>
       <div class="btnrow">
@@ -526,13 +526,13 @@
   <div class="modal-card color-card">
     <div class="modal-header">
       <h2 id="color-title"><span class="ms">palette</span><span data-i18n="st.colorTitle">Pilih Warna</span></h2>
-      <button id="btn-close-color" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-color" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <div class="cc-custom">
         <div class="cc-title"><span class="ms">tune</span><span data-i18n="st.custom">Warna Custom</span></div>
         <div class="cc-area" id="cc-area"><span class="cc-cursor" id="cc-cursor"></span></div>
-        <input type="range" id="cc-hue" class="cc-hue" min="0" max="360" step="1" value="0" aria-label="Hue">
+        <input type="range" id="cc-hue" class="cc-hue" min="0" max="360" step="1" value="0" data-i18n-aria="ui.hue" aria-label="Hue">
         <div class="cc-readout">
           <span class="cc-preview" id="cc-preview"></span>
           <div class="cc-codes">
@@ -540,13 +540,13 @@
             <span>RGB <b id="cc-rgb">0, 0, 0</b></span>
             <span>CMYK <b id="cc-cmyk">0%, 0%, 0%, 100%</b></span>
           </div>
-          <button type="button" class="cc-eyedrop" id="cc-eyedropper" aria-label="Ambil warna dari layar" title="Ambil warna dari layar"><span class="ms">colorize</span></button>
+          <button type="button" class="cc-eyedrop" id="cc-eyedropper" data-i18n-aria="ui.eyedropper" aria-label="Ambil warna dari layar" data-i18n-title="ui.eyedropper" title="Ambil warna dari layar"><span class="ms">colorize</span></button>
           <button type="button" class="btn" id="cc-apply"><span data-i18n="st.apply">Pakai Warna</span></button>
         </div>
         <div class="cc-manual">
           <span class="ms">keyboard</span>
           <input type="text" id="cc-code-input" class="cc-code-input" autocomplete="off" spellcheck="false"
-            data-i18n-ph="st.codePh" placeholder="#d63384 atau rgb(214,51,132)">
+            data-i18n-aria="ui.colorCode" data-i18n-ph="st.codePh" placeholder="#d63384 atau rgb(214,51,132)">
         </div>
       </div>
 
@@ -569,7 +569,7 @@
   <div class="modal-card again-card">
     <div class="modal-header">
       <h2 id="again-title"><span class="ms">photo_camera</span><span data-i18n="ag.title">Mau jepret lagi?</span></h2>
-      <button id="btn-close-again" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-again" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <p class="again-text" data-i18n="ag.text">Hasil fotomu sudah aman. Mau lanjut bikin sesi baru, atau selesai sampai di sini?</p>
@@ -586,7 +586,7 @@
   <div class="modal-card ig-card">
     <div class="modal-header">
       <h2 id="ig-title"><span class="ms">photo_camera</span><span data-i18n="sh.igTitle">Bagikan ke Instagram</span></h2>
-      <button id="btn-close-ig" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-ig" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <div class="ig-grid">
@@ -610,12 +610,12 @@
   <div class="modal-card ig-card">
     <div class="modal-header">
       <h2 id="fb-title"><span class="ms">thumb_up</span><span data-i18n="sh.fbTitle">Bagikan ke Facebook</span></h2>
-      <button id="btn-close-fb" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-fb" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <div class="share-caption-panel">
         <label for="fb-caption" data-i18n="sh.captionLabel">Caption & link situs</label>
-        <textarea id="fb-caption" class="share-caption-text" rows="3" readonly aria-describedby="fb-caption-status"></textarea>
+        <textarea id="fb-caption" data-i18n-aria="sh.captionLabel" class="share-caption-text" rows="3" readonly aria-describedby="fb-caption-status"></textarea>
         <button type="button" class="btn ghost" id="fb-copy-caption" data-i18n="sh.copy">Salin Caption & Link</button>
         <p id="fb-caption-status" class="share-caption-status" role="status"></p>
       </div>
@@ -645,12 +645,12 @@
   <div class="modal-card ig-card">
     <div class="modal-header">
       <h2 id="th-title"><span class="ms">alternate_email</span><span data-i18n="sh.thTitle">Bagikan ke Threads</span></h2>
-      <button id="btn-close-th" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-th" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <div class="share-caption-panel">
         <label for="th-caption" data-i18n="sh.captionLabel">Caption & link situs</label>
-        <textarea id="th-caption" class="share-caption-text" rows="3" readonly aria-describedby="th-caption-status"></textarea>
+        <textarea id="th-caption" data-i18n-aria="sh.captionLabel" class="share-caption-text" rows="3" readonly aria-describedby="th-caption-status"></textarea>
         <button type="button" class="btn ghost" id="th-copy-caption" data-i18n="sh.copy">Salin Caption & Link</button>
         <p id="th-caption-status" class="share-caption-status" role="status"></p>
       </div>
@@ -675,7 +675,7 @@
   <div class="modal-card ig-card">
     <div class="modal-header">
       <h2 id="tt-title"><span class="ms">music_note</span><span data-i18n="sh.ttTitle">Bagikan ke TikTok</span></h2>
-      <button id="btn-close-tt" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-tt" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <div class="ig-grid">
@@ -704,13 +704,13 @@
   <div class="modal-card ig-card">
     <div class="modal-header">
       <h2 id="date-title"><span class="ms">calendar_month</span><span data-i18n="rs.dateTitle">Pilih Tanggal</span></h2>
-      <button id="btn-close-date" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-date" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="date-wheel-row" role="group" aria-label="Tanggal kustom">
-        <div class="date-wheel" id="dw-day" tabindex="0" aria-label="Tanggal"></div>
-        <div class="date-wheel" id="dw-month" tabindex="0" aria-label="Bulan"></div>
-        <div class="date-wheel" id="dw-year" tabindex="0" aria-label="Tahun"></div>
+      <div class="date-wheel-row" role="group" data-i18n-aria="rs.dateTitle" aria-label="Tanggal kustom">
+        <div class="date-wheel" id="dw-day" tabindex="0" data-i18n-aria="date.day" aria-label="Tanggal"></div>
+        <div class="date-wheel" id="dw-month" tabindex="0" data-i18n-aria="date.month" aria-label="Bulan"></div>
+        <div class="date-wheel" id="dw-year" tabindex="0" data-i18n-aria="date.year" aria-label="Tahun"></div>
       </div>
       <div class="btnrow">
         <button type="button" id="dp-auto" class="btn ghost" data-i18n="rs.dateAuto">Otomatis</button>
@@ -725,7 +725,7 @@
   <div class="modal-card ig-card">
     <div class="modal-header">
       <h2 id="replace-title"><span class="ms">refresh</span><span data-i18n="rp.title">Ganti Foto</span></h2>
-      <button id="btn-close-replace" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-replace" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <p class="again-text" data-i18n="rp.text">Mau ganti foto ini dengan apa?</p>
@@ -750,7 +750,7 @@
   <div class="modal-card lang-modal-card">
     <div class="modal-header">
       <h2 id="lang-title"><span class="ms">language</span><span data-i18n="start.lang">Bahasa</span></h2>
-      <button id="btn-close-lang" class="modal-close" aria-label="Tutup">&times;</button>
+      <button id="btn-close-lang" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
       <div class="lang-grid" id="lang-grid"></div>

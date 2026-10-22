@@ -71,16 +71,16 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
   /* Geometri disamakan dengan preview HTML (.frame-outer / .frame / .slot).
      Semua ukuran preview (px) dikalikan `scale` agar slot foto tetap 640x480,
      sehingga proporsi bingkai pada PNG identik dengan yang tampil di layar. */
-  const cols = (layout === 6 || layout === 4) ? 2 : 1;
-  const rows = layout === 1 ? 1 : (layout === 4 ? 2 : 3);
-  const baseW = (layout === 4 || layout === 6) ? 440 : 300;   // .frame-outer width
+  const cols = layout === 6 ? 3 : 1;
+  const rows = layout / cols;
+  const baseW = layout === 6 ? 660 : 300;   // .frame-outer width
   /* Semua tema: potong rapat ke kartu (tanpa padding frame-outer). */
   const outer = 0;                                             // .frame-outer padding
   const outerT = outer;
   const frameX = showFrame ? 18 : 0;                           // .frame padding x
   const frameTop = showFrame ? 22 : 0;                         // .frame padding-top
   const frameBottom = showFrame ? 24 : 0;                      // .frame padding-bottom
-  const gapPrev = cols === 2 ? 10 : 12;                        // .photos-grid / .photos-strip gap
+  const gapPrev = cols > 1 ? 10 : 12;                        // .photos-grid / .photos-strip gap
   const innerW = baseW - 2 * (outerT + frameX);
   const slotPrevW = (innerW - (cols - 1) * gapPrev) / cols;
   const scale = 640 / slotPrevW;                               // preview px -> canvas px
