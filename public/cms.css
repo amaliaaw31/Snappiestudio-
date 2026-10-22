@@ -8,7 +8,15 @@
 body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 32px; }
 main { width: min(100%, 640px); min-width: 0; padding: 32px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
 .dashboard { width: min(100%, 1240px); padding: clamp(20px, 4vw, 48px); }
-.brand { font-size: 16px; font-weight: 800; }
+@font-face { font-family: 'Material Symbols Rounded'; src: url('/icons/cms-theme.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: block; }
+.brand { display: grid; gap: 4px; min-width: 0; }
+.brand-name { font-family: 'The Magic Cookie', cursive; font-size: clamp(28px, 4vw, 38px); font-weight: 400; color: #d63384; line-height: 1.1; }
+.brand-tagline { font-family: 'Orange Lovely', sans-serif; font-size: 17px; color: #9c3f6e; line-height: 1.3; }
+.theme-icon { font-family: 'Material Symbols Rounded'; font-size: 30px; font-weight: 500; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; font-feature-settings: 'liga'; color: #ffb703; -webkit-text-stroke: .7px #805800; }
+#theme-toggle { width: 44px; height: 44px; padding: 6px; flex-shrink: 0; }
+:root[data-theme="dark"] .brand-name { color: #ff7ab8; }
+:root[data-theme="dark"] .brand-tagline { color: #cbb3dd; }
+:root[data-theme="dark"] .theme-icon { color: #9aa6e6; -webkit-text-stroke: 0; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
 .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 #theme-toggle[aria-pressed="true"] { border-color: var(--accent); }

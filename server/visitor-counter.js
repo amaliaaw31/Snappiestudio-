@@ -12,7 +12,7 @@ const CMS_FILES = new Map([
   ['/cms/dashboard', 'cms-dashboard.html'], ['/cms/dashboard/', 'cms-dashboard.html'],
   ['/cms-dashboard.html', 'cms-dashboard.html'],
 ]);
-const CMS_CSP = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; object-src 'none'";
+const CMS_CSP = "default-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; object-src 'none'";
 
 // Mengubah record GeoIP menjadi negara dan kota saja. IP tidak pernah disimpan.
 export function createLocator(reader) {
@@ -107,6 +107,10 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
         }
         const retry = limit('visitors:' + clientIp(request, trustProxy), 120, 60 * 1000);
         if (retry) { response.setHeader('Retry-After', String(retry)); json(response, 429, { error: 'Too many requests' }); return; }
+        if (request.method === 'POST') {
+          const globalRetry = limit('visitor-writes-global', 600, 60 * 1000);
+          if (globalRetry) { response.setHeader('Retry-After', String(globalRetry)); json(response, 429, { error: 'Too many visitor writes' }); return; }
+        }
       }
       if (request.method === 'GET' && path === '/api/visitors') {
         json(response, 200, { total: total.get().total });

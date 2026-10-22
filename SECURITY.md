@@ -10,6 +10,8 @@ Cookie `__Host-snappie_cms` memakai Secure, HttpOnly, SameSite=Strict, dan Path=
 
 Login dibatasi 5 percobaan per IP selama 15 menit, 30 percobaan global per menit, dan dua verifikasi bcrypt bersamaan. API visitor dibatasi 120 permintaan per IP per menit. Pembatas ini mengurangi penyalahgunaan; serangan terdistribusi masih memerlukan proteksi pada jaringan/proxy penyedia hosting.
 
+Penulisan counter juga dibatasi secara global menjadi 600 POST per menit, termasuk jika sumber berganti IP. Batas ini tidak memblokir GET total atau login CMS. Request yang gagal pemeriksaan CSRF tidak memperpanjang waktu tidak aktif sesi. Tidak ada perubahan password atau username akun dalam hardening ini.
+
 ## Mode maintenance
 
 Login CMS otomatis mendaftarkan UUID browser admin ke `excluded_browsers`, menghapus kunjungan UUID tersebut dari tabel visitor, dan menyimpan flag maintenance lokal. Browser ini selanjutnya hanya mengambil total dengan GET. Backend tetap menolak menghitung UUID yang dikecualikan meskipun flag lokal hilang. Reset counter mempertahankan pengecualian. Browser atau perangkat lain harus login CMS sendiri. Menghapus semua data situs menghasilkan UUID baru sehingga perlu login kembali.
@@ -20,7 +22,13 @@ Blok routing/header Snappie berada di `deployment/snappie.caddy`. Produksi mengi
 
 Build menambahkan CSP dengan hash skrip inline yang tepat ke index.html; setiap build menghitung ulang hash. CMS menggunakan skrip module terpisah dan CSP yang menolak skrip inline. Style inline tetap diizinkan di aplikasi foto karena editor memakai gaya dinamis. Header proxy menambahkan HSTS, anti-framing, nosniff, kebijakan referer dan pembatasan fitur browser.
 
+Build juga menghasilkan `dist/snappie-app-csp.caddy` untuk CSP HTTP website utama. Header menolak event handler inline dan skrip tanpa sumber/hash yang diizinkan, sementara koneksi data tetap dibatasi ke origin sendiri. Font dan gambar CMS hanya diizinkan dari origin sendiri; font merek dan favicon digunakan bersama website utama dan dua simbol tema disajikan lokal. Jalur berkas internal, key/hash, konfigurasi, SQLite, serta berkas WAL/SHM ditolak oleh Caddy.
+
+Deploy situs memakai `sudo -n bash scripts/deploy.sh`, yang mencadangkan berkas situs dan snippet Caddy, memasang CSP sesuai build, memvalidasi konfigurasi sebelum reload, dan memulihkan berkas sebelumnya jika gagal. Jangan menyalin dist saja setelah CSP HTTP diaktifkan. Installer lama tidak lagi menerima hash melalui argumen command line atau membuat dashboard statis/Basic Auth. Prosedur pemasangan terdapat di `docs/visitor-counter-deploy.md`.
+
 Setelah perubahan, jalankan lint, unit test, build, dan npm audit. Salin dist ke produksi, validasi konfigurasi Caddy sebelum reload, lalu periksa akses anonim dashboard/API ditolak, header keamanan muncul, dan aplikasi foto tetap berjalan. Setelah perubahan backend, restart `snappiestudio-counter` agar kode baru aktif; sesi admin yang ada akan berakhir.
+
+Layanan counter memakai UMask 0077, tanpa capability kernel, serta pembatasan akses perangkat dan pengaturan kernel. Berkas database, WAL, dan SHM yang ada harus memakai izin 0600. CI menolak kerentanan high/critical pada dependensi produksi melalui `npm audit --omit=dev --audit-level=high`.
 
 Contoh variabel tersedia di `.env.example`. Untuk pengembangan CMS lokal, gunakan hash password khusus pengembangan, SITE_DIRECTORY yang menunjuk dist, dan SITE_ORIGINS yang sesuai origin localhost. Jangan gunakan kredensial produksi dalam tes.
 

@@ -107,6 +107,34 @@ test('sessions expire after inactivity and have an absolute lifetime', async t =
   assert.equal((await api.request('/api/admin/session', { headers: second.headers })).status, 401);
 });
 
+test('rejected CSRF requests do not keep an idle session alive', async t => {
+  const api = await app(t);
+  const { headers } = await api.authenticate();
+  api.advance(29 * 60 * 1000);
+  const rejected = await api.request('/api/admin/reset', {
+    method: 'POST', headers: { ...headers, 'X-CSRF-Token': '' },
+  });
+  assert.equal(rejected.status, 403);
+  api.advance(2 * 60 * 1000);
+  assert.equal((await api.request('/api/admin/session', { headers })).status, 401);
+});
+
+test('counter write quota applies across client IPs without blocking reads or CMS login', async t => {
+  const api = await app(t, { trustProxy: true });
+  const write = index => api.request('/api/visitors', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `203.0.113.${index % 250 + 1}` },
+    body: JSON.stringify({ visitorId: 'ca7c9a39-dc55-46c5-a091-09f2a1b6a8bb' }),
+  });
+  for (let index = 0; index < 600; index++) assert.equal((await write(index)).status, 200);
+  const rejected = await write(600);
+  assert.equal(rejected.status, 429);
+  assert.ok(Number(rejected.headers.get('retry-after')) > 0);
+  assert.equal((await api.request('/api/visitors')).status, 200);
+  assert.equal((await api.login()).status, 200);
+  api.advance(60000);
+  assert.equal((await write(601)).status, 200);
+});
+
 test('login throttles guesses even with spoofed forwarded addresses', async t => {
   const api = await app(t);
   for (let i = 0; i < 5; i++) {

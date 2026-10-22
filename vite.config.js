@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { createHash } from 'node:crypto';
 
 // Inline only the entry module; avoid glob-parsing dependencies in the build.
-function inlineEntryWithCsp() {
+export function inlineEntryWithCsp() {
   return {
     name: 'snappie-inline-entry-and-csp', enforce: 'post',
     generateBundle(_options, bundle) {
@@ -21,12 +21,22 @@ function inlineEntryWithCsp() {
         .map(([, code]) => "'sha256-" + createHash('sha256').update(code).digest('base64') + "'");
       const policy = [
         "default-src 'self'", "script-src 'self' " + hashes.join(' '),
+        "script-src-attr 'none'",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com", "img-src 'self' data: blob:",
         "media-src 'self' blob:", "connect-src 'self'", "worker-src 'self' blob:",
         "object-src 'none'", "base-uri 'self'", "form-action 'self'",
       ].join('; ');
       page.source = html.replace('<head>', '<head>\n<meta http-equiv="Content-Security-Policy" content="' + policy + '">');
+      this.emitFile({ type: 'asset', fileName: 'snappie-app-csp.caddy',
+        source: `header Content-Security-Policy "${policy}; frame-ancestors 'none'"\n` });
+      const brandFonts = [['The Magic Cookie', 'the-magic-cookie-'], ['Orange Lovely', 'orange-lovely-']];
+      const brandCss = brandFonts.map(([family, prefix]) => {
+        const file = Object.keys(bundle).find(name => name.startsWith(prefix) && /\.(ttf|otf)$/.test(name));
+        if (!file) throw new Error(`Missing shared brand font: ${family}`);
+        return `@font-face { font-family: '${family}'; src: url('/${file}'); font-weight: 400; font-style: normal; font-display: swap; }`;
+      }).join('\n');
+      this.emitFile({ type: 'asset', fileName: 'cms-brand.css', source: brandCss });
     },
   };
 }

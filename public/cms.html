@@ -5,21 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>Login CMS | Snappie Studio</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <script src="/cms-theme.js"></script>
   <link rel="stylesheet" href="/cms.css">
+  <link rel="stylesheet" href="/cms-brand.css">
 </head>
 <body>
   <main>
     <div class="topbar">
-      <div class="brand">Snappie Studio</div>
-      <button id="theme-toggle" type="button" aria-pressed="false">Mode gelap</button>
+      <div class="brand"><span class="brand-name">Snappie Studio</span><span class="brand-tagline">"your little photo moment"</span></div>
+      <button id="theme-toggle" type="button" aria-label="Mode gelap" title="Mode gelap" aria-pressed="false"><span id="theme-icon" class="theme-icon" aria-hidden="true">light_mode</span></button>
     </div>
     <h1>Login CMS</h1>
     <p class="sub">Masuk untuk melihat diagram kunjungan dan lokasi hingga provinsi.</p>
     <form id="login" class="login">
-      <label for="username">Username admin</label>
+      <label for="username">Username</label>
       <input id="username" name="username" autocomplete="username" required>
-      <label for="password">Password admin</label>
+      <label for="password">Password</label>
       <input id="password" name="password" type="password" autocomplete="current-password" required>
       <button id="login-submit" type="submit">Masuk</button>
     </form>

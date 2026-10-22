@@ -11,6 +11,8 @@
     const dark = preference ? preference === 'dark' : system.matches;
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     document.getElementById('theme-toggle')?.setAttribute('aria-pressed', String(dark));
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.textContent = dark ? 'dark_mode' : 'light_mode';
     window.dispatchEvent(new window.Event('cms-theme-change'));
   }
 

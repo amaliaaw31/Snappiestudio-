@@ -17,6 +17,7 @@ Selalu jalankan `npm run lint`, `npm test`, dan `npm run build` setelah mengubah
 - Pengguna menghendaki setiap perubahan situs langsung dideploy setelah pemeriksaan lulus.
 - Situs produksi `https://snappiestudio.com` dilayani Caddy dari `/var/www/snappie`.
 - Setelah build berhasil, salin hasilnya dengan `sudo -n cp -a dist/. /var/www/snappie/` (folder produksi dimiliki administrator dan memerlukan akses tulis di luar workspace), lalu verifikasi situs produksi sudah memuat perubahan.
+- Jalankan penyalinan tersebut melalui `sudo -n bash scripts/deploy.sh`. Skrip mencadangkan situs, memasang CSP hasil build, memvalidasi konfigurasi, menyalin dist, lalu reload Caddy. Jangan deploy dengan penyalinan saja: hash CSP header harus sesuai HTML terbaru.
 - Lanjutkan deploy tanpa menanyakan konfirmasi tambahan kepada pengguna; tetap patuhi izin yang diwajibkan sistem.
 
 ## Git

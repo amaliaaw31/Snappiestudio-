@@ -88,7 +88,7 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
   const origins = new Set(allowedOrigins);
   const sameOrigin = request => origins.has(request.headers.origin) && request.headers['sec-fetch-site'] !== 'cross-site';
   const clearCookie = response => response.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
-  const session = request => {
+  const session = (request, touch = true) => {
     const token = cookieToken(request);
     if (!token) return null;
     const id = digest(token);
@@ -98,7 +98,7 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
       sessions.delete(id);
       return null;
     }
-    value.lastSeen = now();
+    if (touch) value.lastSeen = now();
     return value;
   };
   const rejectRate = (response, retry) => {
@@ -142,7 +142,7 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
       if (request.headers['sec-fetch-site'] === 'cross-site' || (request.headers.origin && !origins.has(request.headers.origin))) {
         json(response, 403, { error: 'Forbidden origin' }); return null;
       }
-      const value = session(request);
+      const value = session(request, false);
       if (!value) { clearCookie(response); json(response, 401, { error: 'Login required' }); return null; }
       if (write) {
         const csrf = request.headers['x-csrf-token'];
@@ -151,6 +151,7 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
           json(response, 403, { error: 'Invalid CSRF token' }); return null;
         }
       }
+      value.lastSeen = now();
       return value;
     },
     logout(request, response) {
