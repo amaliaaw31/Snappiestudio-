@@ -111,11 +111,19 @@ try {
   await click('#demo-filter');
   await click('#filter-grid [data-id=normal]');
   await check("getComputedStyle(document.body, '::before').maskImage.includes('start-lines') && performance.getEntriesByType('resource').every(entry => !/\\/bac[.-]/.test(entry.name))", 'homepage restores static background without runtime image processing');
+  await evaluate(`window.frameDimensions = root => {
+    const outer = root.querySelector('.frame-outer'), frame = root.querySelector('.frame');
+    const slot = root.querySelector('.slot'), captions = root.querySelector('.frame-captions');
+    return [outer.offsetWidth, outer.offsetHeight, frame.offsetWidth, frame.offsetHeight,
+      slot.offsetWidth, slot.offsetHeight, getComputedStyle(root.querySelector('.photos-strip')).gap,
+      captions.offsetHeight];
+  }; window.demoDimensions = {};`);
   for (const width of [320, 390, 720, 1000, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
     for (const theme of ['pastel', 'minimal', 'film']) {
       await click(`[data-demo-theme=${theme}]`);
-      await check(`(() => { const frame = document.querySelector('#demo-frame .frame'); const bounds = frame.getBoundingClientRect(); return getComputedStyle(frame).display === 'block' && [...frame.querySelectorAll('i')].every(slot => { const box = slot.getBoundingClientRect(); return box.width > 0 && box.left >= bounds.left && box.right <= bounds.right + 1 && box.top >= bounds.top && box.bottom <= bounds.bottom + 1; }); })()`, `homepage ${theme} frame contains photos at ${width}px`);
+      await evaluate(`window.demoDimensions['${width}-${theme}'] = window.frameDimensions(document.querySelector('#demo-frame'))`);
+      await check(`(() => { const frame = document.querySelector('#demo-frame .frame'); const bounds = frame.getBoundingClientRect(); return getComputedStyle(frame).display === 'block' && frame.querySelectorAll('.slot').length === 3 && [...frame.querySelectorAll('.slot')].every(slot => { const box = slot.getBoundingClientRect(); return box.width > 0 && box.left >= bounds.left && box.right <= bounds.right + 1 && box.top >= bounds.top && box.bottom <= bounds.bottom + 1; }); })()`, `homepage ${theme} frame contains photos at ${width}px`);
     }
   }
   for (const width of [390, 1440]) {
@@ -265,7 +273,13 @@ try {
     await click('#scr-result .mini-header');
     await importPhotos(count);
     await check(`document.querySelectorAll('#preview-holder .slot').length === ${count}`, `${count}-photo layout preserves every imported photo`);
+    if (count === 3) {
+      await check("JSON.stringify(window.frameDimensions(document.querySelector('#preview-holder'))) === JSON.stringify(window.demoDimensions['1440-film'])", 'homepage frame dimensions match three-photo preview');
+    }
     await click('#btn-preview-fix');
+    if (count === 3) {
+      await check("JSON.stringify(window.frameDimensions(document.querySelector('#result-holder'))) === JSON.stringify(window.demoDimensions['1440-film'])", 'homepage frame dimensions match three-photo result');
+    }
     await checkExport(`${count}-photo layout`);
   }
   await click('#scr-result .workflow [data-screen=scr-cam]');

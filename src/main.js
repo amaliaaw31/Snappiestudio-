@@ -363,8 +363,10 @@ function refreshPhotoSamples() {
 function renderDemo() {
   const holder = $('demo-frame');
   if (!holder) return;
-  holder.innerHTML = themeThumbHTML({ id: demoTheme });
-  holder.querySelector('.thumb-slots').innerHTML = ('<i><img src="' + filterSampleUrl + '" alt="" style="filter:' + filterCss(state.filter) + '"></i>').repeat(3);
+  const photos = ('<div class="slot"><img src="' + filterSampleUrl + '" alt="" style="filter:' + filterCss(state.filter) + '"></div>').repeat(3);
+  holder.innerHTML = '<div class="frame-outer th-' + demoTheme + ' strip"><div class="frame">' +
+    '<div class="photos-strip">' + photos + '</div><div class="frame-captions"></div></div></div>';
+  fitFrame('demo-frame');
   if ($('demo-filter')) $('demo-filter').textContent = filterName();
   document.querySelectorAll('[data-demo-theme]').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.demoTheme === demoTheme));
@@ -1522,6 +1524,7 @@ function refitFrames() {
   refitPending = true;
   requestAnimationFrame(() => {
     refitPending = false;
+    if (currentScreen === 'scr-start') fitFrame('demo-frame');
     if (currentScreen === 'scr-preview') fitFrame('preview-holder');
     else if (currentScreen === 'scr-result') fitFrame('result-holder');
   });

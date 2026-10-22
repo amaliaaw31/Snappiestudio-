@@ -192,13 +192,8 @@ body.dark-mode.on-start {
 #scr-start.active { display: grid; }
 .start-intro { display: flex; flex-direction: column; align-items: center; padding: 8px 0; }
 #scr-start h1 { font-size: clamp(44px, 6vw, 80px); }
-.start-demo { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 0; min-width: 0; }
+.start-demo { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 0; min-width: 0; width: 100%; }
 .start-demo figcaption { color: var(--ui-muted); font-size: 13px; text-align: center; }
-.start-demo .theme-thumb { display: block; width: 126px; padding: 8px; }
-.start-demo .frame { display: block; padding: 10px; }
-.start-demo .thumb-slots { gap: 6px; }
-.start-demo .thumb-slots i { height: auto; aspect-ratio: 4 / 3; }
-.start-demo .thumb-stamp { margin: 14px auto 5px; }
 .demo-themes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .demo-themes button { border: 1px solid var(--ui-border); border-radius: 8px; background: var(--ui-surface); color: var(--ui-text); padding: 10px 12px; min-height: 44px; font: inherit; font-size: 12px; cursor: pointer; }
 .demo-themes button[aria-pressed="true"] { border: 2px solid var(--ui-accent); color: var(--ui-accent); font-weight: 700; }
@@ -493,9 +488,9 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 #scr-preview .desc { margin-bottom: 6px; }
 /* Tinggi tetap (bukan sisa layar) supaya tidak ada celah besar antara foto dan kontrol di HP,
    dan tetap stabil saat toggle bingkai. */
-#result-holder, #preview-holder { width: 100%; flex: 0 0 auto; height: min(64vh, 440px); overflow: hidden;
+#result-holder, #preview-holder, #demo-frame { width: 100%; flex: 0 0 auto; height: min(64vh, 440px); overflow: hidden;
   display: flex; align-items: flex-start; justify-content: center; margin-top: 4px; padding-top: 4px; }
-#result-holder .frame-outer, #preview-holder .frame-outer { transform-origin: top center;
+#result-holder .frame-outer, #preview-holder .frame-outer, #demo-frame .frame-outer { transform-origin: top center;
   will-change: transform; backface-visibility: hidden; }
 .frame-outer.noframe { padding: 0; box-shadow: none; background: none; outline: none; }
 .frame-outer.noframe .frame { padding: 0; }
@@ -1315,7 +1310,6 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
   #scr-start, #scr-result { max-width: 760px; padding-inline: 28px; }
   #scr-start { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; align-content: center; }
   #scr-start > .visitor-count { grid-column: 1 / -1; }
-  .start-demo .theme-thumb { width: 184px; }
   .editor-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #text-tools { grid-column: 1 / -1; grid-row: 2; }
 }
@@ -1323,7 +1317,6 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
   #scr-start, #scr-result { max-width: 1080px; }
   #scr-start { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 40px; align-content: center; }
   #scr-start > .visitor-count { grid-column: 1 / -1; }
-  .start-demo .theme-thumb { width: 210px; }
   .result-workspace { grid-template-columns: minmax(0, 1fr) 360px; gap: 36px; }
   .result-canvas { position: sticky; top: 94px; }
   .editor-panel { grid-template-columns: minmax(0, 1fr); }

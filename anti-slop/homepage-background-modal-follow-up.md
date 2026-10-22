@@ -14,3 +14,9 @@ Verifikasi: lint, 75 unit test, build, dan pengujian browser lulus. Pergantian k
 Delivery Gate: kontrol berfungsi, motif berasal dari background lama, perubahan terarah, dan bukti regresi dicatat. Warna dan tipografi mempertahankan identitas yang ada; gerak tidak ditambah.
 
 Deploy selesai melalui `scripts/deploy.sh`, dengan backup `/var/backups/snappiestudio/deploy-zRicCLnI`. Regresi browser produksi lulus. HTML publik identik dengan build dan CSP header cocok dengan policy HTML.
+
+## Ukuran contoh mengikuti bingkai sebenarnya
+
+Permintaan lanjutan: contoh halaman utama memakai ukuran bingkai preview dan hasil. Contoh kini memakai kelas `strip`, `photos-strip`, `slot`, dan `frame-captions` yang sama, menggantikan thumbnail dengan padding dan jarak tersendiri. Lebar dasar strip 300px mengikuti aturan responsif yang sudah ada. Area tampilan dan fungsi `fitFrame` mengikuti preview; resize juga menghitung ulang skala contoh.
+
+Browser membandingkan lebar/tinggi bingkai, bagian dalam, slot foto, jarak foto, dan area caption contoh dengan preview serta hasil tiga foto pada tema film: identik. Ketiga pilihan tema tetap diperiksa pada lima lebar layar. Lint, 75 unit test, build, dan regresi browser lulus. Screenshot 390px diperiksa; strip kini lebih besar sehingga pengguna menggulir untuk melihat kontrol di bawahnya.
