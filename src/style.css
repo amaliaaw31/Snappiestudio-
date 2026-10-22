@@ -176,7 +176,7 @@ body { --page-bg: #fdf3ff; --ui-surface: #fff; --ui-text: #493c55; --ui-muted: #
   font-family: 'Quicksand', 'Trebuchet MS', Verdana, sans-serif; background: #fdf3ff; color: #3a3a5c;
   min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
 body.dark-mode { --page-bg: #14121d; --ui-surface: #221f33; --ui-text: #eee6f5; --ui-muted: #c3b5d4; --ui-border: #87759c; --ui-accent: #ff8fc0; }
-/* background tampilan awal — mengikuti mode */
+/* Latar CSS mengikuti mode tanpa memproses gambar di Canvas. */
 body.on-start {
   background-color: #fdf3ff;
   background-image: linear-gradient(180deg, #fdf3ff 0%, #f6e9ff 55%, #ffe9f4 100%);
@@ -185,26 +185,16 @@ body.dark-mode.on-start {
   background-color: #14121d;
   background-image: linear-gradient(180deg, #14121d 0%, #1b1630 55%, #241a2e 100%);
 }
-/* line-art dari gambar user: garis = warna font, bg = mode */
-#bg-lines {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none; display: none;
-  background-color: #d63384; opacity: .045;
-  -webkit-mask-image: var(--bg-lines); mask-image: var(--bg-lines);
-  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-  -webkit-mask-position: center; mask-position: center;
-  -webkit-mask-size: cover; mask-size: cover;
-}
-body.on-start.has-lines #bg-lines { display: block; }
-body.dark-mode #bg-lines { background-color: #ff7ab8; opacity: .06; }
 .screen { display: none; position: relative; z-index: 1; width: 100%; max-width: 560px; padding: 20px 16px 32px;
   flex-direction: column; align-items: center; }
 .screen.active { display: flex; }
 #scr-start { justify-content: center; min-height: 100vh; min-height: 100dvh; position: relative; padding-top: 64px; gap: 28px; grid-template-columns: minmax(0, 1fr); }
 #scr-start.active { display: grid; }
-.start-intro { display: flex; flex-direction: column; align-items: center; padding: 18px 12px; background: var(--page-bg); border-radius: 20px; }
+.start-intro { display: flex; flex-direction: column; align-items: center; padding: 8px 0; }
+#scr-start h1 { font-size: clamp(44px, 6vw, 80px); }
 .start-demo { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 0; min-width: 0; }
 .start-demo figcaption { color: var(--ui-muted); font-size: 13px; text-align: center; }
-.start-demo .theme-thumb { display: block; width: 146px; padding: 8px; }
+.start-demo .theme-thumb { display: block; width: 126px; padding: 8px; }
 .start-demo .frame { padding: 10px; }
 .start-demo .thumb-slots { gap: 6px; }
 .start-demo .thumb-slots i { height: auto; aspect-ratio: 4 / 3; }
@@ -212,6 +202,8 @@ body.dark-mode #bg-lines { background-color: #ff7ab8; opacity: .06; }
 .demo-themes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .demo-themes button { border: 1px solid var(--ui-border); border-radius: 8px; background: var(--ui-surface); color: var(--ui-text); padding: 10px 12px; min-height: 44px; font: inherit; font-size: 12px; cursor: pointer; }
 .demo-themes button[aria-pressed="true"] { border: 2px solid var(--ui-accent); color: var(--ui-accent); font-weight: 700; }
+.demo-filter-label { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; color: var(--ui-muted); font-size: 13px; }
+.demo-filter-label .filter-select { width: auto; max-width: 220px; min-height: 44px; text-align: left; }
 #scr-start > .visitor-count { justify-self: center; margin: 0 0 12px; }
 h1 { font-family: 'The Magic Cookie', 'Fredoka', cursive; font-size: clamp(48px, 10vw, 88px); font-weight: 400; color: #d63384; margin: 18px 0 6px; text-align: center; }
 /* header rata kiri di halaman selain awal (klik = ke tampilan awal) */
@@ -489,9 +481,9 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .gesture-hint[hidden] { display: none; }
 .history-controls { display: flex; gap: 8px; justify-content: center; margin: 14px 0; }
 .history-controls .btn { min-height: 44px; }
-.result-actions { position: sticky; bottom: 0; z-index: 20; width: 100%; padding: 10px 8px max(12px, env(safe-area-inset-bottom)); background: var(--page-bg); border-top: 1px solid var(--ui-border); margin-top: 20px; }
-.result-actions .btnrow { margin-top: 0; }
-.result-actions .share-social { margin-top: 10px; }
+.result-actions { position: sticky; bottom: 0; z-index: 20; width: 100%; display: flex; justify-content: center; padding: 8px 4px max(8px, env(safe-area-inset-bottom)); background: var(--page-bg); border-top: 1px solid var(--ui-border); margin-top: 16px; }
+.result-actions .btnrow { margin: 0; gap: 8px; flex-wrap: nowrap; }
+.result-actions .btn { min-height: 44px; padding: 10px 14px; border-radius: 10px; font-size: 14px; }
 #scr-preview .desc { margin-bottom: 6px; }
 /* Tinggi tetap (bukan sisa layar) supaya tidak ada celah besar antara foto dan kontrol di HP,
    dan tetap stabil saat toggle bingkai. */
@@ -981,14 +973,24 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 
 /* Share Button & Share Modal */
 .share-social {
+  position: fixed;
+  inset: auto auto calc(68px + env(safe-area-inset-bottom)) 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: calc(100vw - 24px);
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  background: var(--ui-surface);
+  box-shadow: 0 4px 16px rgba(35, 35, 58, .18);
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 6px;
-  flex-wrap: wrap;
+  padding: 10px;
+  flex-wrap: nowrap;
 }
+.share-social[popover]:not(:popover-open) { display: none; }
 .share-social-btn {
   width: 44px;
   height: 44px;
@@ -1305,12 +1307,11 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
 }
 @media (min-width: 720px) {
   #scr-start, #scr-result { max-width: 760px; padding-inline: 28px; }
-  #scr-start { gap: 32px; }
+  #scr-start { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; align-content: center; }
+  #scr-start > .visitor-count { grid-column: 1 / -1; }
   .start-demo .theme-thumb { width: 184px; }
   .editor-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #text-tools { grid-column: 1 / -1; grid-row: 2; }
-  .result-actions { display: flex; align-items: center; justify-content: center; gap: 24px; }
-  .result-actions .share-social { margin-top: 0; }
 }
 @media (min-width: 1000px) {
   #scr-start, #scr-result { max-width: 1080px; }

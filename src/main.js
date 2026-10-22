@@ -6,7 +6,6 @@ import { emojiArtMarkup, splitEmojiRuns } from './emoji.js';
 import { EMOJI_CATEGORIES, findEmojiStickers } from './emoji-catalog.js';
 import { cameraCrop, openCameraStream, waitForFlashFrame } from './camera.js';
 import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
-import bacUrl from './assets/bac.jpg';
 import filterSampleUrl from './assets/sample-group.jpeg';
 
 /* ============ state ============ */
@@ -130,9 +129,8 @@ function activateScreen(id) {
   window.scrollTo(0, 0);
   currentScreen = id;
   syncWorkflow();
-  /* Latar bermotif (fixed + mask besar) hanya di halaman awal — di halaman lain
-     bikin komposit/repaint berat di HP lemah, jadi dimatikan. */
   document.body.classList.toggle('on-start', id === 'scr-start');
+  if (id === 'scr-start') renderDemo();
   if (id === 'scr-start' && state.stream) stopStream();
   if (id === 'scr-cam') {
     renderDots(); renderThumbs();
@@ -185,6 +183,8 @@ function syncModalInteraction() {
 function openModal(id) {
   const m = $(id);
   if (!m || m.classList.contains('open')) return;
+  const shareOptions = $('share-options');
+  if (shareOptions?.matches(':popover-open')) shareOptions.hidePopover();
   modalStack.push({ modal: m, trigger: document.activeElement });
   m.classList.add('open');
   refreshPhotoSamples();
@@ -363,9 +363,8 @@ function renderDemo() {
   const holder = $('demo-frame');
   if (!holder) return;
   holder.innerHTML = themeThumbHTML({ id: demoTheme });
-  holder.querySelector('.thumb-slots').innerHTML = ['none', filterCss('bw'), filterCss('warm')].map(filter =>
-    '<i><img src="' + filterSampleUrl + '" alt="" style="filter:' + filter + '"></i>'
-  ).join('');
+  holder.querySelector('.thumb-slots').innerHTML = ('<i><img src="' + filterSampleUrl + '" alt="" style="filter:' + filterCss(state.filter) + '"></i>').repeat(3);
+  if ($('demo-filter')) $('demo-filter').value = state.filter;
   document.querySelectorAll('[data-demo-theme]').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.demoTheme === demoTheme));
   });
@@ -373,6 +372,22 @@ function renderDemo() {
 document.querySelectorAll('[data-demo-theme]').forEach(button => {
   button.onclick = () => { demoTheme = button.dataset.demoTheme; renderDemo(); };
 });
+const demoFilter = $('demo-filter');
+if (demoFilter) {
+  FILTERS.forEach(filter => {
+    const option = document.createElement('option');
+    option.value = filter.id;
+    option.dataset.i18n = 'filter.' + filter.id;
+    option.textContent = tr(option.dataset.i18n);
+    demoFilter.appendChild(option);
+  });
+  demoFilter.onchange = () => {
+    state.filter = demoFilter.value;
+    renderDemo();
+    syncFilterPicker();
+    savePrefs();
+  };
+}
 renderDemo();
 function syncThemePickers() {
   themeBtns.forEach(b => { if (b) b.textContent = themeName(); });
@@ -2685,7 +2700,7 @@ if ($('text-edit-input')) $('text-edit-input').addEventListener('keydown', (e) =
 
 /* Kontrol keyboard untuk stiker yang dipilih (aksesibilitas) */
 document.addEventListener('keydown', (e) => {
-  if (modalStack.length) return;
+  if (modalStack.length || $('share-options')?.matches(':popover-open')) return;
   const tag = (document.activeElement && document.activeElement.tagName) || '';
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
   const id = state.selectedStickerId;
@@ -3099,77 +3114,6 @@ function startNewSession() {
   initHistory();
 }
 
-/* ============ background line-art dari gambar user ============ */
-async function buildLineBackground() {
-  try {
-    const img = new Image();
-    img.src = bacUrl;
-    if (img.decode) await img.decode();
-    else await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-
-    const iw = img.naturalWidth || img.width;
-    const ih = img.naturalHeight || img.height;
-    const scale = Math.min(1, 1100 / Math.max(1, iw));
-    const w = Math.max(1, Math.round(iw * scale));
-    const h = Math.max(1, Math.round(ih * scale));
-
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    const x = c.getContext('2d', { willReadFrequently: true });
-    x.drawImage(img, 0, 0, w, h);
-    const src = x.getImageData(0, 0, w, h).data;
-
-    const gray = new Float32Array(w * h);
-    for (let i = 0, j = 0; j < gray.length; i += 4, j++) {
-      gray[j] = 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2];
-    }
-    const blur = new Float32Array(w * h);
-    for (let y = 0; y < h; y++) {
-      for (let xx = 0; xx < w; xx++) {
-        let s = 0, n = 0;
-        for (let dy = -1; dy <= 1; dy++) {
-          const yy = y + dy; if (yy < 0 || yy >= h) continue;
-          for (let dx = -1; dx <= 1; dx++) {
-            const x2 = xx + dx; if (x2 < 0 || x2 >= w) continue;
-            s += gray[yy * w + x2]; n++;
-          }
-        }
-        blur[y * w + xx] = s / n;
-      }
-    }
-    const edge = new Uint8Array(w * h);
-    const thr = 45;
-    for (let y = 1; y < h - 1; y++) {
-      for (let xx = 1; xx < w - 1; xx++) {
-        const i = y * w + xx;
-        const gx = -blur[i - w - 1] - 2 * blur[i - 1] - blur[i + w - 1]
-          + blur[i - w + 1] + 2 * blur[i + 1] + blur[i + w + 1];
-        const gy = -blur[i - w - 1] - 2 * blur[i - w] - blur[i - w + 1]
-          + blur[i + w - 1] + 2 * blur[i + w] + blur[i + w + 1];
-        edge[i] = Math.sqrt(gx * gx + gy * gy) > thr ? 1 : 0;
-      }
-    }
-    const out = x.createImageData(w, h);
-    const o = out.data;
-    for (let y = 0; y < h; y++) {
-      for (let xx = 0; xx < w; xx++) {
-        const i = y * w + xx;
-        let on = edge[i];
-        if (!on) {
-          if ((xx > 0 && edge[i - 1]) || (xx < w - 1 && edge[i + 1])
-            || (y > 0 && edge[i - w]) || (y < h - 1 && edge[i + w])) on = 1;
-        }
-        const k = i * 4;
-        o[k] = 255; o[k + 1] = 255; o[k + 2] = 255; o[k + 3] = on ? 255 : 0;
-      }
-    }
-    x.putImageData(out, 0, 0);
-    document.documentElement.style.setProperty('--bg-lines', 'url("' + c.toDataURL('image/png') + '")');
-    document.body.classList.add('has-lines');
-  } catch (e) { /* gagal memuat — biarkan tanpa garis */ }
-}
-buildLineBackground();
-
 /* ============ header (judul + tagline) di tiap halaman selain awal ============ */
 function goHome() {
   if (currentScreen !== 'scr-start') show('scr-start');
@@ -3224,7 +3168,7 @@ syncWorkflow();
 document.querySelectorAll('.undo-btn').forEach(b => b.addEventListener('click', undo));
 document.querySelectorAll('.redo-btn').forEach(b => b.addEventListener('click', redo));
 document.addEventListener('keydown', (e) => {
-  if (modalStack.length) return;
+  if (modalStack.length || $('share-options')?.matches(':popover-open')) return;
   const tag = (document.activeElement && document.activeElement.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
   if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {

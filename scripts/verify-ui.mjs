@@ -43,8 +43,9 @@ async function check(expression, description) {
   console.log(`PASS ${description}`);
 }
 async function key(key, modifiers = 0) {
-  await send('Input.dispatchKeyEvent', { type: 'keyDown', key, modifiers });
-  await send('Input.dispatchKeyEvent', { type: 'keyUp', key, modifiers });
+  const windowsVirtualKeyCode = { Escape: 27, Tab: 9 }[key];
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key, modifiers, windowsVirtualKeyCode });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key, modifiers, windowsVirtualKeyCode });
 }
 async function waitFor(expression) {
   for (let i = 0; i < 100; i++) {
@@ -99,6 +100,10 @@ try {
   await waitFor("[...document.querySelectorAll('#demo-frame img, #theme-grid img')].every(img => img.complete && img.naturalWidth > 0)");
   await check("[...document.querySelectorAll('#demo-frame img, #theme-grid img')].every(img => img.naturalWidth === 588 && img.naturalHeight === 393)", 'frame examples use the supplied group photo');
   await check("getComputedStyle(document.querySelector('.filter-sample')).backgroundImage.includes('sample-group')", 'filter examples use the supplied group photo');
+  await evaluate("document.querySelector('#demo-filter').value = 'bw'; document.querySelector('#demo-filter').dispatchEvent(new Event('change'))");
+  await check("[...document.querySelectorAll('#demo-frame img')].every(img => img.style.filter === 'grayscale(1)')", 'homepage effect picker updates every demo photo');
+  await evaluate("document.querySelector('#demo-filter').value = 'normal'; document.querySelector('#demo-filter').dispatchEvent(new Event('change'))");
+  await check("!document.querySelector('#bg-lines') && performance.getEntriesByType('resource').every(entry => !/\\/bac[.-]/.test(entry.name))", 'homepage does not load or generate the old image background');
   for (const width of [390, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
     await screenshot(`start-${width}`);
@@ -129,6 +134,7 @@ try {
     await check('document.documentElement.scrollWidth <= innerWidth', `start screen fits ${width}px`);
     for (const dark of [false, true]) {
       await evaluate(`document.body.classList.toggle('dark-mode', ${dark})`);
+      await check("(() => { const style = getComputedStyle(document.querySelector('.start-intro')); return style.backgroundColor === 'rgba(0, 0, 0, 0)' && style.borderRadius === '0px' && style.boxShadow === 'none'; })()", 'intro has no surrounding panel in either mode');
       await check(`(() => {
         const luminance = color => { const rgb = color.match(/[\\d.]+/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722; };
         const ratio = (a, b) => (Math.max(luminance(a), luminance(b)) + .05) / (Math.min(luminance(a), luminance(b)) + .05);
@@ -227,10 +233,19 @@ try {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
     await new Promise(resolve => setTimeout(resolve, 50));
     await check('document.documentElement.scrollWidth <= innerWidth', `result editor fits ${width}px`);
-    await check("[...document.querySelectorAll('.result-actions button')].every(el => el.getBoundingClientRect().width >= 40)", 'save and share controls retain usable touch width');
+    await check("[...document.querySelectorAll('.result-actions button')].filter(el => el.getClientRects().length).every(el => el.getBoundingClientRect().width >= 40)", 'save and share controls retain usable touch width');
+    await check("(() => { const download = document.querySelector('#btn-download').getBoundingClientRect(), share = document.querySelector('#btn-share').getBoundingClientRect(); return Math.abs(download.top - share.top) < 2 && document.querySelector('.result-actions').getBoundingClientRect().height <= 76; })()", 'download footer is compact and inline');
+    await click('#btn-share');
+    await check("document.querySelector('#share-options').matches(':popover-open') && [...document.querySelectorAll('#share-options button')].every(button => button.getBoundingClientRect().width >= 44)", 'Share reveals touch-friendly social controls');
+    await key('Escape');
+    await check("!document.querySelector('#share-options').matches(':popover-open') && document.activeElement.id === 'btn-share'", 'Escape closes Share and restores focus');
     await evaluate("document.body.classList.remove('dark-mode'); window.scrollTo(0, 0)");
     if ([390, 1440].includes(width)) await screenshot(`result-${width}`);
   }
+  await click('#btn-share');
+  await click('#share-ig');
+  await check("document.querySelector('#ig-modal').classList.contains('open') && !document.querySelector('#share-options').matches(':popover-open')", 'social action closes Share and opens its existing dialog');
+  await key('Escape');
   for (const count of [3, 4, 6]) {
     await click('#scr-result .mini-header');
     await importPhotos(count);
