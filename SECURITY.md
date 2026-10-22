@@ -26,7 +26,7 @@ Contoh variabel tersedia di `.env.example`. Untuk pengembangan CMS lokal, gunaka
 
 ## Batas proteksi
 
-Foto tetap diproses di browser. Database visitor menyimpan hash UUID, lokasi kasar, waktu kunjungan pertama/terakhir, dan aktivitas per browser per jam untuk statistik harian, tanpa menyimpan IP. Kunjungan ulang memperbarui aktivitas saat situs dibuka kembali. Reset dan pengecualian browser admin juga menghapus aktivitas terkait. Pembatas permintaan menyimpan hash IP dalam memori dengan masa berlaku terbatas.
+Foto tetap diproses di browser. Database visitor menyimpan hash UUID, lokasi kasar (negara, provinsi/wilayah, kota), waktu kunjungan pertama/terakhir, dan aktivitas per browser per jam untuk statistik harian, tanpa menyimpan IP. Lokasi dibaca dari basis data GeoIP lokal saat kunjungan pertama; IP tidak dikirim ke penyedia GeoIP. Provinsi yang tidak tersedia, termasuk pada catatan lama, tetap kosong dan tidak ditebak dari nama kota. Kunjungan ulang memperbarui aktivitas saat situs dibuka kembali. Reset dan pengecualian browser admin juga menghapus aktivitas terkait. Pembatas permintaan menyimpan hash IP dalam memori dengan masa berlaku terbatas.
 
 Laporan, filter, pagination, grafik, dan ekspor CSV hanya tersedia melalui `/api/admin/*` setelah validasi sesi. Ekspor mengikuti filter dan mencakup semua halaman, tanpa mengirim hash/UUID browser atau IP; sel CSV di-escape dan awalan formula dinetralkan. Pembaruan otomatis dashboard berhenti saat tab disembunyikan atau setelah 5 menit tanpa interaksi, agar polling tidak mempertahankan sesi tanpa batas saat admin meninggalkan halaman.
 

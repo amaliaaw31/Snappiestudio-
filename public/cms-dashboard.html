@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Dashboard CMS — Snappie Studio</title>
+  <title>Statistik kunjungan | Snappie Studio</title>
   <link rel="stylesheet" href="/cms.css">
 </head>
 <body>
@@ -13,24 +13,24 @@
       <div class="brand">Snappie Studio</div>
       <button id="logout" type="button">Keluar</button>
     </div>
-    <h1>Statistik Pengunjung</h1>
-    <p class="sub">Pantau pengunjung, waktu kunjungan, dan perkembangan Snappie Studio.</p>
+    <h1>Statistik kunjungan</h1>
+    <p class="sub">Lihat kapan browser berkunjung dan dari wilayah mana.</p>
     <section class="metric" aria-live="polite">
       <span class="metric-label">Total browser unik</span>
-      <strong id="total">—</strong>
+      <strong id="total">…</strong>
       <span id="since">Memuat data…</span>
     </section>
     <section class="summary daily-summary" aria-label="Browser unik per periode, seluruh lokasi">
-      <div><strong id="today">—</strong><span>Hari ini</span></div>
-      <div><strong id="yesterday">—</strong><span>Kemarin</span></div>
-      <div><strong id="week">—</strong><span>Minggu ini (Senin–Minggu)</span></div>
-      <div><strong id="month">—</strong><span>Bulan ini</span></div>
+      <div><strong id="today">…</strong><span>Hari ini</span></div>
+      <div><strong id="yesterday">…</strong><span>Kemarin</span></div>
+      <div><strong id="week">…</strong><span>Minggu ini (mulai Senin)</span></div>
+      <div><strong id="month">…</strong><span>Bulan ini</span></div>
     </section>
     <p id="tracking-note" class="note"></p>
     <form id="filters" class="filters">
       <div><label for="from">Dari tanggal (WIB)</label><input id="from" name="from" type="date" min="2000-01-01" max="2099-12-31"></div>
       <div><label for="to">Sampai tanggal (WIB)</label><input id="to" name="to" type="date" min="2000-01-01" max="2099-12-31"></div>
-      <div class="search-field"><label for="search">Cari negara atau kota</label><input id="search" name="q" type="search" maxlength="100" placeholder="Contoh: Indonesia atau Jakarta"></div>
+      <div class="search-field"><label for="search">Cari negara, provinsi, atau kota</label><input id="search" name="q" type="search" maxlength="100" placeholder="Nama wilayah"></div>
       <div class="filter-buttons"><button type="submit">Terapkan</button><button id="clear-filters" type="button">Semua data</button></div>
       <div class="presets" aria-label="Pilihan periode">
         <button type="button" data-period="today">Hari ini</button>
@@ -42,31 +42,38 @@
     <p id="status" role="status"></p>
     <p id="filter-summary" class="note"></p>
     <section class="charts" aria-label="Grafik pengunjung">
-      <div class="chart-card">
-        <h2>Perkembangan pengunjung</h2>
+      <div class="chart-card trend-card">
+        <h2>Berapa browser yang berkunjung tiap hari?</h2>
         <p id="trend-summary" class="chart-description"></p>
         <canvas id="trend-chart" role="img" aria-label="Grafik browser unik per periode"></canvas>
         <details><summary>Lihat angka grafik</summary><div class="table-wrap"><table><thead><tr><th>Periode (WIB)</th><th class="num">Browser unik</th></tr></thead><tbody id="trend-data"></tbody></table></div></details>
       </div>
       <div class="chart-card">
-        <h2>Jam paling ramai</h2>
+        <h2>Jam berapa kunjungan paling ramai?</h2>
         <p id="hour-summary" class="chart-description"></p>
         <canvas id="hour-chart" role="img" aria-label="Grafik browser aktif per jam WIB"></canvas>
         <details><summary>Lihat angka grafik</summary><div class="table-wrap"><table><thead><tr><th>Jam (WIB)</th><th class="num">Browser aktif*</th></tr></thead><tbody id="hour-data"></tbody></table></div></details>
         <p class="chart-description">*Satu browser dihitung sekali per jam, dijumlahkan sepanjang periode grafik.</p>
       </div>
     </section>
-    <section class="summary" aria-label="Ringkasan lokasi">
-      <div><strong id="countries">—</strong><span>Negara</span></div>
-      <div><strong id="cities">—</strong><span>Kota</span></div>
-      <div><strong id="unknown">—</strong><span>Lokasi tidak diketahui</span></div>
+    <section class="region-section" aria-labelledby="province-heading">
+      <div class="section-heading"><h2 id="province-heading">Provinsi mana yang paling banyak berkunjung?</h2></div>
+      <p id="province-summary" class="chart-description">Memuat jumlah browser per provinsi sesuai filter.</p>
+      <ol id="province-chart" class="province-chart"></ol>
+      <p class="note">Provinsi merupakan perkiraan dari lokasi jaringan saat kunjungan pertama. Data lama dan jaringan tanpa informasi provinsi ditandai belum diketahui.</p>
+    </section>
+    <section class="summary location-summary" aria-label="Ringkasan lokasi sesuai filter">
+      <div><strong id="countries">…</strong><span>Negara</span></div>
+      <div><strong id="provinces">…</strong><span>Provinsi / wilayah</span></div>
+      <div><strong id="cities">…</strong><span>Kota</span></div>
+      <div><strong id="unknown">…</strong><span>Lokasi tidak diketahui</span></div>
     </section>
     <div class="section-heading"><h2>Daftar pengunjung</h2><button id="export" type="button" title="Unduh semua halaman sesuai filter">Unduh CSV</button></div>
     <p id="visits-summary" class="visits-summary">Waktu kunjungan pertama dan terakhir dalam WIB (UTC+7).</p>
-    <div class="table-wrap visits-table">
+    <div class="table-wrap visits-table" tabindex="0" role="region" aria-label="Daftar kunjungan, dapat digulir">
       <table aria-label="Waktu kunjungan pertama dan terakhir pengunjung">
         <thead>
-          <tr><th scope="col">Kunjungan pertama (WIB)</th><th scope="col">Kunjungan terakhir (WIB)</th><th scope="col">Negara</th><th scope="col">Kota</th></tr>
+          <tr><th scope="col">Kunjungan pertama (WIB)</th><th scope="col">Kunjungan terakhir (WIB)</th><th scope="col">Negara</th><th scope="col">Provinsi / wilayah</th><th scope="col">Kota</th></tr>
         </thead>
         <tbody id="visits"></tbody>
       </table>
@@ -79,10 +86,10 @@
       <button id="next" type="button" disabled>Berikutnya</button>
     </nav>
     <h2>Lokasi pengunjung</h2>
-    <div class="table-wrap">
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Lokasi pengunjung, dapat digulir">
       <table>
         <thead>
-          <tr><th>Negara</th><th>Kota</th><th class="num">Pengunjung</th><th>Porsi</th></tr>
+          <tr><th>Negara</th><th>Provinsi / wilayah</th><th>Kota</th><th class="num">Browser unik</th><th>Porsi</th></tr>
         </thead>
         <tbody id="locations"></tbody>
       </table>

@@ -6,11 +6,14 @@ After=network.target
 Type=simple
 User=ubuntu
 Group=ubuntu
-WorkingDirectory=/home/ubuntu/Snappiestudio-
+WorkingDirectory=/home/ubuntu/projects/project-yaya/Snappiestudio-
 Environment=PORT=3001
 Environment=VISITOR_DB_PATH=/var/lib/snappiestudio-counter/visitors.sqlite
 Environment=GEOIP_DB_PATH=/var/lib/snappiestudio-counter/geo/dbip-city-lite.mmdb
-ExecStart=/home/ubuntu/.nvm/versions/node/v24.21.0/bin/node /home/ubuntu/Snappiestudio-/server/visitor-counter.js
+Environment=SITE_DIRECTORY=/var/www/snappie
+Environment=SITE_ORIGINS=https://snappiestudio.com,https://www.snappiestudio.com
+EnvironmentFile=-/etc/snappiestudio/counter.env
+ExecStart=/home/ubuntu/.nvm/versions/node/v24.21.0/bin/node /home/ubuntu/projects/project-yaya/Snappiestudio-/server/visitor-counter.js
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true

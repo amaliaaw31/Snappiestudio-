@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { once } from 'node:events';
 import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
-import { createVisitorServer } from '../server/visitor-counter.js';
+import { createVisitorServer, createLocator } from '../server/visitor-counter.js';
 import bcrypt from 'bcryptjs';
 
 const origin = 'https://snappiestudio.com';
@@ -72,8 +72,8 @@ test('records coarse location from the forwarded client IP and reports it to the
   const report = await (await fetch(`${base}/api/admin/locations`, { headers })).json();
   assert.equal(report.total, 3);
   assert.deepEqual(report.locations, [
-    { country_code: 'ID', country: 'Indonesia', city: 'Jakarta', count: 2 },
-    { country_code: null, country: null, city: null, count: 1 },
+    { country_code: 'ID', country: 'Indonesia', province: null, city: 'Jakarta', count: 2 },
+    { country_code: null, country: null, province: null, city: null, count: 1 },
   ]);
   const raw = await (await fetch(`${base}/api/admin/locations`, { headers })).text();
   assert.doesNotMatch(raw, /182\.253|203\.0\.113/);
@@ -112,7 +112,21 @@ test('CMS lists the latest 100 first visits with UTC times, including existing v
   assert.equal(report.visits[0].first_seen, '2026-10-09 17:05:00');
   assert.ok(report.visits[0].last_seen > report.visits[0].first_seen);
   assert.equal(report.visits[0].country, null);
+  assert.equal(report.visits[0].province, null);
   assert.equal(report.pages, 2);
   assert.ok(report.visits.slice(1).every(row => row.first_seen === '2026-10-08 23:59:00'));
   assert.doesNotMatch(JSON.stringify(report), /visitor_hash|test-hash|ca7c9a39/);
+});
+
+test('GeoIP extracts the province without guessing from city or storing IP', () => {
+  const locate = createLocator({ get: () => ({
+    country: { iso_code: 'ID', names: { en: 'Indonesia' } },
+    subdivisions: [{ names: { en: 'West Java' } }, { names: { en: 'Bandung Regency' } }],
+    city: { names: { en: 'Bandung' } },
+  }) });
+  assert.deepEqual(locate('182.253.0.1'), {
+    countryCode: 'ID', country: 'Indonesia', province: 'West Java', city: 'Bandung',
+  });
+  assert.equal(createLocator({ get: () => ({ country: { iso_code: 'ID' }, city: { names: { en: 'Bandung' } } }) })('182.253.0.1').province, null);
+  assert.equal(createLocator({ get: () => { throw new Error('invalid IP'); } })('invalid'), null);
 });

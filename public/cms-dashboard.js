@@ -36,13 +36,14 @@ function renderLocations(data) {
   const total = data.total || 0;
   const known = data.locations.filter(row => row.country_code);
   $('countries').textContent = number.format(new Set(known.map(row => row.country_code)).size);
-  $('cities').textContent = number.format(new Set(known.filter(row => row.city).map(row => `${row.country_code}|${row.city}`)).size);
+  $('provinces').textContent = number.format(new Set(known.filter(row => row.province).map(row => `${row.country_code}|${row.province}`)).size);
+  $('cities').textContent = number.format(new Set(known.filter(row => row.city).map(row => `${row.country_code}|${row.province || ''}|${row.city}`)).size);
   $('unknown').textContent = number.format(data.locations.filter(row => !row.country_code).reduce((sum, row) => sum + row.count, 0));
   $('empty').hidden = data.locations.length > 0;
   for (const row of data.locations) {
     const share = total ? (row.count / total) * 100 : 0;
     const tr = document.createElement('tr');
-    tr.append(cell(row.country || 'Tidak diketahui'), cell(row.city || '—'), cell(number.format(row.count), 'num'));
+    tr.append(cell(row.country || 'Tidak diketahui'), cell(row.province || 'Belum diketahui'), cell(row.city || 'Belum diketahui'), cell(number.format(row.count), 'num'));
     const barCell = document.createElement('td');
     const bar = document.createElement('div');
     bar.className = 'bar';
@@ -52,8 +53,53 @@ function renderLocations(data) {
     fill.style.width = `${share}%`;
     bar.append(fill);
     barCell.append(bar);
+    const shareText = document.createElement('span');
+    shareText.className = 'share-text';
+    shareText.textContent = `${percent.format(share)}%`;
+    barCell.append(shareText);
     tr.append(barCell);
     body.append(tr);
+  }
+  renderProvinces(data);
+}
+
+function renderProvinces(data) {
+  const provinces = new Map();
+  let unknown = 0;
+  for (const row of data.locations) {
+    if (!row.province) { unknown += row.count; continue; }
+    const key = JSON.stringify([row.country_code, row.province]);
+    const entry = provinces.get(key) || { name: row.province, country: row.country || 'Tidak diketahui', count: 0 };
+    entry.count += row.count;
+    provinces.set(key, entry);
+  }
+  const rows = [...provinces.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'id'));
+  const shown = rows.slice(0, 10);
+  $('province-summary').textContent = data.total
+    ? `${number.format(data.total)} browser sesuai filter. ${number.format(unknown)} browser belum memiliki data provinsi.${rows.length > 10 ? ' Diagram menampilkan 10 provinsi terbanyak; daftar lokasi memuat seluruh wilayah.' : ''}`
+    : 'Tidak ada kunjungan sesuai filter. Pilih Semua data untuk melihat seluruh catatan.';
+  const list = $('province-chart');
+  list.replaceChildren();
+  for (const row of shown) {
+    const item = document.createElement('li');
+    const heading = document.createElement('div');
+    heading.className = 'province-label';
+    const name = document.createElement('span');
+    name.textContent = `${row.name}, ${row.country}`;
+    const count = document.createElement('strong');
+    count.textContent = `${number.format(row.count)} (${percent.format(row.count / data.total * 100)}%)`;
+    heading.append(name, count);
+    const bar = document.createElement('meter');
+    bar.min = 0; bar.max = data.total; bar.value = row.count;
+    bar.setAttribute('aria-label', `${row.name}, ${row.country}: ${number.format(row.count)} dari ${number.format(data.total)} browser`);
+    item.append(heading, bar);
+    list.append(item);
+  }
+  if (data.total && !rows.length) {
+    const empty = document.createElement('li');
+    empty.className = 'empty';
+    empty.textContent = 'Provinsi belum tersedia. Kunjungan baru akan mengisi diagram jika basis data lokasi menyediakan provinsi.';
+    list.append(empty);
   }
 }
 
@@ -98,7 +144,7 @@ function renderVisits(data) {
     const tr = document.createElement('tr');
     tr.append(
       timestampCell(row.first_seen), timestampCell(row.last_seen),
-      cell(row.country || 'Tidak diketahui'), cell(row.city || '—'),
+      cell(row.country || 'Tidak diketahui'), cell(row.province || 'Belum diketahui'), cell(row.city || 'Belum diketahui'),
     );
     body.append(tr);
   }
@@ -118,8 +164,8 @@ function drawChart(id, rows, label) {
   canvas.height = Math.round(height * scale);
   const ctx = canvas.getContext('2d');
   ctx.scale(scale, scale);
-  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const text = dark ? '#c6b6ca' : '#806d7f';
+  const styles = window.getComputedStyle(canvas);
+  const text = styles.getPropertyValue('--muted').trim();
   const left = 42;
   const top = 18;
   const plotWidth = width - left - 8;
@@ -131,19 +177,19 @@ function drawChart(id, rows, label) {
   ctx.textBaseline = 'middle';
   for (let i = 0; i <= 4; i++) {
     const y = top + plotHeight * i / 4;
-    ctx.strokeStyle = dark ? '#4c3e52' : '#f2e6ee';
+    ctx.strokeStyle = styles.getPropertyValue('--line').trim();
     ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(width - 8, y); ctx.stroke();
     ctx.fillStyle = text;
     ctx.textAlign = 'right';
     ctx.fillText(number.format(tick * (4 - i)), left - 6, y);
   }
   const step = plotWidth / Math.max(1, rows.length);
+  const labelStep = Math.max(1, Math.ceil(rows.length / Math.max(1, Math.floor(plotWidth / 70))));
   rows.forEach((row, index) => {
     const barHeight = plotHeight * row.count / ceiling;
-    ctx.fillStyle = '#d63384';
+    ctx.fillStyle = styles.getPropertyValue('--accent').trim();
     ctx.fillRect(left + index * step + step * .15, top + plotHeight - barHeight, step * .7, barHeight);
-    const labelStep = Math.max(1, Math.ceil(rows.length / 4));
-    if (index % labelStep === 0 && (rows.length - 1 - index >= labelStep / 2 || index === rows.length - 1) || index === rows.length - 1) {
+    if (index % labelStep === 0 && rows.length - 1 - index >= labelStep || index === rows.length - 1) {
       ctx.fillStyle = text;
       ctx.textAlign = index === rows.length - 1 ? 'right' : 'center';
       ctx.fillText(label(row), left + (index + .5) * step, height - 12);
@@ -169,7 +215,8 @@ function drawCharts() {
 function renderCharts(data) {
   chartData = data;
   const unit = { day: 'hari', month: 'bulan', year: 'tahun' }[data.unit];
-  $('trend-summary').textContent = `Browser unik per ${unit}, ${data.from} s.d. ${data.to} (WIB).`;
+  document.querySelector('.trend-card h2').textContent = `Berapa browser yang berkunjung tiap ${unit}?`;
+  $('trend-summary').textContent = `Browser unik per ${unit}, ${data.from} s.d. ${data.to} (WIB).${data.daily.some(row => row.count) ? '' : ' Belum ada kunjungan pada periode ini. Pilih periode lain atau Semua data.'}`;
   const peak = Math.max(...data.hourly.map(row => row.count));
   const peakHours = data.hourly.filter(row => row.count === peak).map(row => `${String(row.hour).padStart(2, '0')}.00`);
   const hours = peakHours.slice(0, 3).join(', ') + (peakHours.length > 3 ? ` dan ${peakHours.length - 3} jam lainnya` : '');
@@ -194,7 +241,8 @@ async function loadData() {
   requestController = controller;
   $('previous').disabled = true;
   $('next').disabled = true;
-  $('status').textContent = 'Memuat…';
+  $('status').textContent = 'Memuat statistik kunjungan…';
+  document.querySelector('.dashboard').setAttribute('aria-busy', 'true');
   try {
     const stats = await api(`/api/admin/report?${query()}`, { signal: controller.signal });
     if (controller.signal.aborted) return;
@@ -212,9 +260,11 @@ async function loadData() {
     $('status').textContent = `Diperbarui ${visitTime.format(new Date())} WIB.`;
   } catch (error) {
     if (controller.signal.aborted) return;
-    $('status').textContent = `Tidak dapat memuat data: ${error.message}`;
+    $('status').textContent = `Tidak dapat memuat statistik: ${error.message}. Tekan Muat ulang untuk mencoba lagi. Data yang sudah tampil belum diperbarui.`;
     $('previous').disabled = page <= 1;
     $('next').disabled = page >= pages;
+  } finally {
+    if (requestController === controller) document.querySelector('.dashboard').setAttribute('aria-busy', 'false');
   }
 }
 

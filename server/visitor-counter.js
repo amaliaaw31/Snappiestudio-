@@ -25,6 +25,7 @@ export function createLocator(reader) {
       return {
         countryCode,
         country: record.country.names?.en || countryCode,
+        province: record.subdivisions?.[0]?.names?.en || null,
         city: record.city?.names?.en || null,
       };
     } catch {
@@ -36,6 +37,7 @@ export function createLocator(reader) {
 const LOCATION_COLUMNS = [
   ['country_code', 'TEXT'],
   ['country', 'TEXT'],
+  ['province', 'TEXT'],
   ['city', 'TEXT'],
 ];
 
@@ -63,7 +65,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
   }
   const total = db.prepare('SELECT COUNT(*) AS total FROM visitors');
   const analytics = createAnalytics(db, now);
-  const insert = db.prepare('INSERT OR IGNORE INTO visitors (visitor_hash, country_code, country, city, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?)');
+  const insert = db.prepare('INSERT OR IGNORE INTO visitors (visitor_hash, country_code, country, province, city, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?)');
   const reset = db.prepare('DELETE FROM visitors');
   const isExcluded = db.prepare('SELECT 1 FROM excluded_browsers WHERE visitor_hash = ?');
   const excludeBrowser = db.prepare('INSERT OR IGNORE INTO excluded_browsers (visitor_hash) VALUES (?)');
@@ -126,6 +128,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
             hash,
             location?.countryCode ?? null,
             location?.country ?? null,
+            location?.province ?? null,
             location?.city ?? null,
             timestamp, timestamp,
           );
@@ -162,7 +165,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
         const rows = analytics.csvRows(reportFilters(url.searchParams));
         response.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Cache-Control': 'no-store',
           'Content-Disposition': 'attachment; filename="snappie-pengunjung.csv"', 'X-Content-Type-Options': 'nosniff' });
-        response.write('\uFEFF"Kunjungan pertama (WIB)","Kunjungan terakhir (WIB)","Negara","Kota"\r\n');
+        response.write('\uFEFF"Kunjungan pertama (WIB)","Kunjungan terakhir (WIB)","Negara","Provinsi","Kota"\r\n');
         for (const row of rows) {
           if (response.destroyed) break;
           if (!response.write(csvVisit(row))) {

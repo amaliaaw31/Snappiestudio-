@@ -109,6 +109,27 @@ test('invalid dates, range, query and pagination are rejected without running un
   }
 });
 
+test('province search filters visits, locations, charts and CSV, keeping same-name cities in separate provinces', async t => {
+  let province = 'West Java';
+  const api = await app(t, () => ({ countryCode: 'ID', country: 'Indonesia', province, city: 'Same City' }));
+  await api.visit(firstId);
+  province = 'Central Java';
+  await api.visit(secondId);
+  const headers = await api.login();
+  const all = await (await api.request('/api/admin/report', { headers })).json();
+  assert.equal(all.locations.locations.length, 2);
+  const report = await (await api.request('/api/admin/report?q=West%20Java', { headers })).json();
+  assert.equal(report.visitors.total, 1);
+  assert.equal(report.visitors.visits[0].province, 'West Java');
+  assert.equal(report.locations.total, 1);
+  assert.equal(report.locations.locations[0].province, 'West Java');
+  assert.equal(report.charts.daily.at(-1).count, 1);
+  const csv = await (await api.request('/api/admin/export.csv?q=West%20Java', { headers })).text();
+  assert.match(csv, /"Negara","Provinsi","Kota"/);
+  assert.match(csv, /"Indonesia","West Java","Same City"/);
+  assert.doesNotMatch(csv, /Central Java|visitor_hash|ca7c9a39/);
+});
+
 test('long ranges aggregate by month and preserve zero periods; exclusions and reset remove activity', async t => {
   const api = await app(t);
   await api.visit(firstId);

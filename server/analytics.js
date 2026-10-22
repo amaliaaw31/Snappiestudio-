@@ -39,9 +39,9 @@ function where(filters, visitorAlias = 'v') {
     clauses.push(`EXISTS (SELECT 1 FROM visitor_activity a WHERE a.visitor_hash = ${visitorAlias}.visitor_hash AND ${range.join(' AND ')})`);
   }
   if (filters.q) {
-    clauses.push(`(COALESCE(${visitorAlias}.country, 'Tidak diketahui') LIKE ? ESCAPE '\\' OR COALESCE(${visitorAlias}.city, '') LIKE ? ESCAPE '\\')`);
+    clauses.push(`(COALESCE(${visitorAlias}.country, 'Tidak diketahui') LIKE ? ESCAPE '\\' OR COALESCE(${visitorAlias}.province, '') LIKE ? ESCAPE '\\' OR COALESCE(${visitorAlias}.city, '') LIKE ? ESCAPE '\\')`);
     const search = `%${filters.q.replace(/[\\%_]/g, '\\$&')}%`;
-    values.push(search, search);
+    values.push(search, search, search);
   }
   return { sql: clauses.length ? 'WHERE ' + clauses.join(' AND ') : '', values };
 }
@@ -68,7 +68,7 @@ export function createAnalytics(db, now) {
   const record = db.prepare(`INSERT INTO visitor_activity (visitor_hash, hour, last_seen) VALUES (?, ?, ?)
     ON CONFLICT(visitor_hash, hour) DO UPDATE SET last_seen = MAX(last_seen, excluded.last_seen)`);
   const updateLastSeen = db.prepare('UPDATE visitors SET last_seen = MAX(last_seen, ?) WHERE visitor_hash = ?');
-  const fields = 'v.first_seen, v.last_seen, v.country, v.city';
+  const fields = 'v.first_seen, v.last_seen, v.country, v.province, v.city';
   const ordering = 'ORDER BY v.last_seen DESC, v.rowid DESC';
   const countRange = db.prepare('SELECT COUNT(DISTINCT visitor_hash) AS count FROM visitor_activity WHERE hour >= ? AND hour < ?');
 
@@ -100,8 +100,8 @@ export function createAnalytics(db, now) {
     },
     locations(filters) {
       const { sql, values } = where(filters);
-      const locations = db.prepare(`SELECT v.country_code, v.country, v.city, COUNT(*) AS count
-        FROM visitors v ${sql} GROUP BY v.country_code, v.country, v.city ORDER BY count DESC, v.country, v.city`).all(...values);
+      const locations = db.prepare(`SELECT v.country_code, v.country, v.province, v.city, COUNT(*) AS count
+        FROM visitors v ${sql} GROUP BY v.country_code, v.country, v.province, v.city ORDER BY count DESC, v.country, v.province, v.city`).all(...values);
       return { total: locations.reduce((sum, row) => sum + row.count, 0), locations };
     },
     charts(filters) {
@@ -148,6 +148,6 @@ export function csvCell(value) {
 
 export function csvVisit(row) {
   const time = value => utcTimestamp(Date.parse(value.replace(' ', 'T') + 'Z') + WIB).slice(0, 16) + ' WIB';
-  return [time(row.first_seen), time(row.last_seen), row.country || 'Tidak diketahui', row.city || '']
+  return [time(row.first_seen), time(row.last_seen), row.country || 'Tidak diketahui', row.province || '', row.city || '']
     .map(csvCell).join(',') + '\r\n';
 }
