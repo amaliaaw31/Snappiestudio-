@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 export function inlineEntryWithCsp() {
   return {
     name: 'snappie-inline-entry-and-csp', enforce: 'post',
-    generateBundle(_options, bundle) {
+    generateBundle: { order: 'post', handler(_options, bundle) {
       const page = bundle['index.html'];
       if (!page) throw new Error('Missing index.html');
       let html = String(page.source);
@@ -38,7 +38,7 @@ export function inlineEntryWithCsp() {
         return `@font-face { font-family: '${family}'; src: url('/${file}'); font-weight: 400; font-style: normal; font-display: swap; }`;
       }).join('\n');
       this.emitFile({ type: 'asset', fileName: 'cms-brand.css', source: brandCss });
-    },
+    } },
   };
 }
 

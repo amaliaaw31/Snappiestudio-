@@ -1,6 +1,8 @@
 /* Photo Booth — app logic: camera, filters, countdown, capture, result, stickers. */
 
 import { FILTERS, THEMES, CHARS, CHAR_SVG, CHAR_NAMES, dateLine, formatDate, filterCss, fontTracking, fontLineHeight, DATE_COLORS } from './data.js';
+import { OUTPUT_FORMATS, formatOutput } from './output.js';
+import { FAVORITES_KEY, favoriteSettings, readFavorites } from './favorites.js';
 import { compose } from './composer.js';
 import { emojiArtMarkup, splitEmojiRuns } from './emoji.js';
 import { EMOJI_CATEGORIES, findEmojiStickers } from './emoji-catalog.js';
@@ -18,6 +20,7 @@ const state = {
   filter: 'normal',
   layout: 3,
   theme: 'pastel',
+  outputFormat: 'original',
   photos: [],            // { canvas, filter }
   busy: false,
   stickers: [],
@@ -613,6 +616,7 @@ function refreshPickers() {
 function applyLang(code) {
   setLang(code);
   applyI18n();
+  renderFavorites();
   refreshPickers();
   refreshEmojiPicker();
   renderVisitorCount();
@@ -1224,10 +1228,10 @@ function imgTransform(p) {
    lewat CSS, jadi URL-nya tetap valid. */
 const photoUrlReady = new Map();     // canvas -> object URL siap pakai
 const photoUrlPending = new Map();   // canvas -> Promise<string>
-function photoUrl(canvas) {
+function photoUrl(canvas, mime = 'image/jpeg') {
   if (photoUrlReady.has(canvas)) return Promise.resolve(photoUrlReady.get(canvas));
   if (!photoUrlPending.has(canvas)) {
-    const p = new Promise(res => canvas.toBlob(b => res(b ? URL.createObjectURL(b) : ''), 'image/jpeg', .85))
+    const p = new Promise(res => canvas.toBlob(b => res(b ? URL.createObjectURL(b) : ''), mime, .85))
       .then(u => {
         /* Kalau canvas sudah dibuang (prunePhotoUrls) saat encode, jangan simpan. */
         if (photoUrlPending.get(canvas) === p) { photoUrlPending.delete(canvas); photoUrlReady.set(canvas, u); }
@@ -1244,8 +1248,9 @@ function prunePhotoUrls() {
   const live = new Set();
   const addPhotos = list => list.forEach(p => live.add(p.canvas));
   addPhotos(state.photos);
-  history.forEach(s => addPhotos(s.photos));
-  redoStack.forEach(s => addPhotos(s.photos));
+  addPhotos(state.stickers.filter(s => s.canvas));
+  history.forEach(s => { addPhotos(s.photos); addPhotos(s.stickers.filter(st => st.canvas)); });
+  redoStack.forEach(s => { addPhotos(s.photos); addPhotos(s.stickers.filter(st => st.canvas)); });
   for (const [c, u] of photoUrlReady) {
     if (!live.has(c)) { URL.revokeObjectURL(u); photoUrlReady.delete(c); }
   }
@@ -1293,13 +1298,13 @@ function lineLayout(text, font, innerW) {
   return { font, size, spacing, lineHeight, height: size * lineHeight };
 }
 /* Teks tanggal: pakai tanggal kustom kalau diisi, kalau tidak otomatis hari ini. */
-function currentDateText() { return state.customDate ? formatDate(state.customDate, getLang()) : dateLine(getLang()); }
+function currentDateText(settings = state) { return settings.customDate ? formatDate(settings.customDate, getLang()) : dateLine(getLang()); }
 
 /* Layout caption dan tanggal terpisah (font bisa berbeda). */
-function captionLayout() {
-  const innerW = state.layout >= 6 ? 380 : 240;   // lebar dalam bingkai (px CSS)
-  const cap = lineLayout(state.customText || '', state.captionFont || 'Matcha Iced', innerW);
-  const date = lineLayout(state.showDate ? currentDateText() : '', state.dateFont || 'Matcha Iced', innerW);
+function captionLayout(settings = state) {
+  const innerW = settings.layout >= 6 ? 380 : 240;   // lebar dalam bingkai (px CSS)
+  const cap = lineLayout(settings.customText || '', settings.captionFont || 'Matcha Iced', innerW);
+  const date = lineLayout(settings.showDate ? currentDateText(settings) : '', settings.dateFont || 'Matcha Iced', innerW);
   return { cap, date };
 }
 function lineStyleString(L, color) {
@@ -1407,9 +1412,21 @@ function fitFrame(holderId) {
      jadi tidak ada geseran/kedut saat toggle. Frame cukup di-scale agar muat. */
   holder.style.minHeight = '';
   holder.style.height = '';
+  holder.style.width = '';
+  holder.dataset.format = holderId === 'result-holder' ? state.outputFormat : 'original';
   const fw = frame.offsetWidth, fh = frame.offsetHeight;   // offset* tak terpengaruh transform
   const aw = holder.clientWidth, ah = holder.clientHeight;
   if (!fw || !fh || aw < 20 || ah < 20) return;
+  const size = holderId === 'result-holder' && OUTPUT_FORMATS[state.outputFormat];
+  if (size) {
+    const width = Math.min(aw, ah * size[0] / size[1]);
+    const height = width * size[1] / size[0];
+    holder.style.width = width + 'px';
+    holder.style.height = height + 'px';
+    frame.style.transform = 'translate(-50%, -50%) scale(' + Math.min(width / fw, height / fh).toFixed(4) + ')';
+    holder.dataset.fitScale = '0';
+    return;
+  }
   const s = Math.max(0.05, Math.min((aw - 8) / fw, (ah - 8) / fh));
   const prev = parseFloat(holder.dataset.fitScale || '0');
   if (Math.abs(s - prev) > 0.01 || !frame.style.transform) {   // hysteresis: jangan re-raster tiap render
@@ -2120,6 +2137,8 @@ function renderUserStickers() {
     let innerContent = '';
     if (st.type === 'char') {
       innerContent = `<div class="char-inner"><svg><use href="#ch-${st.value}"/></svg></div>`;
+    } else if (st.type === 'image') {
+      innerContent = '<div class="image-inner"><img alt="" draggable="false"></div>';
     } else if (st.type === 'text') {
       const fam = st.font || 'Matcha Iced';
       const col = st.color || '#23233a';
@@ -2134,10 +2153,16 @@ function renderUserStickers() {
     }
 
     el.innerHTML = innerContent;
+    if (st.type === 'image') {
+      const image = el.querySelector('img');
+      image.style.width = (96 * st.canvas.width / Math.max(st.canvas.width, st.canvas.height)) + 'px';
+      image.style.height = (96 * st.canvas.height / Math.max(st.canvas.width, st.canvas.height)) + 'px';
+      photoUrl(st.canvas, 'image/png').then(url => { if (image.isConnected) image.src = url; });
+    }
     el.setAttribute('role', 'button');
     el.setAttribute('tabindex', '0');
     const label = st.type === 'text' ? (tr('st.text') + st.value)
-      : st.type === 'char' ? tr('st.char') + ' ' + CHAR_NAMES[st.value] : (tr('st.emoji') + st.value);
+      : st.type === 'image' ? tr('upload.button') : st.type === 'char' ? tr('st.char') + ' ' + CHAR_NAMES[st.value] : (tr('st.emoji') + st.value);
     el.setAttribute('aria-label', label + '. ' + tr('st.hint'));
     el.addEventListener('focus', () => {
       state.selectedStickerId = st.id;
@@ -2412,7 +2437,7 @@ function addTextSticker(text) {
   return true;
 }
 
-function addSticker(type, value) {
+function addSticker(type, value, canvas = null) {
   const id = Date.now() + Math.random();
   const count = state.stickers.length;
   const offsetX = ((count % 5) - 2) * 0.1;
@@ -2422,6 +2447,7 @@ function addSticker(type, value) {
     id,
     type,
     value,
+    ...(canvas ? { canvas } : {}),
     x: 0.5 + offsetX,
     y: 0.45 + offsetY,
     scale: 1.0,
@@ -2793,7 +2819,7 @@ document.addEventListener('keydown', (e) => {
 
 /* ============ social share ============ */
 async function getWatermarkedFile() {
-  const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont, state.captionColor, state.dateColor, state.customFrame.outlineOn, state.customDate ? currentDateText() : '');
+  const cv = await composeOutput();
   const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
   const d = new Date(), p = n => String(n).padStart(2, '0');
   const fileName = 'snappie-studio-' + state.theme + '-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.png';
@@ -3052,7 +3078,7 @@ $('btn-download').onclick = async () => {
   if (label) label.textContent = tr('rs.making');
   if (ico) ico.classList.add('spin');
   try {
-    const cv = await compose(state.photos, state.layout, state.theme, state.stickers, state.showDate, state.customText, state.frame, state.captionFont, state.customFrame, captionLayout(), state.dateFont, state.captionColor, state.dateColor, state.customFrame.outlineOn, state.customDate ? currentDateText() : '');
+    const cv = await composeOutput();
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     const a = document.createElement('a');
     const d = new Date(), p = n => String(n).padStart(2, '0');
@@ -3081,6 +3107,7 @@ function snapshotState() {
   return {
     photos: state.photos.map(p => ({ ...p })),
     stickers: state.stickers.map(s => ({ ...s })),
+    outputFormat: state.outputFormat,
     theme: state.theme, layout: state.layout, showDate: state.showDate,
     frame: state.frame, customText: state.customText, customDate: state.customDate, captionFont: state.captionFont,
     dateFont: state.dateFont, captionColor: state.captionColor, dateColor: state.dateColor,
@@ -3093,7 +3120,7 @@ function stateKey() {
     s: state.stickers,
     t: state.theme, l: state.layout, d: state.showDate, f: state.frame, c: state.customText, cd: state.customDate,
     ff: state.captionFont, df: state.dateFont, cc: state.captionColor, dc: state.dateColor,
-    cf: state.customFrame,
+    cf: state.customFrame, outputFormat: state.outputFormat,
   });
 }
 function updateUndoUI() {
@@ -3117,6 +3144,8 @@ function commitHistory() {
 }
 function applySnapshot(s) {
   applyingHistory = true;
+  state.outputFormat = s.outputFormat || 'original';
+  $('output-format').value = state.outputFormat;
   state.photos = s.photos.map(p => ({ ...p }));
   state.stickers = s.stickers.map(x => ({ ...x }));
   state.theme = s.theme; state.layout = s.layout; state.showDate = s.showDate;
@@ -3166,6 +3195,8 @@ function initHistory() {
 /* Sesi baru: kosongkan foto, kembalikan bingkai ke default, dan reset riwayat undo
    (supaya Ctrl+Z tidak memunculkan foto sesi sebelumnya). */
 function startNewSession() {
+  state.outputFormat = 'original';
+  $('output-format').value = 'original';
   resetPhotos();
   resetFrameSettings();
   state.theme = demoTheme;
@@ -3240,3 +3271,106 @@ document.addEventListener('keydown', (e) => {
 });
 
 initHistory();
+
+
+async function composeOutput(settings = snapshotState()) {
+  const canvas = await compose(settings.photos, settings.layout, settings.theme, settings.stickers, settings.showDate,
+    settings.customText, settings.frame, settings.captionFont, settings.customFrame, captionLayout(settings), settings.dateFont,
+    settings.captionColor, settings.dateColor, settings.customFrame.outlineOn, settings.customDate ? currentDateText(settings) : '');
+  return formatOutput(canvas, settings.outputFormat);
+}
+
+$('output-format').onchange = () => {
+  state.outputFormat = $('output-format').value;
+  fitFrame('result-holder');
+  invalidateShareFile();
+  commitHistory();
+};
+
+function getFavorites() {
+  try { return readFavorites(localStorage); } catch { return []; }
+}
+function renderFavorites() {
+  const select = $('favorite-list');
+  const previous = select.value;
+  select.replaceChildren();
+  const entries = getFavorites();
+  entries.forEach(entry => select.add(new window.Option(entry.name, entry.name)));
+  if (!entries.length) select.add(new window.Option(tr('fav.empty'), ''));
+  else if (entries.some(entry => entry.name === previous)) select.value = previous;
+  select.disabled = !entries.length;
+  $('favorite-use').disabled = $('favorite-delete').disabled = !entries.length;
+}
+function writeFavorites(entries) {
+  try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(entries)); renderFavorites(); return true; }
+  catch { showToast(tr('fav.error')); return false; }
+}
+$('favorite-save').onclick = () => {
+  const name = $('favorite-name').value.trim().slice(0, 32);
+  if (!name) { $('favorite-name').focus(); showToast(tr('fav.name')); return; }
+  const entries = getFavorites();
+  const settings = favoriteSettings(state);
+  const index = entries.findIndex(entry => entry.name === name);
+  if (index >= 0) entries[index] = { name, settings };
+  else if (entries.length < 12) entries.push({ name, settings });
+  else { showToast(tr('fav.limit')); return; }
+  if (writeFavorites(entries)) { $('favorite-list').value = name; showToast(tr('fav.saved')); }
+};
+$('favorite-use').onclick = () => {
+  const entry = getFavorites().find(entry => entry.name === $('favorite-list').value);
+  if (!entry) return;
+  state.filter = entry.settings.filter;
+  applySnapshot({ ...snapshotState(), ...entry.settings, photos: state.photos.map(photo => ({ ...photo, filter: entry.settings.filter })) });
+  commitHistory();
+};
+$('favorite-delete').onclick = () => writeFavorites(getFavorites().filter(entry => entry.name !== $('favorite-list').value));
+renderFavorites();
+
+$('sticker-upload').onclick = () => $('sticker-file').click();
+$('sticker-file').onchange = async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) {
+    showToast(tr('upload.error')); return;
+  }
+  const url = URL.createObjectURL(file);
+  const button = $('sticker-upload');
+  button.disabled = true;
+  try {
+    const image = new Image();
+    image.src = url;
+    await image.decode();
+    if (image.naturalWidth * image.naturalHeight > 40000000) throw new Error('Image too large');
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+    closeModal('sticker-modal');
+    addSticker('image', window.crypto.randomUUID(), canvas);
+    invalidateShareFile();
+  } catch { showToast(tr('upload.error')); }
+  finally { URL.revokeObjectURL(url); button.disabled = false; }
+};
+
+$('btn-gif').onclick = async () => {
+  const button = $('btn-gif');
+  button.disabled = true;
+  button.textContent = tr('rs.making');
+  try {
+    const settings = snapshotState();
+    const { encodeGif } = await import('./gif-export.js');
+    async function* frames() {
+      for (const photo of settings.photos) yield await composeOutput({ ...settings, layout: 1, photos: [photo] });
+    }
+    const blob = await encodeGif(frames());
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'snappie-studio-' + settings.theme + '.gif';
+    document.body.appendChild(anchor); anchor.click(); anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch { showToast(tr('out.error')); }
+  finally { button.disabled = false; button.textContent = tr('out.gif'); }
+};

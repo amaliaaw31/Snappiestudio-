@@ -458,6 +458,11 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
         if (img) {
           x.drawImage(img, -r * 0.82, -r * 0.82, r * 1.64, r * 1.64);
         }
+      } else if (st.type === 'image' && st.canvas) {
+        const size = 96 * scale * sc;
+        const ratio = size / Math.max(st.canvas.width, st.canvas.height);
+        const width = st.canvas.width * ratio, height = st.canvas.height * ratio;
+        x.drawImage(st.canvas, -width / 2, -height / 2, width, height);
       } else if (st.type === 'text') {
         const fontSize = 28 * scale * sc;  // .text-inner in preview pixels
         const stickerFont = st.font || 'Matcha Iced';

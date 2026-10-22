@@ -12,7 +12,9 @@ test('build emits the same script hashes in HTML CSP and the deployable HTTP pol
     'orange-lovely-test.otf': { type: 'asset' },
   };
   const assets = [];
-  inlineEntryWithCsp().generateBundle.call({ emitFile: asset => assets.push(asset) }, {}, bundle);
+  const hook = inlineEntryWithCsp().generateBundle;
+  assert.equal(hook.order, 'post', 'inline after Vite resolves dynamic import preload markers');
+  hook.handler.call({ emitFile: asset => assets.push(asset) }, {}, bundle);
   const hash = createHash('sha256').update(source).digest('base64');
   const http = assets.find(asset => asset.fileName === 'snappie-app-csp.caddy').source;
   assert.ok(bundle['index.html'].source.includes(`'sha256-${hash}'`));

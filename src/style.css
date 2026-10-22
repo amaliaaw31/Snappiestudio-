@@ -1344,3 +1344,10 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
   #flash { opacity: 0 !important; }
 }
+
+.favorite-row { display: flex; gap: 8px; margin-block: 10px; align-items: center; }
+.favorite-row input { min-width: 0; flex: 1; }
+.editor-group > select { width: 100%; min-height: 44px; }
+.image-inner img { display: block; pointer-events: none; max-width: none; }
+#result-holder:is([data-format="story"], [data-format="post"]) { position: relative; background: white; margin-inline: auto; }
+#result-holder:is([data-format="story"], [data-format="post"]) .frame-outer { position: absolute; left: 50%; top: 50%; transform-origin: center; margin: 0; }

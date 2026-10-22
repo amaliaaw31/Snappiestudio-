@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "bcryptjs": "3.0.3",
+    "gifenc": "1.0.3",
     "heic2any": "^0.0.4",
     "maxmind": "5.0.7",
     "otpauth": "9.5.2",

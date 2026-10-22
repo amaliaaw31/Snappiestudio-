@@ -213,6 +213,11 @@
   <div class="theme-pick-row">
     <button type="button" id="themepick2" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
   </div>
+  <label class="label" for="favorite-name" data-i18n="fav.title">Favorit tersimpan</label>
+  <div class="favorite-row"><input id="favorite-name" class="custom-text-input" maxlength="32" data-i18n-ph="fav.name" data-i18n-aria="fav.name" placeholder="Nama favorit"><button type="button" class="btn ghost" id="favorite-save" data-i18n="fav.save">Simpan</button></div>
+  <select id="favorite-list" class="filter-select" data-i18n-aria="fav.title"></select>
+  <div class="favorite-row"><button type="button" class="btn ghost" id="favorite-use" data-i18n="fav.use">Gunakan</button><button type="button" class="btn ghost" id="favorite-delete" data-i18n="fav.delete">Hapus</button></div>
+  <p class="tool-note" data-i18n="fav.note">Hanya pengaturan disimpan di browser ini, tanpa foto atau teks pribadi.</p>
   </details>
   <details class="editor-group" id="text-tools">
   <summary data-i18n="edit.text">Teks &amp; Tanggal</summary>
@@ -296,6 +301,17 @@
   <button class="btn ghost" id="btn-add-sticker"><span class="ms">add</span><span data-i18n="pv.sticker">Tambah Stiker</span></button>
   <p class="tool-note" data-i18n="edit.stickerNote">Pilih emoji atau tulis teks, lalu atur langsung di fotomu.</p>
   </details>
+  <details class="editor-group" open>
+  <summary data-i18n="out.title">Format &amp; unduhan</summary>
+  <select id="output-format" class="filter-select" data-i18n-aria="out.title">
+    <option value="original" data-i18n="out.original">Ukuran bingkai asli</option>
+    <option value="story" data-i18n="out.story">Story · 9:16</option>
+    <option value="post" data-i18n="out.post">Postingan · 4:5</option>
+  </select>
+  <p class="tool-note" data-i18n="out.note">Bingkai utuh, tanpa potongan. Ruang tambahan berwarna putih.</p>
+  <button type="button" id="btn-gif" class="btn ghost" data-i18n="out.gif">Unduh GIF</button>
+  <p class="tool-note" data-i18n="out.gifNote">Foto bergantian setiap 0,8 detik. GIF maksimal 720 px.</p>
+  </details>
   </div>
   </div>
   <div class="result-actions">
@@ -321,6 +337,9 @@
       <button id="btn-close-sticker" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
+      <button type="button" class="btn ghost" id="sticker-upload" data-i18n="upload.button">Upload gambar / logo</button>
+      <input type="file" id="sticker-file" accept="image/png,image/jpeg,image/webp" hidden>
+      <p class="tool-note" data-i18n="upload.note">PNG, JPEG, WebP · maksimal 8 MB. Transparansi PNG tetap terjaga.</p>
       <div class="sticker-tabs" role="tablist" data-i18n-aria="st.tabs" aria-label="Jenis stiker">
         <button type="button" class="sticker-tab" id="sticker-emoji-tab" role="tab" aria-selected="true" aria-controls="sticker-emoji-panel" data-i18n="st.emojis">Emoji</button>
         <button type="button" class="sticker-tab" id="sticker-text-tab" role="tab" aria-selected="false" aria-controls="sticker-text-panel" tabindex="-1" data-i18n="md.text">Teks</button>

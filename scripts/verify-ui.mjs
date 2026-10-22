@@ -326,7 +326,7 @@ try {
   await check("document.querySelector('#scr-preview .workflow [aria-current]').dataset.screen === 'scr-preview'", 'workflow reflects review step');
   await click('#btn-preview-fix');
   await check("!document.querySelector('#scr-result .history-controls, #scr-result .undo-btn, #scr-result .redo-btn') && document.querySelectorAll('#scr-preview .history-controls button').length === 2", 'result omits Undo/Redo while preview retains history controls');
-  await check("document.querySelector('#text-tools').open === false && document.querySelectorAll('.editor-group').length === 3", 'editor groups frame, text, stickers and folds advanced text controls');
+  await check("document.querySelector('#text-tools').open === false && document.querySelectorAll('.editor-group').length === 4", 'editor groups frame, text, stickers and folds advanced text controls');
   await click('#text-tools summary');
   await evaluate("document.querySelector('#custom-text').value = 'UI verification'; document.querySelector('#custom-text').dispatchEvent(new Event('input', { bubbles: true }))");
   await waitFor("document.querySelector('#result-holder .frame-date')?.textContent === 'UI verification'");
@@ -370,6 +370,7 @@ try {
     const original = HTMLAnchorElement.prototype.click;
     const createUrl = URL.createObjectURL.bind(URL);
     const blobs = new Map();
+    window.downloadBlobs = blobs;
     URL.createObjectURL = blob => { const value = createUrl(blob); blobs.set(value, blob); return value; };
     HTMLAnchorElement.prototype.click = function() {
       if (!this.download) return original.call(this);
@@ -448,12 +449,83 @@ try {
       await evaluate('window.exportLayoutSpec = null');
     }
   }
+  await evaluate("localStorage.removeItem('snappie-favorites-v1'); document.querySelector('#favorite-name').value = 'Browser test'; document.querySelector('#favorite-save').click()");
+  await check("JSON.parse(localStorage.getItem('snappie-favorites-v1'))[0].name === 'Browser test' && !/photos|stickers|customText|customDate/.test(localStorage.getItem('snappie-favorites-v1'))", 'favorites persist settings without personal content');
+  await click('#themepick2');
+  await click('#theme-grid [data-id=pastel]');
+  await click('#favorite-use');
+  await check("(() => { const saved = JSON.parse(localStorage.getItem('snappie-favorites-v1'))[0].settings; return document.querySelector('#result-holder .frame-outer').classList.contains(saved.frame ? 'th-' + saved.theme : 'noframe'); })()", 'saved favorite restores theme and frame visibility');
+  for (const [format, width, height] of [['story', 1080, 1920], ['post', 1080, 1350]]) {
+    await evaluate(`document.querySelector('#output-format').value = '${format}'; document.querySelector('#output-format').dispatchEvent(new Event('change'))`);
+    await check(`(() => { const holder = document.querySelector('#result-holder').getBoundingClientRect(); return Math.abs(holder.width / holder.height - ${width / height}) < .01; })()`, `${format}: preview matches output ratio`);
+    const png = await checkExport(format);
+    assert.deepEqual([png.width, png.height], [width, height], `${format}: exported PNG dimensions`);
+    await check(`(() => { const frame = document.querySelector('#result-holder .frame-outer').getBoundingClientRect(), holder = document.querySelector('#result-holder').getBoundingClientRect(); return frame.left >= holder.left - 1 && frame.right <= holder.right + 1 && frame.top >= holder.top - 1 && frame.bottom <= holder.bottom + 1; })()`, `${format}: entire frame stays inside output`);
+  }
+  await evaluate("document.querySelector('#output-format').value = 'original'; document.querySelector('#output-format').dispatchEvent(new Event('change'))");
+  await click('#btn-add-sticker');
+  await evaluate(`(async () => {
+    const canvas = document.createElement('canvas'); canvas.width = 200; canvas.height = 100;
+    const context = canvas.getContext('2d'); context.fillStyle = '#ff00ff'; context.fillRect(50, 25, 100, 50);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve));
+    const transfer = new DataTransfer(); transfer.items.add(new File([blob], 'logo.png', { type: 'image/png' }));
+    const input = document.querySelector('#sticker-file'); input.files = transfer.files;
+    await input.onchange({ target: input });
+  })()`);
+  await waitFor("document.querySelector('.image-inner img')?.complete && document.querySelector('.image-inner img')?.naturalWidth > 0");
+  await check(`(async () => { const image = document.querySelector('.image-inner img'); const canvas = document.createElement('canvas'); canvas.width = 200; canvas.height = 100; const context = canvas.getContext('2d'); context.drawImage(image, 0, 0); return context.getImageData(0, 0, 1, 1).data[3] === 0 && context.getImageData(100, 50, 1, 1).data[3] === 255; })()`, 'uploaded sticker preserves PNG transparency');
+  await checkExport('uploaded image sticker');
+  await check(`(async () => { const blob = [...window.downloadBlobs.values()].filter(blob => blob.type === 'image/png').at(-1); const image = await createImageBitmap(blob); const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height; const context = canvas.getContext('2d'); context.drawImage(image, 0, 0); const data = context.getImageData(0, 0, canvas.width, canvas.height).data; image.close(); for (let i = 0; i < data.length; i += 4) { if (data[i] === 255 && data[i + 1] === 0 && data[i + 2] === 255) return true; } return false; })()`, 'uploaded logo appears in exported PNG');
+  await evaluate(`(() => {
+    const original = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function() {
+      const blob = window.downloadBlobs.get(this.href);
+      if (blob?.type !== 'image/gif') return original.call(this);
+      window.gifDownload = (async () => {
+        const data = await blob.arrayBuffer();
+        const decoder = new ImageDecoder({ data, type: 'image/gif' });
+        await decoder.tracks.ready;
+        const count = decoder.tracks.selectedTrack.frameCount;
+        const samples = [], durations = []; let width, height;
+        for (let index = 0; index < count; index++) {
+          const { image } = await decoder.decode({ frameIndex: index });
+          width = image.displayWidth; height = image.displayHeight; durations.push(image.duration);
+          const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+          const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
+          samples.push([...context.getImageData(width / 2, height / 2, 1, 1).data].slice(0, 3));
+          image.close();
+        }
+        decoder.close(); return { count, width, height, samples, durations, header: new TextDecoder().decode(data.slice(0, 6)) };
+      })();
+    };
+  })()`);
+  await evaluate("document.querySelector('#btn-gif').onclick()");
+  const gif = await evaluate('window.gifDownload');
+  assert.equal(gif.count, 8, 'GIF contains all eight photos');
+  assert.equal(gif.header, 'GIF89a');
+  assert.ok(gif.durations.every(value => value === 800000), 'GIF keeps 0.8-second frame timing');
+  assert.ok(Math.max(gif.width, gif.height) <= 720, 'GIF stays within 720 px');
+  const expectedColors = [[210,47,39], [35,155,86], [40,116,166], [241,196,15], [165,105,189], [23,165,137], [230,126,34], [121,85,72]];
+  gif.samples.forEach((color, i) => color.forEach((channel, j) => assert.ok(Math.abs(channel - expectedColors[i][j]) <= 12, `GIF frame ${i} photo order`)));
+  console.log('PASS GIF decodes all eight photos in order');
+  await evaluate("document.querySelector('#output-format').value = 'story'; document.querySelector('#output-format').dispatchEvent(new Event('change')); document.querySelector('#btn-gif').onclick()");
+  const storyGif = await evaluate('window.gifDownload');
+  assert.deepEqual([storyGif.width, storyGif.height, storyGif.count], [405, 720, 8], 'GIF respects selected Story format');
+  console.log('PASS GIF Story format is 405 × 720 with eight frames');
+  await click('#favorite-delete');
+  await check("JSON.parse(localStorage.getItem('snappie-favorites-v1')).length === 0 && document.querySelector('#favorite-use').disabled", 'favorite deletion updates storage and controls');
   await click('#scr-result .workflow [data-screen=scr-cam]');
   await waitFor("[...document.querySelectorAll('.filter-sample')].every(el => el.style.backgroundImage.startsWith('url(\"blob:'))");
   await check("document.querySelector('.filter-sample').style.backgroundImage.includes('blob:')", 'filter thumbnails use user photo locally');
   await click('#scr-cam .workflow [data-screen=scr-preview]');
   await check("document.querySelector('#scr-preview').classList.contains('active')", 'workflow returns from camera to photo review');
   await check('document.documentElement.scrollWidth <= innerWidth', 'result editor has no horizontal overflow');
+  await click('#btn-preview-fix');
+  await evaluate("document.querySelector('#favorite-name').value = 'Reload test'; document.querySelector('#favorite-save').click()");
+  await send('Page.reload');
+  await waitFor("document.querySelector('#btn-start')?.onclick != null && document.querySelector('#favorite-list')?.value === 'Reload test'");
+  await check("document.querySelector('#favorite-list').value === 'Reload test' && document.querySelector('#scr-start').classList.contains('active') && document.querySelectorAll('#preview-holder .slot').length === 0", 'favorites survive reload without restoring private photos');
+  await evaluate("document.querySelector('#favorite-delete').click()");
   assert.deepEqual(exceptions, [], 'no uncaught browser exceptions');
   console.log('PASS no uncaught browser exceptions');
 } finally {
