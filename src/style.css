@@ -1152,7 +1152,7 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .filter-option-name { font-size: 10px; font-weight: 800; color: #6a6a8a; text-align: center; line-height: 1.15; }
 .filter-sample { display: block; width: 100%; max-width: 96px; aspect-ratio: 4 / 3; border-radius: 8px;
   background-color: #cfe8ff;
-  background-image: url('./assets/filter-sample.svg');
+  background-image: url('./assets/sample-group.jpeg');
   background-size: cover; background-position: center;
   border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
 

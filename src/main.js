@@ -7,7 +7,7 @@ import { EMOJI_CATEGORIES, findEmojiStickers } from './emoji-catalog.js';
 import { cameraCrop, openCameraStream, waitForFlashFrame } from './camera.js';
 import { LANGS, getLang, setLang, t as tr, applyI18n } from './i18n.js';
 import bacUrl from './assets/bac.jpg';
-import filterSampleUrl from './assets/filter-sample.svg';
+import filterSampleUrl from './assets/sample-group.jpeg';
 
 /* ============ state ============ */
 const LAYOUT_AR = { 1: '4 / 3', 3: '4 / 3', 4: '4 / 3', 6: '4 / 3' };
@@ -333,12 +333,13 @@ buildFilterPicker();
 
 const themeModal = $('theme-modal');
 const themeBtns = [];
+const samplePhotoSlots = ('<i><img src="' + filterSampleUrl + '" alt=""></i>').repeat(3);
 function themeName() {
   return tr('theme.' + state.theme);
 }
 function themeThumbHTML(t) {
   return '<span class="frame-outer th-' + t.id + ' theme-thumb">' +
-    '<span class="frame"><span class="thumb-slots"><i></i><i></i><i></i></span>' +
+    '<span class="frame"><span class="thumb-slots">' + samplePhotoSlots + '</span>' +
     '<span class="thumb-stamp"></span></span></span>';
 }
 
@@ -347,7 +348,7 @@ function refreshPhotoSamples() {
   document.querySelectorAll('#theme-grid .thumb-slots').forEach(slots => {
     slots.innerHTML = state.photos.length ? state.photos.slice(0, 3).map((p, i) =>
       '<i><img data-photo="' + i + '" alt="" style="filter:' + filterCss(p.filter) + ';transform:' + imgTransform(p) + '"></i>'
-    ).join('') : '<i></i><i></i><i></i>';
+    ).join('') : samplePhotoSlots;
   });
   if (state.photos.length) hydrateSlotImages($('theme-grid'));
   document.querySelectorAll('.filter-sample').forEach(el => {

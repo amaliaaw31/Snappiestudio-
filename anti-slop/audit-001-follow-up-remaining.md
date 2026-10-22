@@ -54,3 +54,9 @@ Screenshot browser tersimpan di `/tmp/snappie-start-390.png`, `/tmp/snappie-star
 - **Purpose-Gate:** alasan warna, tipografi, motif, komposisi, bentuk, dan gerak tercantum di atas; kontrol menggunakan perilaku aplikasi yang nyata.
 - **Liveliness:** identitas pink dan judul khas tetap ada, komposisi halaman awal menampilkan contoh, dan preview menjadi fokus editor.
 - **Craftsmanship:** lint, unit test, build, audit dependensi, dan pemeriksaan browser menjadi syarat rilis. Kamera fisik belum tersedia untuk diuji; alur kamera menggunakan stream Canvas dan error terkontrol. Pengujian emulasi tidak diklaim sebagai pengujian sensor atau perangkat nyata.
+
+## Pembaruan foto contoh atas permintaan pengguna
+
+Foto grup yang diunggah pengguna disalin tanpa perubahan ke `src/assets/sample-group.jpeg`. Foto tersebut menggantikan ilustrasi pada contoh strip halaman awal, sampel efek, dan thumbnail bingkai sebelum ada foto sesi. Label Indonesia/Inggris diperbarui menjadi contoh dengan foto. Setelah pengguna mengunggah foto, thumbnail tetap memakai foto sesi aktif melalui URL blob lokal.
+
+Lint, 72 unit test, build, dan pemeriksaan browser lokal serta produksi lulus. Browser memverifikasi foto contoh berukuran asli 588 × 393, foto pada sampel efek, serta perpindahan ke thumbnail foto sesi. HTML produksi identik dengan build yang dideploy.
