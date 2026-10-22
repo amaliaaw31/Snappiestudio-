@@ -43,3 +43,9 @@ Permintaan berikutnya menambahkan delapan foto dalam dua kolom dan empat baris. 
 Preview, hasil dan PNG memakai geometri dua kolom yang sama dengan enam foto, dengan empat baris untuk delapan foto. Tombol jumlah foto memakai lima kolom agar semua pilihan tetap terlihat dan terjangkau di ponsel. Regresi mencakup pilihan kamera, preferensi, delapan foto dari galeri, posisi slot, serta urutan delapan warna pada PNG.
 
 Rilis final diselaraskan dengan commit CMS terbaru dan lulus lint, 100 unit test, build, serta regresi browser rilis/produksi. Semua lima tombol jumlah foto diperiksa pada lebar 320px untuk 16 bahasa; layout delapan foto diperiksa pada lima lebar layar dan screenshot 390px. Ekspor dengan/tanpa bingkai lulus, termasuk pemeriksaan urutan delapan foto melalui piksel PNG. Deploy memakai backup `/var/backups/snappiestudio/deploy-h8fnrYPD`; HTML dan CSP publik cocok dengan build rilis.
+
+## Kontrol halaman hasil
+
+Sesuai permintaan pengguna, grup tombol Undo/Redo di halaman hasil dihapus. Tombol pada preview dan mekanisme riwayat yang sudah ada tetap tersedia. Regresi memeriksa ketiadaan tombol pada hasil dan menjalankan pembatalan/pengulangan perubahan melalui preview.
+
+Lint, unit test, build, dan regresi browser lokal/produksi lulus. Screenshot hasil 390px diperiksa. Deploy selesai dengan backup `/var/backups/snappiestudio/deploy-oz9OPVtb`; HTML dan CSP publik cocok dengan build.
