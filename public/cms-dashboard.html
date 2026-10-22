@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/cms.css">
   <link rel="stylesheet" href="/cms-brand.css">
 </head>
-<body>
+<body class="dashboard-page">
   <main class="dashboard">
     <div class="topbar">
       <div class="brand"><span class="brand-name">Snappie Studio</span><span class="brand-tagline">"your little photo moment"</span></div>
@@ -20,8 +20,15 @@
         <button id="logout" type="button">Keluar</button>
       </div>
     </div>
-    <h1>Statistik kunjungan</h1>
-    <p class="sub">Lihat kapan browser berkunjung dan dari wilayah mana.</p>
+    <nav class="dashboard-nav" aria-label="Bagian dashboard" hidden>
+      <button type="button" data-view="overview" aria-controls="overview-panel" aria-pressed="true">Ringkasan</button>
+      <button type="button" data-view="visits" aria-controls="visits-panel" aria-pressed="false">Kunjungan</button>
+      <button type="button" data-view="settings" aria-controls="settings-panel" aria-pressed="false">Pengaturan</button>
+    </nav>
+    <div class="dashboard-content">
+    <h1 id="view-heading">Statistik kunjungan</h1>
+    <p class="sub" id="view-description">Lihat kapan browser berkunjung dan dari wilayah mana.</p>
+    <div class="dashboard-metrics" data-report-control>
     <section class="metric" aria-live="polite">
       <span class="metric-label">Total browser unik</span>
       <strong id="total">…</strong>
@@ -33,7 +40,8 @@
       <div><strong id="week">…</strong><span>Minggu ini (mulai Senin)</span></div>
       <div><strong id="month">…</strong><span>Bulan ini</span></div>
     </section>
-    <p id="tracking-note" class="note"></p>
+    </div>
+    <div data-report-control>
     <form id="filters" class="filters">
       <div><label for="from">Dari tanggal (WIB)</label><input id="from" name="from" type="date" min="2000-01-01" max="2099-12-31"></div>
       <div><label for="to">Sampai tanggal (WIB)</label><input id="to" name="to" type="date" min="2000-01-01" max="2099-12-31"></div>
@@ -48,6 +56,8 @@
     </form>
     <p id="status" role="status"></p>
     <p id="filter-summary" class="note"></p>
+    </div>
+    <section id="overview-panel" aria-label="Ringkasan kunjungan">
     <section class="comparison" aria-labelledby="comparison-heading">
       <h2 id="comparison-heading">Perbandingan kunjungan</h2>
       <p id="comparison-note" class="chart-description">Memuat dua periode dengan jumlah hari yang sama.</p>
@@ -59,13 +69,13 @@
     </section>
     <section class="charts" aria-label="Grafik pengunjung">
       <div class="chart-card trend-card">
-        <h2>Berapa browser yang berkunjung tiap hari?</h2>
+        <h2>Kunjungan per hari</h2>
         <p id="trend-summary" class="chart-description"></p>
         <canvas id="trend-chart" role="img" aria-label="Grafik browser unik per periode"></canvas>
         <details><summary>Lihat angka grafik</summary><div class="table-wrap"><table><thead><tr><th>Periode (WIB)</th><th class="num">Browser unik</th></tr></thead><tbody id="trend-data"></tbody></table></div></details>
       </div>
       <div class="chart-card">
-        <h2>Jam berapa kunjungan paling ramai?</h2>
+        <h2>Jam kunjungan</h2>
         <p id="hour-summary" class="chart-description"></p>
         <canvas id="hour-chart" role="img" aria-label="Grafik browser aktif per jam WIB"></canvas>
         <details><summary>Lihat angka grafik</summary><div class="table-wrap"><table><thead><tr><th>Jam (WIB)</th><th class="num">Browser aktif*</th></tr></thead><tbody id="hour-data"></tbody></table></div></details>
@@ -73,7 +83,7 @@
       </div>
     </section>
     <section class="region-section" aria-labelledby="province-heading">
-      <div class="section-heading"><h2 id="province-heading">Provinsi mana yang paling banyak berkunjung?</h2></div>
+      <div class="section-heading"><h2 id="province-heading">Kunjungan per provinsi</h2></div>
       <p id="province-summary" class="chart-description">Memuat jumlah browser per provinsi sesuai filter.</p>
       <ol id="province-chart" class="province-chart"></ol>
       <p class="note">Provinsi merupakan perkiraan dari lokasi jaringan saat kunjungan pertama. Data lama dan jaringan tanpa informasi provinsi ditandai belum diketahui.</p>
@@ -84,6 +94,8 @@
       <div><strong id="cities">…</strong><span>Kota</span></div>
       <div><strong id="unknown">…</strong><span>Lokasi tidak diketahui</span></div>
     </section>
+    </section>
+    <section id="visits-panel" aria-label="Daftar kunjungan" hidden>
     <div class="section-heading"><h2>Daftar pengunjung</h2><button id="export" type="button" title="Unduh semua halaman sesuai filter">Unduh CSV</button></div>
     <p id="visits-summary" class="visits-summary">Waktu kunjungan pertama dan terakhir dalam WIB (UTC+7).</p>
     <div class="table-wrap visits-table" tabindex="0" role="region" aria-label="Daftar kunjungan, dapat digulir">
@@ -111,14 +123,15 @@
       </table>
       <p id="empty" class="empty" hidden>Tidak ada lokasi pengunjung yang sesuai filter.</p>
     </div>
+    </section>
+    <div data-report-control>
     <div class="actions">
       <button id="refresh" type="button">Muat ulang</button>
       <label class="auto-refresh"><input id="auto-refresh" type="checkbox" checked> Otomatis setiap 30 detik</label>
       <button id="reset" type="button">Reset hitungan</button>
     </div>
-    <p class="note">Pembaruan otomatis dijeda ketika tab disembunyikan atau setelah 5 menit tanpa interaksi. Gunakan “Muat ulang” untuk mengambil data kapan saja.</p>
-    <p id="maintenance-status" class="note" role="status"></p>
-    <section class="settings-section" aria-labelledby="settings-heading">
+    </div>
+    <section id="settings-panel" class="settings-section" aria-labelledby="settings-heading" hidden>
       <h2 id="settings-heading">Pengaturan CMS</h2>
       <details id="account-settings">
         <summary>Akun dan keamanan</summary>
@@ -177,7 +190,13 @@
         <button id="refresh-automation" type="button">Muat ulang status</button>
       </details>
     </section>
-    <p class="note">Total menghitung satu browser sekali. Statistik periode menghitung browser yang berkunjung dalam periode tersebut, termasuk yang kembali. Waktu terakhir diperbarui saat situs dibuka kembali. Lokasi ditentukan saat kunjungan pertama; alamat IP dan foto tidak disimpan. Browser dapat dihitung ulang jika data browser dihapus atau memakai perangkat lain. Lokasi berdasarkan <a href="https://db-ip.com" rel="noopener">IP Geolocation by DB-IP</a> dan bersifat perkiraan.</p>
+    <details class="report-notes" data-report-control><summary>Tentang data kunjungan</summary>
+      <p id="tracking-note" class="note"></p>
+      <p id="maintenance-status" class="note" role="status"></p>
+      <p class="note">Pembaruan otomatis dijeda ketika tab disembunyikan atau setelah 5 menit tanpa interaksi. Gunakan “Muat ulang” untuk mengambil data kapan saja.</p>
+      <p class="note">Total menghitung satu browser sekali. Statistik periode menghitung browser yang berkunjung dalam periode tersebut, termasuk yang kembali. Waktu terakhir diperbarui saat situs dibuka kembali. Lokasi ditentukan saat kunjungan pertama; alamat IP dan foto tidak disimpan. Browser dapat dihitung ulang jika data browser dihapus atau memakai perangkat lain. Lokasi berdasarkan <a href="https://db-ip.com" rel="noopener">IP Geolocation by DB-IP</a> dan bersifat perkiraan.</p>
+    </details>
+    </div>
   </main>
   <script type="module" src="/cms-dashboard.js"></script>
 </body>

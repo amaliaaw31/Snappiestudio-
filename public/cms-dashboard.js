@@ -18,6 +18,25 @@ let requestController;
 let chartData;
 let timer;
 let lastInteraction = Date.now();
+let currentView = 'overview';
+const viewButtons = [...document.querySelectorAll('.dashboard-nav button')];
+const viewText = {
+  overview: ['Statistik kunjungan', 'Lihat kapan browser berkunjung dan dari wilayah mana.'],
+  visits: ['Daftar kunjungan', 'Telusuri pengunjung dan unduh laporan sesuai filter.'],
+  settings: ['Pengaturan CMS', 'Kelola akun, autentikator, dan status pemeliharaan.'],
+};
+for (const button of viewButtons) button.addEventListener('click', () => {
+  currentView = button.dataset.view;
+  for (const item of viewButtons) {
+    const active = item === button;
+    item.setAttribute('aria-pressed', String(active));
+    $(item.getAttribute('aria-controls')).hidden = !active;
+  }
+  for (const element of document.querySelectorAll('[data-report-control], #tracking-note')) element.hidden = currentView === 'settings';
+  [$('view-heading').textContent, $('view-description').textContent] = viewText[currentView];
+  if (currentView === 'overview') drawCharts();
+});
+document.querySelector('.dashboard-nav').hidden = false;
 
 function utcDate(value) {
   return new Date(`${value.replace(' ', 'T')}Z`);
@@ -215,7 +234,7 @@ function drawCharts() {
 function renderCharts(data) {
   chartData = data;
   const unit = { day: 'hari', month: 'bulan', year: 'tahun' }[data.unit];
-  document.querySelector('.trend-card h2').textContent = `Berapa browser yang berkunjung tiap ${unit}?`;
+  document.querySelector('.trend-card h2').textContent = `Kunjungan per ${unit}`;
   $('trend-summary').textContent = `Browser unik per ${unit}, ${data.from} s.d. ${data.to} (WIB).${data.daily.some(row => row.count) ? '' : ' Belum ada kunjungan pada periode ini. Pilih periode lain atau Semua data.'}`;
   const peak = Math.max(...data.hourly.map(row => row.count));
   const peakHours = data.hourly.filter(row => row.count === peak).map(row => `${String(row.hour).padStart(2, '0')}.00`);
@@ -334,7 +353,7 @@ $('auto-refresh').addEventListener('change', () => {
 });
 for (const event of ['pointerdown', 'keydown', 'input']) document.addEventListener(event, () => { lastInteraction = Date.now(); }, { passive: true });
 function autoRefresh() {
-  if (accountBusy || !$('auto-refresh').checked || document.hidden || $('reset').disabled || $('logout').disabled) return;
+  if (currentView === 'settings' || accountBusy || !$('auto-refresh').checked || document.hidden || $('reset').disabled || $('logout').disabled) return;
   if (Date.now() - lastInteraction > 5 * 60 * 1000) return;
   loadData();
 }
