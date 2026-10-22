@@ -29,3 +29,9 @@ Permintaan lanjutan pengguna: empat foto disusun vertikal seperti strip tiga fot
 Browser memeriksa posisi tiap slot pada preview dan hasil, lalu lima lebar layar untuk kedua layout. Enam gambar uji dengan warna berbeda dipakai untuk memeriksa urutan setiap foto di PNG melalui pembacaan piksel. Ekspor dengan bingkai dan tanpa bingkai lulus; orientasi empat foto tetap vertikal dan enam foto melebar. Screenshot kedua layout pada 390px diperiksa. Lint, 92 unit test, build, dan regresi gabungan multibahasa/layout lulus.
 
 Rilis gabungan dideploy melalui helper dengan backup `/var/backups/snappiestudio/deploy-uTDV8wi3`. Build terisolasi dan situs produksi sama-sama lulus regresi 16 bahasa serta layout 4/6 foto. HTML publik identik dengan build rilis dan CSP header sesuai policy HTML. Perubahan server yang sedang berlangsung tidak dimasukkan dalam rilis frontend atau commit ini.
+
+## Koreksi susunan 6 foto
+
+Arahan terbaru pengguna mengganti enam foto menjadi dua kolom dengan tiga baris. Preview/hasil dan PNG memakai dua kolom, lebar dasar 440px, serta area perhitungan caption yang sesuai. Empat foto tetap satu kolom vertikal. Regresi posisi slot dan pembacaan piksel PNG mengikuti susunan terbaru.
+
+Koreksi lulus lint, 92 unit test, build, regresi browser rilis dan produksi, serta pemeriksaan screenshot 390px. Deploy selesai dengan backup `/var/backups/snappiestudio/deploy-bhUXxgZk`; HTML dan CSP produksi cocok dengan build koreksi.

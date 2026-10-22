@@ -1296,7 +1296,7 @@ function currentDateText() { return state.customDate ? formatDate(state.customDa
 
 /* Layout caption dan tanggal terpisah (font bisa berbeda). */
 function captionLayout() {
-  const innerW = state.layout === 6 ? 600 : 240;   // lebar dalam bingkai (px CSS)
+  const innerW = state.layout === 6 ? 380 : 240;   // lebar dalam bingkai (px CSS)
   const cap = lineLayout(state.customText || '', state.captionFont || 'Matcha Iced', innerW);
   const date = lineLayout(state.showDate ? currentDateText() : '', state.dateFont || 'Matcha Iced', innerW);
   return { cap, date };

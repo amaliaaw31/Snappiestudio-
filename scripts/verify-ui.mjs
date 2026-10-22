@@ -108,7 +108,7 @@ async function checkExport(label) {
 }
 async function checkPhotoLayout(holder, count) {
   await check(`(() => {
-    const cols = ${count === 6 ? 3 : 1};
+    const cols = ${count === 6 ? 2 : 1};
     const slots = [...document.querySelectorAll('${holder} .slot')].map(el => el.getBoundingClientRect());
     return slots.length === ${count} && slots.every((box, i) => {
       const rowStart = Math.floor(i / cols) * cols;
@@ -117,7 +117,7 @@ async function checkPhotoLayout(holder, count) {
         && (i < cols || box.top > slots[i - cols].bottom)
         && Math.abs(box.left - slots[i % cols].left) < 1;
     });
-  })()`, `${count} photos keep ${count === 6 ? 'three columns and two rows' : 'one vertical column'} in ${holder}`);
+  })()`, `${count} photos keep ${count === 6 ? 'two columns and three rows' : 'one vertical column'} in ${holder}`);
 }
 
 try {
@@ -433,10 +433,10 @@ try {
       await click('#scr-result .workflow [data-screen=scr-preview]');
       await click('#toggle-frame');
       await click('#btn-preview-fix');
-      await evaluate(`window.exportLayoutSpec = { cols: ${count === 6 ? 3 : 1}, rows: ${count === 6 ? 2 : 4} }`);
+      await evaluate(`window.exportLayoutSpec = { cols: ${count === 6 ? 2 : 1}, rows: ${count === 6 ? 3 : 4} }`);
       const png = await checkExport(`${count}-photo layout without frame`);
       assert.deepEqual(png.samples, [[210,47,39], [35,155,86], [40,116,166], [241,196,15], [165,105,189], [23,165,137]].slice(0, count), `${count}: PNG preserves every photo in intended order`);
-      assert.ok(count === 4 ? png.height > png.width * 3 : png.width > png.height, `${count}: PNG orientation matches requested layout`);
+      assert.ok(count === 4 ? png.height > png.width * 3 : png.height > png.width, `${count}: PNG orientation matches requested layout`);
       await evaluate('window.exportLayoutSpec = null');
     }
   }

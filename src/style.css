@@ -505,15 +505,15 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .frame-outer { position: relative; border-radius: 4px; padding: 0; box-shadow: 0 10px 28px rgba(35,35,58,.22), 0 2px 6px rgba(0,0,0,.1); }
 .frame { position: relative; border-radius: 2px; padding: 22px 18px 24px; }
 .frame-outer.single { width: 300px; } .frame-outer.strip { width: 300px; }
-.frame-outer.grid4 { width: 300px; } .frame-outer.grid6 { width: 660px; }
-#result-holder .frame-outer.grid6, #preview-holder .frame-outer.grid6 { width: 660px; max-width: none; flex-shrink: 0; }
+.frame-outer.grid4 { width: 300px; } .frame-outer.grid6 { width: 440px; }
+#result-holder .frame-outer.grid6, #preview-holder .frame-outer.grid6 { width: 440px; max-width: none; flex-shrink: 0; }
 /* 3–6 foto: seluruh bingkai 9:16 (portrait HP), foto tetap utuh & ditengahkan. */
 .photos-single { display: flex; flex-direction: column; gap: 12px; }
 /* Layout 1 foto: gaya polaroid besar — ruang putih lebar di bawah foto */
 .frame-outer.single .frame { padding-bottom: 19%; }
 .frame-outer.single .frame .slot { margin-top: 0; }
 .photos-strip { display: flex; flex-direction: column; gap: 12px; }
-.photos-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.photos-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .slot { aspect-ratio: 4/3; border-radius: 2px; overflow: hidden; display: flex;
   align-items: center; justify-content: center; }
 .slot img, .slot video { width: 100%; height: 100%; object-fit: cover; display: block; }
