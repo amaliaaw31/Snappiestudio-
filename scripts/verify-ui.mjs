@@ -57,6 +57,11 @@ async function waitFor(expression) {
 async function click(selector) {
   await evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el || el.disabled || !el.getClientRects().length || el.closest('[inert]')) throw new Error('Unavailable control: ' + ${JSON.stringify(selector)}); el.focus(); el.click(); })()`);
 }
+async function tap(selector) {
+  const point = await evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); el.scrollIntoView({ block: 'center' }); const box = el.getBoundingClientRect(); return { x: box.x + box.width / 2, y: box.y + box.height / 2 }; })()`);
+  await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+  await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+}
 async function screenshot(name) {
   await evaluate('document.fonts.ready');
   await new Promise(resolve => setTimeout(resolve, 200));
@@ -103,13 +108,28 @@ try {
   await click('#demo-filter');
   await check("document.querySelector('#filter-modal').classList.contains('open') && document.querySelector('#scr-start').inert", 'homepage effects open an accessible modal');
   await click('#filter-grid [data-id=bw]');
+  await check("document.querySelector('#filter-modal').classList.contains('open') && document.querySelector('#filter-preview-photo').style.filter === 'grayscale(1)' && document.querySelector('#filter-grid [data-id=bw]').getAttribute('aria-pressed') === 'true'", 'effect can be tried inside modal with accessible selected state');
+  await check("[...document.querySelectorAll('#demo-frame img')].every(img => img.style.filter === 'none')", 'trying an effect leaves committed homepage photos unchanged');
+  await click('#filter-grid [data-id=sepia]');
+  await check("document.querySelector('#filter-grid [data-id=sepia]').getAttribute('aria-pressed') === 'true' && document.querySelector('#filter-grid [data-id=bw]').getAttribute('aria-pressed') === 'false'", 'multiple effects can be compared before applying');
+  await click('#filter-grid [data-id=bw]');
+  await click('#btn-apply-filter');
   await check("[...document.querySelectorAll('#demo-frame img')].every(img => img.style.filter === 'grayscale(1)')", 'homepage effect picker updates every demo photo');
   await check("document.activeElement.id === 'demo-filter' && !document.querySelector('#filter-modal').classList.contains('open')", 'effect selection closes modal and restores focus');
   await click('#demo-filter');
+  await click('#filter-grid [data-id=sepia]');
   await key('Escape');
   await check("document.activeElement.id === 'demo-filter' && !document.querySelector('#filter-modal').classList.contains('open')", 'homepage effects support Escape and focus restoration');
+  await check("[...document.querySelectorAll('#demo-frame img')].every(img => img.style.filter === 'grayscale(1)')", 'Escape discards unconfirmed effect');
   await click('#demo-filter');
+  await check("document.querySelector('#filter-grid [data-id=bw]').getAttribute('aria-pressed') === 'true'", 'reopening effects restores committed selection');
+  await evaluate("document.querySelector('#btn-close-filter').focus()");
+  await key('Tab', 8);
+  await check("document.activeElement.id === 'btn-apply-filter'", 'backward Tab includes modal apply action');
+  await key('Tab');
+  await check("document.activeElement.id === 'btn-close-filter'", 'forward Tab remains inside effect modal');
   await click('#filter-grid [data-id=normal]');
+  await click('#btn-apply-filter');
   await check("getComputedStyle(document.body, '::before').maskImage.includes('start-lines') && performance.getEntriesByType('resource').every(entry => !/\\/bac[.-]/.test(entry.name))", 'homepage restores static background without runtime image processing');
   await evaluate(`window.frameDimensions = root => {
     const outer = root.querySelector('.frame-outer'), frame = root.querySelector('.frame');
@@ -120,8 +140,12 @@ try {
   }; window.demoDimensions = {};`);
   for (const width of [320, 390, 720, 1000, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
+    await check("document.querySelector('.demo-themes').getBoundingClientRect().bottom <= document.querySelector('#demo-frame').getBoundingClientRect().top && document.querySelector('#demo-filter').getBoundingClientRect().bottom <= document.querySelector('#demo-frame').getBoundingClientRect().top", `homepage controls appear above frame at ${width}px`);
+    await check("document.querySelectorAll('.demo-theme-preview img').length === 9 && [...document.querySelectorAll('.demo-theme-preview img')].every(img => img.getBoundingClientRect().width >= 20)", 'each homepage theme has a visible photo thumbnail');
+    await evaluate("window.themeButtonBounds = [...document.querySelectorAll('[data-demo-theme]')].map(button => { const box = button.getBoundingClientRect(); return [box.x, box.y, box.width, box.height]; })");
     for (const theme of ['pastel', 'minimal', 'film']) {
       await click(`[data-demo-theme=${theme}]`);
+      await check("JSON.stringify(window.themeButtonBounds) === JSON.stringify([...document.querySelectorAll('[data-demo-theme]')].map(button => { const box = button.getBoundingClientRect(); return [box.x, box.y, box.width, box.height]; }))", `theme buttons remain stable when selecting ${theme} at ${width}px`);
       await evaluate(`window.demoDimensions['${width}-${theme}'] = window.frameDimensions(document.querySelector('#demo-frame'))`);
       await check(`(() => { const frame = document.querySelector('#demo-frame .frame'); const bounds = frame.getBoundingClientRect(); return getComputedStyle(frame).display === 'block' && frame.querySelectorAll('.slot').length === 3 && [...frame.querySelectorAll('.slot')].every(slot => { const box = slot.getBoundingClientRect(); return box.width > 0 && box.left >= bounds.left && box.right <= bounds.right + 1 && box.top >= bounds.top && box.bottom <= bounds.bottom + 1; }); })()`, `homepage ${theme} frame contains photos at ${width}px`);
     }
@@ -130,6 +154,21 @@ try {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
     await screenshot(`start-${width}`);
   }
+  for (const [width, height] of [[390, 844], [412, 915], [844, 390]]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: true });
+    await send('Emulation.setTouchEmulationEnabled', { enabled: true });
+    await tap('#demo-filter');
+    await waitFor("document.querySelector('#filter-modal').classList.contains('open')");
+    await check("(() => { const apply = document.querySelector('#btn-apply-filter').getBoundingClientRect(); const modal = document.querySelector('#filter-modal .modal-card').getBoundingClientRect(); return apply.height >= 44 && apply.bottom <= innerHeight && modal.top >= 0 && modal.bottom <= innerHeight && document.documentElement.scrollWidth <= innerWidth; })()", `effect modal fits mobile viewport ${width}x${height}`);
+    if (width === 390) await screenshot('filter-390');
+    await tap('#filter-grid [data-id=bw]');
+    await waitFor("document.querySelector('#filter-grid [data-id=bw]').getAttribute('aria-pressed') === 'true'");
+    await tap('#btn-apply-filter');
+    await waitFor("!document.querySelector('#filter-modal').classList.contains('open')");
+    await check("[...document.querySelectorAll('#demo-frame img')].every(img => img.style.filter === 'grayscale(1)')", `touch applies effect at ${width}x${height}`);
+  }
+  await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
   await evaluate("navigator.mediaDevices.getUserMedia = () => new Promise((resolve, reject) => { window.rejectCamera = reject; })");
   await click('#btn-start');
@@ -146,6 +185,9 @@ try {
   await waitFor("document.querySelector('#scr-cam').classList.contains('active')");
   await check("getComputedStyle(document.body, '::before').content === 'none' && getComputedStyle(document.body, '::before').maskImage === 'none'", 'restored background appears only on homepage');
   await check("document.querySelector('#video').srcObject.active && [...document.querySelectorAll('[data-camera-status]')].every(el => el.style.display === 'none') && !document.querySelector('#btn-start').disabled", 'retry succeeds and clears camera status');
+  await click('#filter-strip [data-id=bw]');
+  await check("document.querySelector('#video').style.filter === 'grayscale(1)' && document.querySelector('#filter-strip [data-id=bw]').getAttribute('aria-pressed') === 'true' && document.querySelector('#filter-strip [data-id=normal]').getAttribute('aria-pressed') === 'false'", 'camera strip applies effects immediately and exposes selected filter');
+  await click('#filter-strip [data-id=normal]');
   await evaluate("navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('No camera for test', 'NotFoundError'); }");
   await click('#btn-switch-cam');
   await waitFor("!document.querySelector('#btn-switch-cam').disabled");

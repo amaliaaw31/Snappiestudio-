@@ -99,16 +99,16 @@
   <p class="desc start-foot" data-i18n-html="start.footer">Butuh izin kamera &amp; koneksi HTTPS.<br>Foto cuma diproses di perangkatmu.</p>
   </div>
   <figure class="start-demo">
-    <div id="demo-frame" aria-hidden="true"></div>
     <figcaption data-i18n="start.example">Contoh bingkai dengan foto</figcaption>
     <div class="demo-filter-label"><span id="demo-filter-label" data-i18n="start.tryFilter">Coba efek foto</span>
       <button type="button" id="demo-filter" class="filter-select" aria-haspopup="dialog" aria-controls="filter-modal" aria-labelledby="demo-filter-label demo-filter"></button>
     </div>
     <div class="demo-themes" role="group" data-i18n-aria="start.tryTheme" aria-label="Coba tema bingkai">
-      <button type="button" data-demo-theme="pastel" aria-pressed="true" data-i18n="theme.pastel">Princess Pastel</button>
-      <button type="button" data-demo-theme="film" aria-pressed="false" data-i18n="theme.film">35mm Film</button>
-      <button type="button" data-demo-theme="minimal" aria-pressed="false" data-i18n="theme.minimal">Seoul Minimal</button>
+      <button type="button" data-demo-theme="pastel" aria-pressed="true"><span data-i18n="theme.pastel">Princess Pastel</span></button>
+      <button type="button" data-demo-theme="film" aria-pressed="false"><span data-i18n="theme.film">35mm Film</span></button>
+      <button type="button" data-demo-theme="minimal" aria-pressed="false"><span data-i18n="theme.minimal">Seoul Minimal</span></button>
     </div>
+    <div id="demo-frame" aria-hidden="true"></div>
   </figure>
   <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
 </div>
@@ -448,7 +448,14 @@
       <button id="btn-close-filter" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
+      <figure id="filter-modal-preview" class="filter-modal-preview" hidden>
+        <img id="filter-preview-photo" alt="" width="588" height="393">
+        <figcaption id="filter-preview-name" aria-live="polite" aria-atomic="true"></figcaption>
+      </figure>
       <div class="theme-grid" id="filter-grid"></div>
+    </div>
+    <div id="filter-modal-actions" class="filter-modal-actions" hidden>
+      <button id="btn-apply-filter" class="btn" type="button" data-i18n="filter.apply">Gunakan</button>
     </div>
   </div>
 </div>

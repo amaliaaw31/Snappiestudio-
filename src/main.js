@@ -119,6 +119,7 @@ let currentScreen = 'scr-start';
 let historyWorks = true;
 let updateFilterEdges = () => {};
 let demoTheme = 'pastel';
+let pendingDemoFilter = null;
 
 function activateScreen(id) {
   if ((id === 'scr-preview' || id === 'scr-result') && !state.photos.length) id = 'scr-start';
@@ -185,8 +186,17 @@ function openModal(id) {
   if (!m || m.classList.contains('open')) return;
   const shareOptions = $('share-options');
   if (shareOptions?.matches(':popover-open')) shareOptions.hidePopover();
+  if (id === 'filter-modal') {
+    const demo = currentScreen === 'scr-start';
+    pendingDemoFilter = demo ? state.filter : null;
+    $('filter-modal-preview').hidden = !demo;
+    $('filter-modal-actions').hidden = !demo;
+    if (demo) $('filter-preview-photo').src = filterSampleUrl;
+    syncFilterPicker();
+  }
   modalStack.push({ modal: m, trigger: document.activeElement });
   m.classList.add('open');
+  if (id === 'filter-modal') m.querySelector('.modal-body').scrollTop = 0;
   refreshPhotoSamples();
   syncModalInteraction();
   const close = m.querySelector('.modal-close');
@@ -199,6 +209,10 @@ function closeModal(id) {
   const wasTop = index === modalStack.length - 1;
   const [{ trigger }] = modalStack.splice(index, 1);
   m.classList.remove('open');
+  if (id === 'filter-modal') {
+    pendingDemoFilter = null;
+    syncFilterPicker();
+  }
   syncModalInteraction();
   if (wasTop) {
     if (trigger?.isConnected && !trigger.closest('[inert]') && trigger.getClientRects().length) trigger.focus();
@@ -228,12 +242,17 @@ function filterName() {
 }
 function syncFilterPicker() {
   filterBtns.forEach(b => { if (b) b.textContent = filterName(); });
+  const selected = pendingDemoFilter ?? state.filter;
   document.querySelectorAll('#filter-grid .filter-option').forEach(x => {
-    x.classList.toggle('sel', x.dataset.id === state.filter);
+    x.classList.toggle('sel', x.dataset.id === selected);
+    x.setAttribute('aria-pressed', String(x.dataset.id === selected));
   });
   document.querySelectorAll('#filter-strip .filter-chip').forEach(x => {
     x.classList.toggle('sel', x.dataset.id === state.filter);
+    x.setAttribute('aria-pressed', String(x.dataset.id === state.filter));
   });
+  $('filter-preview-photo').style.filter = filterCss(selected);
+  $('filter-preview-name').textContent = tr('filter.' + selected);
   const v = $('video');
   if (v) v.style.filter = filterCss(state.filter);
 }
@@ -292,7 +311,15 @@ function buildFilterPicker() {
       b.dataset.id = f.id;
       b.innerHTML = '<span class="filter-sample" style="filter:' + f.css + '"></span>' +
         '<span class="filter-option-name">' + tr('filter.' + f.id) + '</span>';
-      b.onclick = () => { chooseFilter(f.id); closeModal('filter-modal'); };
+      b.onclick = () => {
+        if (pendingDemoFilter !== null) {
+          pendingDemoFilter = f.id;
+          syncFilterPicker();
+        } else {
+          chooseFilter(f.id);
+          closeModal('filter-modal');
+        }
+      };
       grid.appendChild(b);
     });
   }
@@ -327,6 +354,11 @@ function buildFilterPicker() {
     btn.onclick = () => { syncFilterPicker(); openModal('filter-modal'); };
   }
   if ($('btn-close-filter')) $('btn-close-filter').onclick = () => closeModal('filter-modal');
+  $('btn-apply-filter').onclick = () => {
+    if (pendingDemoFilter === null) return;
+    chooseFilter(pendingDemoFilter);
+    closeModal('filter-modal');
+  };
   if (filterModal) filterModal.onclick = (e) => { if (e.target === filterModal) closeModal('filter-modal'); };
   syncFilterPicker();
 }
@@ -373,6 +405,11 @@ function renderDemo() {
   });
 }
 document.querySelectorAll('[data-demo-theme]').forEach(button => {
+  const thumbnail = document.createElement('span');
+  thumbnail.className = 'demo-theme-preview';
+  thumbnail.setAttribute('aria-hidden', 'true');
+  thumbnail.innerHTML = themeThumbHTML({ id: button.dataset.demoTheme });
+  button.prepend(thumbnail);
   button.onclick = () => { demoTheme = button.dataset.demoTheme; renderDemo(); };
 });
 const demoFilter = $('demo-filter');

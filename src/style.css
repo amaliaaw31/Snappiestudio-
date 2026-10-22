@@ -194,9 +194,14 @@ body.dark-mode.on-start {
 #scr-start h1 { font-size: clamp(44px, 6vw, 80px); }
 .start-demo { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 0; min-width: 0; width: 100%; }
 .start-demo figcaption { color: var(--ui-muted); font-size: 13px; text-align: center; }
-.demo-themes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.demo-themes button { border: 1px solid var(--ui-border); border-radius: 8px; background: var(--ui-surface); color: var(--ui-text); padding: 10px 12px; min-height: 44px; font: inherit; font-size: 12px; cursor: pointer; }
-.demo-themes button[aria-pressed="true"] { border: 2px solid var(--ui-accent); color: var(--ui-accent); font-weight: 700; }
+.demo-themes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; max-width: 360px; gap: 8px; }
+.demo-themes button { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 2px solid var(--ui-border); border-radius: 8px; background: var(--ui-surface); color: var(--ui-text); padding: 8px 4px; min-height: 44px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.demo-themes button[aria-pressed="true"] { border-color: var(--ui-accent); color: var(--ui-accent); }
+.demo-theme-preview { display: flex; align-items: center; justify-content: center; height: 100px; }
+.demo-themes .demo-theme-preview .theme-thumb { display: block; width: 40px; padding: 0; box-shadow: none; }
+.demo-themes .demo-theme-preview .frame { display: block; padding: 3px; }
+.demo-theme-preview .thumb-slots { gap: 2px; }
+.demo-theme-preview .thumb-stamp { height: 2px; margin-top: 3px; }
 .demo-filter-label { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; color: var(--ui-muted); font-size: 13px; }
 .demo-filter-label .filter-select { width: auto; max-width: 220px; min-height: 44px; text-align: left; }
 body.on-start::before {
@@ -1148,6 +1153,11 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 
 /* filter picker preview */
 .filter-modal-card { max-width: 480px; }
+.filter-modal-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 0 0 16px; color: var(--ui-text); font-size: 14px; }
+.filter-modal-preview img { width: 100%; max-width: 240px; height: auto; aspect-ratio: 588 / 393; object-fit: cover; }
+.filter-modal-actions { padding: 12px 20px; border-top: 1px solid var(--ui-border); }
+.filter-modal-actions .btn { width: 100%; min-height: 44px; }
+.filter-modal-preview[hidden], .filter-modal-actions[hidden] { display: none; }
 .filter-option { display: flex; flex-direction: column; gap: 6px; align-items: center; background: none;
   border: none; cursor: pointer; padding: 6px 4px; font-family: inherit; border-radius: 12px; }
 .filter-option:hover { background: #fdf3ff; }
