@@ -47,7 +47,7 @@ export function initCmsTools({ api }) {
   const printReport = () => { document.querySelector('[data-view="overview"]').click(); window.print(); };
   $('print-report').addEventListener('click', printReport); $('print-overview').addEventListener('click', printReport);
   let auditCursor = null;
-  const eventNames = { login: 'Login berhasil', login_failed: 'Login gagal', logout: 'Keluar', logout_all: 'Keluar semua sesi', password_changed: 'Password diubah', mfa_enabled: '2FA diaktifkan', mfa_disabled: '2FA dinonaktifkan', recovery_regenerated: 'Kode pemulihan diganti', session_revoked: 'Sesi dicabut', visitors_reset: 'Data kunjungan direset', content_updated: 'Pengumuman diubah' };
+  const eventNames = { login: 'Login berhasil', login_failed: 'Login gagal', logout: 'Keluar', logout_all: 'Keluar semua sesi', password_changed: 'Password diubah', mfa_enabled: '2FA diaktifkan', mfa_disabled: '2FA dinonaktifkan', recovery_regenerated: 'Kode pemulihan diganti', session_revoked: 'Sesi dicabut', visitors_reset: 'Data kunjungan direset', content_updated: 'Pengumuman diubah', discord_notice_published: 'Pengumuman dipasang lewat Discord', discord_notice_hidden: 'Pengumuman disembunyikan lewat Discord', discord_migration_scheduled: 'Jadwal migrasi dibuat', discord_migration_started: 'Jadwal migrasi dimulai', discord_migration_skipped: 'Jadwal migrasi dilewati', discord_migration_done: 'Migrasi ditandai selesai', discord_migration_cancelled: 'Jadwal migrasi dibatalkan' };
   async function audit(append = false) {
     $('audit-status').textContent = 'Memuat riwayat…';
     $('audit-refresh').disabled = true; $('audit-more').disabled = true;
@@ -89,7 +89,7 @@ export function initCmsTools({ api }) {
     event.preventDefault(); const button = event.submitter || $('content-form').querySelector('button[type=submit]'); button.disabled = true;
     try {
       await api('/api/admin/content', { method: 'POST', body: JSON.stringify({ enabled: $('notice-enabled').checked, title: $('notice-title').value, message: $('notice-message').value }) });
-      $('content-status').textContent = 'Pengumuman tersimpan. Pengunjung melihat perubahan saat halaman dibuka kembali.';
+      $('content-status').textContent = 'Pengumuman tersimpan. Tab website yang aktif memuat perubahan maksimal sekitar satu menit.';
     } catch (error) { $('content-status').textContent = 'Gagal menyimpan: ' + error.message; }
     finally { button.disabled = false; }
   });
@@ -104,6 +104,20 @@ export function initCmsTools({ api }) {
     finally { $('refresh-health').disabled = false; }
   }
   $('health-settings').addEventListener('toggle', () => { if ($('health-settings').open) health(); }); $('refresh-health').addEventListener('click', health);
+  async function discordStatus() {
+    $('discord-bot-status').textContent = 'Memuat status bot…'; $('refresh-discord').disabled = true;
+    try {
+      const data = await api('/api/admin/discord');
+      $('discord-bot-status').textContent = (data.configured ? 'Aplikasi bot sudah dikonfigurasi.' : 'Aplikasi bot belum dikonfigurasi; hubungkan aplikasi Discord melalui pengelola server.')
+        + (data.scheduler ? ` Jadwal diperiksa ${date(data.scheduler.lastRun)}.${data.scheduler.failedDeliveries ? ' Ada pengingat yang belum terkirim dan akan dicoba lagi.' : ''}${!data.scheduler.discordConfigured ? ' Tujuan pengingat Discord belum dikonfigurasi.' : ''}` : ' Pemeriksa jadwal belum mencatat hasil.');
+      const states = { scheduled: 'Menunggu jadwal', active: 'Waktu migrasi sudah tiba', done: 'Selesai', cancelled: 'Dibatalkan', superseded: 'Dilewati karena pengumuman diubah manual', missed: 'Dilewati karena terlambat lebih dari 24 jam' };
+      $('discord-jobs').replaceChildren(...data.jobs.map(job => text('li', `${job.id}: ${job.title}; ${date(job.due_at)}; ${states[job.status] || job.status}; otomatis ${job.automatic ? 'ya' : 'tidak'}.`)));
+      if (!data.jobs.length) $('discord-jobs').append(text('li', 'Belum ada jadwal migrasi.'));
+    } catch (error) { $('discord-bot-status').textContent = 'Status bot gagal dimuat: ' + error.message; }
+    finally { $('refresh-discord').disabled = false; }
+  }
+  $('discord-settings').addEventListener('toggle', () => { if ($('discord-settings').open) discordStatus(); });
+  $('refresh-discord').addEventListener('click', discordStatus);
   let reports = [];
   function selectedReport() {
     const value = reports[Number($('saved-report').value)]; $('download-saved-report').disabled = !value;

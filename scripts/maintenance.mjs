@@ -35,7 +35,7 @@ export async function backupSite({ stateDirectory, backupDirectory, configuratio
     const source = new DatabaseSync(join(stateDirectory, 'visitors.sqlite'), { readOnly: true });
     try { await backup(source, join(staging, 'visitors.sqlite')); } finally { source.close(); }
     for (const name of ['cms-account.json', 'cms-key.bin']) copyFileSync(join(stateDirectory, name), join(staging, name));
-    for (const [sourceName, target] of [['counter.env', 'counter.env'], ['cms-password.hash', 'bootstrap-password.hash']]) {
+    for (const [sourceName, target] of [['counter.env', 'counter.env'], ['cms-password.hash', 'bootstrap-password.hash'], ['discord-bot.json', 'discord-bot.json']]) {
       const sourceFile = join(configurationDirectory, sourceName);
       if (existsSync(sourceFile)) copyFileSync(sourceFile, join(staging, target));
     }

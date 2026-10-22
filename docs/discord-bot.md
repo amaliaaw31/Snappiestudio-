@@ -1,0 +1,90 @@
+# Bot Discord untuk pengumuman dan jadwal migrasi
+
+Bot menerima perintah slash dan mengirim pengingat melalui webhook Discord yang sudah dikonfigurasi. Bot tidak membaca percakapan bebas, tidak menjalankan shell dari chat, dan tidak memindahkan data server. Fitur pengumuman manual dan jadwal tetap bisa digunakan bersamaan, dengan satu jadwal migrasi yang belum ditutup pada satu waktu.
+
+## Pemasangan pertama
+
+1. Buka [Discord Developer Portal](https://discord.com/developers/applications), buat aplikasi untuk Snappie Studio.
+2. Pada General Information, salin Application ID dan Public Key.
+3. Pada halaman Bot, siapkan token bot. Jangan kirim token melalui chat. Token hanya dipakai untuk mendaftarkan perintah dan tidak disimpan di server.
+4. Aktifkan Developer Mode di Discord agar dapat menyalin ID server, kanal perintah, dan akun Discord yang boleh memakai bot. Pakai kanal admin yang sesuai kebutuhan Anda. Pengingat dikirim ke kanal webhook notifikasi yang sudah ada.
+5. Jalankan di server:
+
+```sh
+cd /home/ubuntu/projects/project-yaya/Snappiestudio-
+sudo bash deploy/configure-discord-bot.sh
+```
+
+6. Isi Application ID, Public Key, server ID, channel ID, dan user ID yang diizinkan. Untuk beberapa akun, pisahkan user ID dengan koma. Script menampilkan tautan untuk memasang aplikasi pada server Discord; buka tautan itu sebelum melanjutkan. Scope aplikasi hanya `applications.commands`, tanpa izin administrator bot dan tanpa koneksi Gateway.
+7. Tempel token pada prompt tersembunyi. Script mendaftarkan `/pengumuman` dan `/migrasi`, lalu menyimpan konfigurasi ID/public key dengan izin privat. Token tidak menjadi argumen proses, tidak dicetak, dan tidak disimpan. Jika pendaftaran gagal, konfigurasi sebelumnya tetap dipertahankan; jalankan ulang setelah izin dan pemasangan aplikasi benar.
+8. Pada General Information di Developer Portal, isi Interactions Endpoint URL:
+
+```text
+https://snappiestudio.com/api/discord/interactions
+```
+
+Simpan. Discord menguji tanda tangan dan PING endpoint. Jika ditolak, cocokkan Public Key dan Application ID aplikasi dengan konfigurasi yang baru diisi.
+
+Perintah secara default hanya terlihat bagi administrator server Discord. Untuk memberi akses pada akun lain yang ada di allowlist, atur izin perintah aplikasi melalui pengaturan Integrations di Discord. Pemeriksaan server tetap membatasi user ID, server, dan kanal yang dikonfigurasi, meskipun seseorang memiliki izin administrator Discord. Bot menggunakan HTTP interactions; status kehadiran online bukan indikator apakah perintah berfungsi.
+
+## Perintah manual
+
+```text
+/pengumuman pasang pesan:Website sedang dalam pemeliharaan judul:Informasi layanan
+/pengumuman status
+/pengumuman hapus
+```
+
+Pesan maksimal 500 karakter, judul maksimal 80. Teks diperlakukan sebagai teks biasa. Balasan perintah hanya terlihat oleh pemohon. Pengumuman publik tampil pada pembukaan website dan diperbarui setiap satu menit ketika tab aktif. Menutup pengumuman tidak membuat pesan yang sama muncul berulang pada tab tersebut; pesan baru tetap muncul.
+
+## Pengingat dan pengumuman otomatis
+
+Contoh format berikut menggunakan tanggal contoh; ganti dengan waktu yang masih akan datang:
+
+```text
+/migrasi jadwalkan waktu:2026-11-01 22:00 pesan:Pemeliharaan server dijadwalkan malam ini judul:Pemeliharaan pengingat_menit:60 otomatis:True
+```
+
+- Waktu memakai WIB, format `YYYY-MM-DD HH:mm`, minimal satu menit dan maksimal 365 hari ke depan.
+- `pengingat_menit` bawaan 60; boleh 1–10080 menit. Jika waktu pengingat sudah lewat saat jadwal dibuat, pengingat dikirim pada pemeriksaan berikutnya.
+- `otomatis` bawaan True. Bot mengirim pengingat sebelum waktu mulai dan menampilkan pesan di website saat jadwal tiba.
+- Jika hanya ingin pengingat Discord, pilih `otomatis:False`.
+- Jika waktu mulai sudah tiba sebelum pengingat sempat terkirim, bot mengirim pesan bahwa waktunya sudah tiba dan melewati pengingat yang sudah terlambat.
+
+Bot mengembalikan ID jadwal. Setelah migrasi yang Anda kerjakan selesai:
+
+```text
+/migrasi status
+/migrasi selesai id:ID_DARI_BOT
+```
+
+Untuk membatalkan:
+
+```text
+/migrasi batal id:ID_DARI_BOT
+```
+
+Selesai/batal menghentikan pengumuman otomatis jadwal tersebut. Pengumuman manual yang sudah ada sebelumnya tetap dipertahankan. Bot tidak mendeteksi apakah pemindahan data benar-benar sudah dilakukan; tanda selesai berasal dari perintah Anda.
+
+## Ketahanan dan aturan saat terjadi perubahan
+
+Pekerja `snappiestudio-migrations.timer` memeriksa jadwal setiap satu menit. Pengumuman pada tab website yang sudah terbuka biasanya mengikuti dalam sekitar dua menit: satu interval pekerja ditambah satu interval pembaruan tab. Jadwal tersimpan di SQLite dan bertahan setelah restart. Pengumuman otomatis tidak menulis ulang file pengumuman manual: backend memilih pengumuman jadwal aktif hanya selama pengumuman manual belum berubah.
+
+Jika pengumuman diubah melalui CMS atau perintah manual setelah jadwal dibuat, jadwal otomatis dilewati agar tidak menimpa perubahan itu. Gunakan `/migrasi batal` atau `/migrasi selesai` untuk menutup jadwal yang masih menunggu sebelum membuat pengganti. Jadwal yang baru diproses lebih dari 24 jam setelah waktu mulai juga dilewati. Jadwal yang sudah aktif tetap memerlukan selesai/batal untuk ditutup.
+
+Kegagalan pengiriman Discord tidak menghalangi pengumuman website. Pengiriman dicoba ulang, tanpa mengulang pesan yang sudah dikonfirmasi tersimpan. Lease mencegah dua pekerja mengirim pesan yang sama bersamaan; jika proses mati setelah Discord menyimpan pesan tetapi sebelum konfirmasi disimpan lokal, pesan bisa terkirim ulang. Kanal forum mengikuti `thread_id` yang sudah dipasang pada webhook notifikasi.
+
+CMS → Pengaturan → Bot Discord dan jadwal migrasi menampilkan konfigurasi, waktu pemeriksaan terakhir, pengingat yang gagal, dan jadwal terbaru. Konfigurasi aplikasi belum menjamin endpoint sudah dipasang pada Developer Portal; uji `/pengumuman status` setelah langkah pemasangan lengkap.
+
+## Operasi dan pemulihan
+
+```sh
+systemctl status snappiestudio-migrations.timer
+sudo systemctl start snappiestudio-migrations.service
+```
+
+Konfigurasi bot berada di `/etc/snappiestudio/discord-bot.json`, root:ubuntu 0640, dan dibaca ulang pada setiap permintaan sehingga penggantian konfigurasi tidak memerlukan restart backend. Isinya hanya ID, allowlist, dan public key. Token bot tidak diperlukan saat runtime. Endpoint mati tertutup jika konfigurasi hilang atau tidak valid.
+
+Backup mencakup jadwal, cache interaction, audit, serta konfigurasi bot bila tersedia. Saat memulihkan backup, periksa jadwal aktif sebelum menyalakan timer; tutup jadwal lama yang tidak lagi relevan. Tinjau kembali allowlist setelah pemulihan. Menghentikan timer tidak menghapus pengumuman yang sudah aktif; selesaikan/batalkan jadwal atau ubah pengumuman manual di CMS untuk menghentikannya.
+
+Referensi: [HTTP interactions dan tanda tangan Discord](https://docs.discord.com/developers/interactions/overview), [application commands](https://docs.discord.com/developers/interactions/application-commands).

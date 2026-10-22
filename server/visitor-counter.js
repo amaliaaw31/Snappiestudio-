@@ -6,7 +6,8 @@ import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { clientIp, createAdminSecurity, createRateLimiter, json, readJson } from './security.js';
 import { createAnalytics, reportFilters, utcTimestamp, csvVisit } from './analytics.js';
-import { createAudit, readState, serviceStatus, contentResponse, saveContent } from './cms-operations.js';
+import { createAudit, readState, serviceStatus, saveContent } from './cms-operations.js';
+import { migrationSchema, receiveDiscord, effectiveAnnouncement, migrationList, loadBotConfig } from './discord-bot.js';
 import { writePrivateJson } from './admin-account.js';
 
 const CMS_FILES = new Map([
@@ -44,14 +45,14 @@ const LOCATION_COLUMNS = [
 ];
 
 export function createVisitorServer({ dbPath, locate = () => null, admin = {}, trustProxy = false,
-  publicDirectory = new URL('../dist/', import.meta.url), now = Date.now }) {
+  discordConfigPath, publicDirectory = new URL('../dist/', import.meta.url), now = Date.now }) {
   if (!dbPath) throw new TypeError('dbPath is required');
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new DatabaseSync(dbPath);
   db.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA synchronous = NORMAL;
-    PRAGMA busy_timeout = 5000;
+    PRAGMA busy_timeout = 1000;
     PRAGMA foreign_keys = ON;
     CREATE TABLE IF NOT EXISTS visitors (
       visitor_hash TEXT PRIMARY KEY,
@@ -73,6 +74,8 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
   const excludeBrowser = db.prepare('INSERT OR IGNORE INTO excluded_browsers (visitor_hash) VALUES (?)');
   const removeBrowser = db.prepare('DELETE FROM visitors WHERE visitor_hash = ?');
   const audit = createAudit(db, now);
+  migrationSchema(db);
+  const botConfigPath = discordConfigPath || process.env.CMS_DISCORD_BOT_CONFIG || '/etc/snappiestudio/discord-bot.json';
   const security = createAdminSecurity({ audit, accountPath: join(dirname(dbPath), 'cms-account.json'), ...admin, trustProxy, now });
   const limit = createRateLimiter({ now });
   const origins = new Set(admin.allowedOrigins || ['https://snappiestudio.com', 'https://www.snappiestudio.com']);
@@ -80,8 +83,13 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
     try {
       const url = new URL(request.url, 'http://localhost');
       const path = url.pathname;
+      if (path === '/api/discord/interactions') {
+        const retry = limit('discord:' + clientIp(request, trustProxy), 60, 60000);
+        if (retry) { response.setHeader('Retry-After', String(retry)); json(response, 429, { error: 'Too many requests' }); return; }
+        await receiveDiscord(request, response, { db, directory: dirname(dbPath), configPath: botConfigPath, now, audit }); return;
+      }
       if (path === '/api/site-content' && request.method === 'GET') {
-        json(response, 200, await contentResponse(dirname(dbPath))); return;
+        json(response, 200, await effectiveAnnouncement(db, dirname(dbPath))); return;
       }
       if (CMS_FILES.has(path)) {
         if (!['GET', 'HEAD'].includes(request.method)) { response.setHeader('Allow', 'GET, HEAD'); json(response, 405, { error: 'Method not allowed' }); return; }
@@ -115,8 +123,13 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
           json(response, 200, { events: db.prepare('SELECT id, at, event FROM cms_audit WHERE id < ? ORDER BY id DESC LIMIT 50').all(before) }); return;
         }
         if (path === '/api/admin/content') {
-          if (request.method === 'GET') { json(response, 200, await contentResponse(dirname(dbPath))); return; }
+          if (request.method === 'GET') { json(response, 200, await effectiveAnnouncement(db, dirname(dbPath))); return; }
           if (request.method === 'POST') { const value = saveContent(dirname(dbPath), await readJson(request, 2048), now); audit('content_updated'); json(response, 200, value); return; }
+        }
+        if (path === '/api/admin/discord' && request.method === 'GET') {
+          let configured = false;
+          try { configured = !!loadBotConfig(botConfigPath); } catch {}
+          json(response, 200, { configured, scheduler: await readState(dirname(dbPath), 'discord-scheduler-status.json'), jobs: migrationList(db) }); return;
         }
         if (path === '/api/admin/health' && request.method === 'GET') {
           json(response, 200, { ...serviceStatus(db, dbPath, now), monitor: await readState(dirname(dbPath), 'monitor-status.json'), offsite: await readState(dirname(dbPath), 'offsite-status.json') }); return;

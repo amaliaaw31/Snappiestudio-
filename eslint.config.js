@@ -1,6 +1,6 @@
 export default [
   {
-    files: ['server/**/*.js', 'scripts/maintenance.mjs', 'scripts/cms-jobs.mjs', 'vite.config.js'],
+    files: ['server/**/*.js', 'scripts/maintenance.mjs', 'scripts/cms-jobs.mjs', 'scripts/discord-setup.mjs', 'vite.config.js'],
     languageOptions: { ecmaVersion: 'latest', sourceType: 'module',
       globals: { process: 'readonly', Buffer: 'readonly', URL: 'readonly', console: 'readonly', AbortSignal: 'readonly', URLSearchParams: 'readonly', fetch: 'readonly' } },
     rules: { 'no-undef': 'error', 'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }], 'no-unreachable': 'error' },

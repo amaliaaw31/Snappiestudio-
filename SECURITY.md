@@ -112,3 +112,15 @@ sudo bash deploy/configure-discord.sh
 Tempel URL pada prompt tersembunyi. Installer memvalidasi bentuk URL tanpa mengirim pesan, mempertahankan konfigurasi lain, dan memasang `maintenance.env` secara atomik dengan pemilik root:ubuntu serta izin 0640. URL tidak menjadi argumen command line, tidak tampil pada terminal, dan tidak ditulis dalam repo. Jangan kirim URL webhook melalui chat karena URL tersebut berisi token. Timer monitor memakai konfigurasi baru pada eksekusi berikutnya; restart backend tidak diperlukan. Jika belum ada gangguan, monitor tidak mengirim pesan pembuka atau mengklaim pengiriman sudah berhasil.
 
 Referensi implementasi: [Discord Execute Webhook](https://docs.discord.com/developers/resources/webhook#execute-webhook).
+
+## Bot Discord dan jadwal pengumuman
+
+`/api/discord/interactions` merupakan endpoint terpisah dari login CMS. Setiap POST memerlukan tanda tangan Ed25519 atas timestamp dan body mentah, timestamp dengan selisih maksimal lima menit, serta payload maksimal 16 KiB. Caddy hanya menaikkan batas body pada rute ini; API lain tetap 2 KiB. PING bertanda tangan valid dijawab sesuai protokol Discord. Signature tidak valid mendapat 401. Perintah hanya diterima dari application ID, guild ID, channel ID, dan user ID dalam konfigurasi privat; akun bot dan DM ditolak. Balasan perintah memakai flag ephemeral dan menonaktifkan mention.
+
+Cache interaction SQLite mencegah perintah yang dikirim ulang menjalankan mutasi dua kali. Perintah tidak menerima shell, SQL, path server, atau URL pengiriman. Jadwal dan pengumuman divalidasi dengan batas yang sama dengan CMS. Satu jadwal yang belum ditutup diizinkan untuk mencegah dua migrasi menimpa pengumuman. Tabel baru bersifat tambahan dan tidak menghapus data visitor/akun. Endpoint status `/api/admin/discord` tetap memerlukan sesi CMS.
+
+Pekerja jadwal memakai akun ubuntu dan sandbox systemd seperti monitor. Pengumuman otomatis merupakan overlay dari jadwal SQLite, dengan fingerprint file pengumuman manual saat jadwal dibuat. Perubahan manual langsung mengambil alih dan tidak pernah ditimpa pekerja. Selesai/batal hanya menutup overlay jadwal tersebut. Pengingat menggunakan webhook Discord yang sudah ada dan selalu memerlukan konfirmasi ID pesan. Status pengiriman dan lease tersimpan agar percobaan ulang serta overlap pekerja dapat ditangani.
+
+Konfigurasi bot hanya menyimpan ID, public key, dan allowlist; token bot hanya dimasukkan lewat prompt tersembunyi untuk pendaftaran dua perintah bernama. Pendaftaran tidak menghapus perintah aplikasi lainnya. Konfigurasi lama dipertahankan jika pendaftaran baru gagal. Berkas `discord-bot.json` ikut backup bila tersedia; verifier lama yang belum mengenal berkas ini tidak boleh dipakai untuk snapshot baru. Saat rollback, hentikan timer jadwal sebelum menjalankan backend lama; jangan menghapus tabel untuk rollback. Pengumuman manual tetap dapat dibaca backend lama, sedangkan overlay jadwal memerlukan versi backend ini.
+
+Panduan pemasangan, perintah, ketepatan waktu, serta pemulihan ada di [docs/discord-bot.md](docs/discord-bot.md). Pemindahan data dan deteksi keberhasilan migrasi tidak dilakukan bot ini.

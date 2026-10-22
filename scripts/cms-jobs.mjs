@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { pipeline } from 'node:stream/promises';
 import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
+import { runMigrationSchedule } from '../server/discord-scheduler.js';
 import { sendNotification } from '../server/notifications.js';
 import { createAnalytics, reportFilters } from '../server/analytics.js';
 import { createAudit, readState } from '../server/cms-operations.js';
@@ -122,9 +123,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const dbPath = process.env.VISITOR_DB_PATH || '/var/lib/snappiestudio-counter/visitors.sqlite';
   try {
     if (process.argv[2] === 'reports') { generateReports(dbPath); console.log('Weekly and monthly reports generated.'); }
+    else if (process.argv[2] === 'migrations') { const state = await runMigrationSchedule({ dbPath }); console.log(state.ok ? 'Discord migration schedule checked.' : 'Discord migration schedule checked; some reminders need retry.'); }
     else if (process.argv[2] === 'monitor') { const state = await checkMonitor(dirname(dbPath)); console.log(state.ok ? 'All monitored services healthy.' : 'Issues detected: ' + state.issues.join(', ')); }
     else if (process.argv[2] === 'offsite' && process.argv[3]) await uploadOffsite(process.argv[3], dirname(dbPath));
     else if (process.argv[2] === 'decrypt' && process.argv[3] && process.argv[4]) await decryptArchive(process.argv[3], process.argv[4], readFileSync(process.env.CMS_BACKUP_KEY_FILE));
-    else throw new Error('Usage: cms-jobs.mjs reports | monitor | offsite SNAPSHOT | decrypt SOURCE OUTPUT_TAR');
+    else throw new Error('Usage: cms-jobs.mjs reports | monitor | migrations | offsite SNAPSHOT | decrypt SOURCE OUTPUT_TAR');
   } catch (error) { console.error('CMS job failed:', error.code || error.name); process.exitCode = 1; }
 }

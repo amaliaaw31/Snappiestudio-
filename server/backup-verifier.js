@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { join } from 'node:path';
 import { validateAccount, decryptTotp, authenticator } from './admin-account.js';
 const hash = file => createHash('sha256').update(readFileSync(file)).digest('hex');
-const files = ['visitors.sqlite', 'cms-account.json', 'cms-key.bin', 'counter.env', 'bootstrap-password.hash', 'site-content.json'];
+const files = ['visitors.sqlite', 'cms-account.json', 'cms-key.bin', 'counter.env', 'bootstrap-password.hash', 'site-content.json', 'discord-bot.json'];
 
 export function verifyBackup(directory) {
   const manifest = JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8'));

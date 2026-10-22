@@ -1,0 +1,22 @@
+[Unit]
+Description=Snappie Discord migration reminders and automatic notices
+After=network-online.target snappiestudio-counter.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/projects/project-yaya/Snappiestudio-
+Environment=VISITOR_DB_PATH=/var/lib/snappiestudio-counter/visitors.sqlite
+EnvironmentFile=-/etc/snappiestudio/maintenance.env
+ExecStart=/home/ubuntu/.nvm/versions/node/v24.21.0/bin/node /home/ubuntu/projects/project-yaya/Snappiestudio-/scripts/cms-jobs.mjs migrations
+ReadWritePaths=/var/lib/snappiestudio-counter
+TimeoutStartSec=60
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+CapabilityBoundingSet=

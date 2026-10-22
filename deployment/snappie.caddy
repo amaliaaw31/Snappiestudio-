@@ -11,9 +11,17 @@ header {
     ?Content-Security-Policy "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
 }
 
-@sensitive path_regexp sensitive (?i)(^|/)(\.[^/]+|(server|test|deploy|deployment|scripts|node_modules)(/|$)|(cms-account\.json|cms-key\.bin|package(-lock)?\.json|AGENTS\.md|SECURITY\.md)$)|\.(sqlite3?|db)(-(wal|shm|journal))?$|\.(bak|old|log|sql|map|hash|pem|key|p12|pfx|conf|caddy)$
+@sensitive path_regexp sensitive (?i)(^|/)(\.[^/]+|(server|test|deploy|deployment|scripts|node_modules)(/|$)|(discord-bot\.json|cms-account\.json|cms-key\.bin|package(-lock)?\.json|AGENTS\.md|SECURITY\.md)$)|\.(sqlite3?|db)(-(wal|shm|journal))?$|\.(bak|old|log|sql|map|hash|pem|key|p12|pfx|conf|caddy)$
 handle @sensitive {
     respond "Not found" 404
+}
+
+@discord path /api/discord/interactions
+handle @discord {
+    request_body {
+        max_size 16KB
+    }
+    reverse_proxy 127.0.0.1:3001
 }
 
 @api path /api /api/*

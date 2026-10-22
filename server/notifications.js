@@ -29,6 +29,10 @@ export async function sendNotification(env, issues, at, fetchImpl = fetch) {
   const payload = destination.channel === 'discord'
     ? { content: message + '\nWaktu: ' + at, allowed_mentions: { parse: [] } }
     : { text: message, issues, at };
+  await deliver(destination, payload, fetchImpl);
+}
+
+async function deliver(destination, payload, fetchImpl) {
   const response = await fetchImpl(destination.url, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(10000),
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   if (!response.ok) { await response.body?.cancel(); throw new Error('Notification rejected'); }
@@ -36,4 +40,9 @@ export async function sendNotification(env, issues, at, fetchImpl = fetch) {
     const result = await response.json();
     if (!/^\d{15,22}$/.test(result?.id || '')) throw new Error('Discord delivery not confirmed');
   } else await response.body?.cancel();
+}
+
+export async function sendDiscordText(webhook, content, fetchImpl = fetch) {
+  if (typeof content !== 'string' || !content || content.length > 2000) throw new Error('Invalid Discord message');
+  await deliver({ channel: 'discord', url: discordWebhook(webhook) }, { content, allowed_mentions: { parse: [] } }, fetchImpl);
 }
