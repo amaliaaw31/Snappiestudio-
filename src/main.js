@@ -273,7 +273,8 @@ function makeDraggableScroll(el) {
 function chooseFilter(id) {
   state.filter = id;
   const i = state.selectedPhotoIndex;
-  if (i != null && state.photos[i]) {
+  if (currentScreen === 'scr-start') renderDemo();
+  else if (i != null && state.photos[i]) {
     state.photos[i].filter = id;
     renderThumbs();
   }
@@ -344,7 +345,7 @@ function themeThumbHTML(t) {
 }
 
 function refreshPhotoSamples() {
-  const sample = state.photos[state.selectedPhotoIndex ?? 0];
+  const sample = currentScreen === 'scr-start' ? null : state.photos[state.selectedPhotoIndex ?? 0];
   document.querySelectorAll('#theme-grid .thumb-slots').forEach(slots => {
     slots.innerHTML = state.photos.length ? state.photos.slice(0, 3).map((p, i) =>
       '<i><img data-photo="' + i + '" alt="" style="filter:' + filterCss(p.filter) + ';transform:' + imgTransform(p) + '"></i>'
@@ -354,7 +355,7 @@ function refreshPhotoSamples() {
   document.querySelectorAll('.filter-sample').forEach(el => {
     if (!sample) { el.style.backgroundImage = ''; return; }
     photoUrl(sample.canvas).then(url => {
-      if (url && el.isConnected && state.photos.includes(sample)) el.style.backgroundImage = 'url("' + url + '")';
+      if (url && el.isConnected && currentScreen !== 'scr-start' && state.photos.includes(sample)) el.style.backgroundImage = 'url("' + url + '")';
     });
   });
 }
@@ -364,7 +365,7 @@ function renderDemo() {
   if (!holder) return;
   holder.innerHTML = themeThumbHTML({ id: demoTheme });
   holder.querySelector('.thumb-slots').innerHTML = ('<i><img src="' + filterSampleUrl + '" alt="" style="filter:' + filterCss(state.filter) + '"></i>').repeat(3);
-  if ($('demo-filter')) $('demo-filter').value = state.filter;
+  if ($('demo-filter')) $('demo-filter').textContent = filterName();
   document.querySelectorAll('[data-demo-theme]').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.demoTheme === demoTheme));
   });
@@ -374,18 +375,10 @@ document.querySelectorAll('[data-demo-theme]').forEach(button => {
 });
 const demoFilter = $('demo-filter');
 if (demoFilter) {
-  FILTERS.forEach(filter => {
-    const option = document.createElement('option');
-    option.value = filter.id;
-    option.dataset.i18n = 'filter.' + filter.id;
-    option.textContent = tr(option.dataset.i18n);
-    demoFilter.appendChild(option);
-  });
-  demoFilter.onchange = () => {
-    state.filter = demoFilter.value;
-    renderDemo();
+  filterBtns.push(demoFilter);
+  demoFilter.onclick = () => {
     syncFilterPicker();
-    savePrefs();
+    openModal('filter-modal');
   };
 }
 renderDemo();

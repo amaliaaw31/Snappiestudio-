@@ -101,9 +101,9 @@
   <figure class="start-demo">
     <div id="demo-frame" aria-hidden="true"></div>
     <figcaption data-i18n="start.example">Contoh bingkai dengan foto</figcaption>
-    <label class="demo-filter-label" for="demo-filter"><span data-i18n="start.tryFilter">Coba efek foto</span>
-      <select id="demo-filter" class="filter-select"></select>
-    </label>
+    <div class="demo-filter-label"><span id="demo-filter-label" data-i18n="start.tryFilter">Coba efek foto</span>
+      <button type="button" id="demo-filter" class="filter-select" aria-haspopup="dialog" aria-controls="filter-modal" aria-labelledby="demo-filter-label demo-filter"></button>
+    </div>
     <div class="demo-themes" role="group" data-i18n-aria="start.tryTheme" aria-label="Coba tema bingkai">
       <button type="button" data-demo-theme="pastel" aria-pressed="true" data-i18n="theme.pastel">Princess Pastel</button>
       <button type="button" data-demo-theme="film" aria-pressed="false" data-i18n="theme.film">35mm Film</button>

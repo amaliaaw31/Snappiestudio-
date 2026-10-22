@@ -195,7 +195,7 @@ body.dark-mode.on-start {
 .start-demo { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 0; min-width: 0; }
 .start-demo figcaption { color: var(--ui-muted); font-size: 13px; text-align: center; }
 .start-demo .theme-thumb { display: block; width: 126px; padding: 8px; }
-.start-demo .frame { padding: 10px; }
+.start-demo .frame { display: block; padding: 10px; }
 .start-demo .thumb-slots { gap: 6px; }
 .start-demo .thumb-slots i { height: auto; aspect-ratio: 4 / 3; }
 .start-demo .thumb-stamp { margin: 14px auto 5px; }
@@ -204,6 +204,12 @@ body.dark-mode.on-start {
 .demo-themes button[aria-pressed="true"] { border: 2px solid var(--ui-accent); color: var(--ui-accent); font-weight: 700; }
 .demo-filter-label { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; color: var(--ui-muted); font-size: 13px; }
 .demo-filter-label .filter-select { width: auto; max-width: 220px; min-height: 44px; text-align: left; }
+body.on-start::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-color: #d63384; opacity: .045;
+  mask: url('./assets/start-lines.png') center / cover no-repeat;
+}
+body.dark-mode.on-start::before { background-color: #ff7ab8; opacity: .06; }
 #scr-start > .visitor-count { justify-self: center; margin: 0 0 12px; }
 h1 { font-family: 'The Magic Cookie', 'Fredoka', cursive; font-size: clamp(48px, 10vw, 88px); font-weight: 400; color: #d63384; margin: 18px 0 6px; text-align: center; }
 /* header rata kiri di halaman selain awal (klik = ke tampilan awal) */

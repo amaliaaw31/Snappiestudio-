@@ -100,10 +100,24 @@ try {
   await waitFor("[...document.querySelectorAll('#demo-frame img, #theme-grid img')].every(img => img.complete && img.naturalWidth > 0)");
   await check("[...document.querySelectorAll('#demo-frame img, #theme-grid img')].every(img => img.naturalWidth === 588 && img.naturalHeight === 393)", 'frame examples use the supplied group photo');
   await check("getComputedStyle(document.querySelector('.filter-sample')).backgroundImage.includes('sample-group')", 'filter examples use the supplied group photo');
-  await evaluate("document.querySelector('#demo-filter').value = 'bw'; document.querySelector('#demo-filter').dispatchEvent(new Event('change'))");
+  await click('#demo-filter');
+  await check("document.querySelector('#filter-modal').classList.contains('open') && document.querySelector('#scr-start').inert", 'homepage effects open an accessible modal');
+  await click('#filter-grid [data-id=bw]');
   await check("[...document.querySelectorAll('#demo-frame img')].every(img => img.style.filter === 'grayscale(1)')", 'homepage effect picker updates every demo photo');
-  await evaluate("document.querySelector('#demo-filter').value = 'normal'; document.querySelector('#demo-filter').dispatchEvent(new Event('change'))");
-  await check("!document.querySelector('#bg-lines') && performance.getEntriesByType('resource').every(entry => !/\\/bac[.-]/.test(entry.name))", 'homepage does not load or generate the old image background');
+  await check("document.activeElement.id === 'demo-filter' && !document.querySelector('#filter-modal').classList.contains('open')", 'effect selection closes modal and restores focus');
+  await click('#demo-filter');
+  await key('Escape');
+  await check("document.activeElement.id === 'demo-filter' && !document.querySelector('#filter-modal').classList.contains('open')", 'homepage effects support Escape and focus restoration');
+  await click('#demo-filter');
+  await click('#filter-grid [data-id=normal]');
+  await check("getComputedStyle(document.body, '::before').maskImage.includes('start-lines') && performance.getEntriesByType('resource').every(entry => !/\\/bac[.-]/.test(entry.name))", 'homepage restores static background without runtime image processing');
+  for (const width of [320, 390, 720, 1000, 1440]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
+    for (const theme of ['pastel', 'minimal', 'film']) {
+      await click(`[data-demo-theme=${theme}]`);
+      await check(`(() => { const frame = document.querySelector('#demo-frame .frame'); const bounds = frame.getBoundingClientRect(); return getComputedStyle(frame).display === 'block' && [...frame.querySelectorAll('i')].every(slot => { const box = slot.getBoundingClientRect(); return box.width > 0 && box.left >= bounds.left && box.right <= bounds.right + 1 && box.top >= bounds.top && box.bottom <= bounds.bottom + 1; }); })()`, `homepage ${theme} frame contains photos at ${width}px`);
+    }
+  }
   for (const width of [390, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
     await screenshot(`start-${width}`);
@@ -122,6 +136,7 @@ try {
   }`);
   await click('#btn-start');
   await waitFor("document.querySelector('#scr-cam').classList.contains('active')");
+  await check("getComputedStyle(document.body, '::before').content === 'none' && getComputedStyle(document.body, '::before').maskImage === 'none'", 'restored background appears only on homepage');
   await check("document.querySelector('#video').srcObject.active && [...document.querySelectorAll('[data-camera-status]')].every(el => el.style.display === 'none') && !document.querySelector('#btn-start').disabled", 'retry succeeds and clears camera status');
   await evaluate("navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('No camera for test', 'NotFoundError'); }");
   await click('#btn-switch-cam');
