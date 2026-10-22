@@ -156,7 +156,7 @@ function goPreview() {
 window.addEventListener('popstate', (e) => {
   const openModals = document.querySelectorAll('.modal-overlay.open');
   if (openModals.length) {
-    openModals.forEach(m => m.classList.remove('open'));
+    while (modalStack.length) closeModal(modalStack.at(-1).modal.id);
     if (historyWorks) { try { window.history.pushState({ screen: currentScreen }, ''); } catch (err) { /* abaikan */ } }
     return;
   }
@@ -168,20 +168,50 @@ window.addEventListener('popstate', (e) => {
   activateScreen(id);
 });
 
+const modalStack = [];
+document.querySelectorAll('.modal-overlay').forEach(m => { m.inert = true; });
+
+function syncModalInteraction() {
+  const top = modalStack.at(-1)?.modal;
+  document.querySelectorAll('.screen, .modal-overlay').forEach(el => {
+    el.inert = el.classList.contains('modal-overlay') ? el !== top : Boolean(top);
+  });
+}
+
 function openModal(id) {
   const m = $(id);
-  if (!m) return;
+  if (!m || m.classList.contains('open')) return;
+  modalStack.push({ modal: m, trigger: document.activeElement });
   m.classList.add('open');
+  syncModalInteraction();
   const close = m.querySelector('.modal-close');
-  if (close) setTimeout(() => close.focus(), 60);
+  if (close) close.focus();
 }
 function closeModal(id) {
   const m = $(id);
-  if (m) m.classList.remove('open');
+  const index = modalStack.findIndex(entry => entry.modal === m);
+  if (index < 0) return;
+  const wasTop = index === modalStack.length - 1;
+  const [{ trigger }] = modalStack.splice(index, 1);
+  m.classList.remove('open');
+  syncModalInteraction();
+  if (wasTop) {
+    if (trigger?.isConnected && !trigger.closest('[inert]') && trigger.getClientRects().length) trigger.focus();
+    else modalStack.at(-1)?.modal.querySelector('.modal-close')?.focus();
+  }
 }
 document.addEventListener('keydown', (e) => {
+  const modal = modalStack.at(-1)?.modal;
+  if (!modal) return;
   if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+    e.preventDefault();
+    closeModal(modal.id);
+  } else if (e.key === 'Tab') {
+    const controls = [...modal.querySelectorAll('button, a[href], input, select, textarea, [tabindex]')]
+      .filter(el => !el.disabled && el.tabIndex >= 0 && !el.closest('[hidden], [inert]') && el.getClientRects().length);
+    const first = controls[0], last = controls.at(-1);
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
 });
 
@@ -742,7 +772,13 @@ function shouldUseTorch() {
 async function startCamera() {
   stopStream();
   const requestId = cameraRequestId;
-  const camerr = $('camerr');
+  const setCameraStatus = key => {
+    document.querySelectorAll('[data-camera-status]').forEach(el => {
+      el.textContent = key ? tr(key) : '';
+      el.style.display = key ? 'block' : 'none';
+    });
+  };
+  setCameraStatus('err.opening');
   try {
     const stream = await openCameraStream(navigator.mediaDevices, state.facing, {
       isCurrent: () => requestId === cameraRequestId,
@@ -761,31 +797,41 @@ async function startCamera() {
     }));
     $('video').srcObject = stream;
     torchSnapshot('camera.opened');
-    camerr.style.display = 'none';
+    setCameraStatus(null);
     return true;
   } catch (e) {
     if (requestId !== cameraRequestId) return false;
     state.stream = null;   // jangan simpan stream yang sudah mati
     const name = e && e.name;
     if (name === 'NotAllowedError' || name === 'SecurityError') {
-      camerr.textContent = tr('err.denied');
+      setCameraStatus('err.denied');
     } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
-      camerr.textContent = tr('err.notfound');
+      setCameraStatus('err.notfound');
     } else if (name === 'NotReadableError' || name === 'AbortError') {
-      camerr.textContent = tr('err.inuse');
+      setCameraStatus('err.inuse');
     } else {
-      camerr.textContent = tr('err.generic');
+      setCameraStatus('err.generic');
     }
-    camerr.style.display = 'block';
     return false;
   }
 }
 
 $('btn-start').onclick = async () => {
-  if (await startCamera()) {
-    startNewSession();             // sesi baru: foto, bingkai, dan riwayat undo di-reset
-    applyMirror();
-    show('scr-cam');
+  const button = $('btn-start');
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  try {
+    if (await startCamera()) {
+      startNewSession();             // sesi baru: foto, bingkai, dan riwayat undo di-reset
+      applyMirror();
+      show('scr-cam');
+    } else {
+      button.dataset.i18n = 'start.retry';
+      button.textContent = tr('start.retry');
+    }
+  } finally {
+    button.disabled = false;
+    button.removeAttribute('aria-busy');
   }
 };
 
@@ -2198,7 +2244,7 @@ function initStickerPicker() {
   const btnAddText = $('btn-add-text');
   if (textInput && btnAddText) {
     btnAddText.onclick = () => {
-      if (addTextSticker(textInput.value)) { textInput.value = ''; modal.classList.remove('open'); }
+      if (addTextSticker(textInput.value)) { textInput.value = ''; closeModal('sticker-modal'); }
       else textInput.focus();
     };
     textInput.addEventListener('keydown', (e) => {
@@ -2571,6 +2617,7 @@ if ($('text-edit-input')) $('text-edit-input').addEventListener('keydown', (e) =
 
 /* Kontrol keyboard untuk stiker yang dipilih (aksesibilitas) */
 document.addEventListener('keydown', (e) => {
+  if (modalStack.length) return;
   const tag = (document.activeElement && document.activeElement.tagName) || '';
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
   const id = state.selectedStickerId;
@@ -3076,6 +3123,7 @@ addHeaders();
 document.querySelectorAll('.undo-btn').forEach(b => b.addEventListener('click', undo));
 document.querySelectorAll('.redo-btn').forEach(b => b.addEventListener('click', redo));
 document.addEventListener('keydown', (e) => {
+  if (modalStack.length) return;
   const tag = (document.activeElement && document.activeElement.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
   if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {

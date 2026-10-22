@@ -43,18 +43,44 @@ const multiLens = [
 
 test('actual camera startup selects a rear track with torch instead of the default rear without it', async () => {
   const { mediaDevices, opened } = setup(multiLens);
-  const nodes = { video: {}, camerr: { style: {} } };
+  const nodes = { video: {}, camerr: { style: {} }, startStatus: { style: {} } };
   const state = { facing: 'environment', stream: null };
   const context = vm.createContext({
     ...cameraModule, state, cameraRequestId: 0, navigator: { mediaDevices },
     stopStream() {}, setCameraZoom() {}, torchSnapshot() {}, tr: key => key,
     $: id => nodes[id],
+    document: { querySelectorAll: () => [nodes.camerr, nodes.startStatus] },
   });
   vm.runInContext(startCode, context);
   assert.equal(await context.startCamera(), true);
   assert.equal(state.stream.getVideoTracks()[0].getSettings().deviceId, 'rear-with-flash');
   assert.equal(nodes.video.srcObject, state.stream);
   assert.equal(opened[0].getVideoTracks()[0].stopped, true);
+  assert.equal(nodes.camerr.style.display, 'none');
+  assert.equal(nodes.startStatus.style.display, 'none');
+});
+
+test('camera permission failures show recovery messages on both entry and camera screens', async () => {
+  for (const [name, message] of [
+    ['NotAllowedError', 'err.denied'], ['NotFoundError', 'err.notfound'],
+    ['NotReadableError', 'err.inuse'], ['UnknownError', 'err.generic'],
+  ]) {
+    const statuses = [{ style: {} }, { style: {} }];
+    let rejectCamera;
+    const context = vm.createContext({
+      state: { facing: 'user', stream: null }, cameraRequestId: 0,
+      navigator: { mediaDevices: {} }, stopStream() {}, tr: key => key,
+      document: { querySelectorAll: () => statuses },
+      openCameraStream: () => new Promise((resolve, reject) => { rejectCamera = reject; }),
+    });
+    vm.runInContext(startCode, context);
+    const pending = context.startCamera();
+    assert.ok(statuses.every(el => el.textContent === 'err.opening' && el.style.display === 'block'));
+    rejectCamera(Object.assign(new Error('camera unavailable'), { name }));
+    assert.equal(await pending, false);
+    assert.ok(statuses.every(el => el.textContent === message && el.style.display === 'block'));
+    assert.equal(context.state.stream, null);
+  }
 });
 
 test('a rear camera already supporting torch is kept without enumeration', async () => {

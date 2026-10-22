@@ -96,6 +96,7 @@
   <p class="desc" data-i18n-html="start.desc">Jepret foto kece pakai filter,<br>hias dengan stiker lucu, lalu bagikan ke sosmed!</p>
   <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
   <button class="btn" id="btn-start" data-i18n="start.open">Buka Kamera</button>
+  <p id="start-cam-status" class="camera-status" data-camera-status role="status" aria-live="polite"></p>
   <button class="btn ghost" id="btn-gallery-start" style="margin-top:12px;"><span class="ms">image</span><span data-i18n="start.gallery">Pilih dari Galeri</span></button>
   <p class="desc start-foot" data-i18n-html="start.footer">Butuh izin kamera &amp; koneksi HTTPS.<br>Foto cuma diproses di perangkatmu.</p>
 </div>
@@ -134,7 +135,7 @@
       </div>
     </div>
   </div>
-  <div id="camerr" data-i18n="err.generic">Kamera nggak bisa dibuka. Cek izin kamera / pakai HTTPS ya.</div>
+  <div id="camerr" class="camera-status" data-camera-status role="status" aria-live="polite"></div>
   <p class="visitor-count cam-visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
   <div class="label" data-i18n="cam.filter">FILTER</div>
   <div class="filter-strip-wrap" id="filter-strip-wrap">
@@ -336,10 +337,10 @@
 </div>
 
 <!-- THEME MODAL -->
-<div id="theme-modal" class="modal-overlay" role="dialog" aria-modal="true">
+<div id="theme-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="theme-title">
   <div class="modal-card theme-modal-card">
     <div class="modal-header">
-      <h2><span class="ms">auto_awesome</span><span data-i18n="md.themeTitle">Pilih Tema Bingkai</span></h2>
+      <h2 id="theme-title"><span class="ms">auto_awesome</span><span data-i18n="md.themeTitle">Pilih Tema Bingkai</span></h2>
       <button id="btn-close-theme" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
@@ -390,10 +391,10 @@
 </div>
 
 <!-- FILTER MODAL -->
-<div id="filter-modal" class="modal-overlay" role="dialog" aria-modal="true">
+<div id="filter-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="filter-title">
   <div class="modal-card filter-modal-card">
     <div class="modal-header">
-      <h2><span class="ms">palette</span><span data-i18n="md.filterTitle">Pilih Filter</span></h2>
+      <h2 id="filter-title"><span class="ms">palette</span><span data-i18n="md.filterTitle">Pilih Filter</span></h2>
       <button id="btn-close-filter" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
@@ -416,10 +417,10 @@
 </div>
 
 <!-- TEXT EDIT MODAL -->
-<div id="text-edit-modal" class="modal-overlay" role="dialog" aria-modal="true">
+<div id="text-edit-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="text-edit-title">
   <div class="modal-card text-edit-card">
     <div class="modal-header">
-      <h2><span class="ms">edit</span><span data-i18n="md.editTitle">Edit Teks</span></h2>
+      <h2 id="text-edit-title"><span class="ms">edit</span><span data-i18n="md.editTitle">Edit Teks</span></h2>
       <button id="btn-close-text-edit" class="modal-close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
