@@ -19,6 +19,8 @@ export function reportFilters(params) {
   const to = dateParameter(params, 'to');
   if (from && to && from > to) throw badRequest('Tanggal mulai harus sebelum atau sama dengan tanggal akhir.');
   const q = (params.get('q') || '').trim();
+  const province = (params.get('province') || '').trim();
+  if (province.length > 100) throw badRequest('Provinsi maksimal 100 karakter.');
   if (q.length > 100) throw badRequest('Pencarian maksimal 100 karakter.');
   const integer = (name, fallback, max) => {
     const value = params.get(name);
@@ -26,12 +28,13 @@ export function reportFilters(params) {
     if (!/^[1-9]\d{0,6}$/.test(value) || Number(value) > max) throw badRequest('Halaman atau ukuran halaman tidak valid.');
     return Number(value);
   };
-  return { from, to, q, page: integer('page', 1, 1000000), pageSize: integer('pageSize', 100, 100) };
+  return { from, to, q, province, page: integer('page', 1, 1000000), pageSize: integer('pageSize', 100, 100) };
 }
 
 function where(filters, visitorAlias = 'v') {
   const clauses = [];
   const values = [];
+  if (filters.province) { clauses.push(`${visitorAlias}.province = ?`); values.push(filters.province); }
   if (filters.from || filters.to) {
     const range = [];
     if (filters.from) { range.push('a.hour >= ?'); values.push(utcTimestamp(midnight(filters.from))); }
@@ -73,6 +76,32 @@ export function createAnalytics(db, now) {
   const countRange = db.prepare('SELECT COUNT(DISTINCT visitor_hash) AS count FROM visitor_activity WHERE hour >= ? AND hour < ?');
 
   return {
+    provinces() {
+      return db.prepare("SELECT DISTINCT province FROM visitors WHERE province IS NOT NULL AND province != '' ORDER BY province").all().map(row => row.province);
+    },
+    insights(filters) {
+      const range = this.comparison(filters);
+      const { sql, values } = where({ ...filters, from: range.from, to: range.to });
+      const start = utcTimestamp(midnight(range.from));
+      const end = utcTimestamp(midnight(range.to) + DAY);
+      const counts = db.prepare(`SELECT SUM(CASE WHEN v.first_seen >= ? AND v.first_seen < ? THEN 1 ELSE 0 END) AS newBrowsers,
+        SUM(CASE WHEN v.first_seen < ? THEN 1 ELSE 0 END) AS returningBrowsers FROM visitors v ${sql}`).get(start, end, start, ...values);
+      const month = (filters.to || localDay(now())).slice(0, 7);
+      const monthEnd = new Date(Date.parse(month + '-01T00:00:00Z'));
+      monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1); monthEnd.setUTCDate(0);
+      const calendar = this.charts({ ...filters, from: month + '-01', to: monthEnd.toISOString().slice(0, 10) });
+      const trend = this.charts(filters);
+      const pattern = trend.unit === 'year' ? '%Y' : trend.unit === 'month' ? '%Y-%m' : '%Y-%m-%d';
+      const location = where({ ...filters, from: '', to: '' });
+      const newRows = db.prepare(`SELECT strftime('${pattern}', v.first_seen, '+7 hours') AS date, COUNT(*) AS count
+        FROM visitors v ${location.sql || 'WHERE 1=1'} AND v.first_seen >= ? AND v.first_seen < ? GROUP BY date`)
+        .all(...location.values, utcTimestamp(midnight(trend.from)), utcTimestamp(midnight(trend.to) + DAY));
+      const newCounts = new Map(newRows.map(row => [row.date, row.count]));
+      return { from: range.from, to: range.to, newBrowsers: counts.newBrowsers || 0, returningBrowsers: counts.returningBrowsers || 0,
+        calendar: { month, days: calendar.daily }, trendUnit: trend.unit,
+        trend: trend.daily.map(row => ({ date: row.date, newBrowsers: newCounts.get(row.date) || 0,
+          returningBrowsers: row.count - (newCounts.get(row.date) || 0) })), trackingSince };
+    },
     record(hash, timestamp) {
       record.run(hash, timestamp.slice(0, 13) + ':00:00', timestamp);
       updateLastSeen.run(timestamp, hash);

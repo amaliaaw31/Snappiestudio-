@@ -1,0 +1,7 @@
+.site-notice { position: fixed; z-index: 1000; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(560px, calc(100% - 24px)); display: flex; align-items: flex-start; gap: 12px; padding: 16px; border: 1px solid #c77a9e; border-radius: 10px; background: #fff7fb; color: #392d36; font: 14px/1.5 system-ui, sans-serif; box-shadow: 0 4px 20px rgb(0 0 0 / .15); }
+.site-notice div { min-width: 0; overflow-wrap: anywhere; }
+.site-notice p { margin: 4px 0 0; white-space: pre-wrap; }
+.site-notice button { margin-left: auto; min-height: 44px; padding: 8px 12px; flex-shrink: 0; background: transparent; color: inherit; border: 1px solid #c77a9e; border-radius: 6px; font: inherit; cursor: pointer; }
+.site-notice button:focus-visible { outline: 3px solid #b1266b; outline-offset: 2px; }
+[data-theme="dark"] .site-notice { background: #2b242d; color: #f4eaf0; }
+@media print { .site-notice { display: none; } }

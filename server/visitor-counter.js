@@ -6,6 +6,7 @@ import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { clientIp, createAdminSecurity, createRateLimiter, json, readJson } from './security.js';
 import { createAnalytics, reportFilters, utcTimestamp, csvVisit } from './analytics.js';
+import { createAudit, readState, serviceStatus, contentResponse, saveContent } from './cms-operations.js';
 import { writePrivateJson } from './admin-account.js';
 
 const CMS_FILES = new Map([
@@ -71,13 +72,17 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
   const isExcluded = db.prepare('SELECT 1 FROM excluded_browsers WHERE visitor_hash = ?');
   const excludeBrowser = db.prepare('INSERT OR IGNORE INTO excluded_browsers (visitor_hash) VALUES (?)');
   const removeBrowser = db.prepare('DELETE FROM visitors WHERE visitor_hash = ?');
-  const security = createAdminSecurity({ accountPath: join(dirname(dbPath), 'cms-account.json'), ...admin, trustProxy, now });
+  const audit = createAudit(db, now);
+  const security = createAdminSecurity({ audit, accountPath: join(dirname(dbPath), 'cms-account.json'), ...admin, trustProxy, now });
   const limit = createRateLimiter({ now });
   const origins = new Set(admin.allowedOrigins || ['https://snappiestudio.com', 'https://www.snappiestudio.com']);
   const server = createServer({ maxHeaderSize: 8192, requestTimeout: 10000, headersTimeout: 10000 }, async (request, response) => {
     try {
       const url = new URL(request.url, 'http://localhost');
       const path = url.pathname;
+      if (path === '/api/site-content' && request.method === 'GET') {
+        json(response, 200, await contentResponse(dirname(dbPath))); return;
+      }
       if (CMS_FILES.has(path)) {
         if (!['GET', 'HEAD'].includes(request.method)) { response.setHeader('Allow', 'GET, HEAD'); json(response, 405, { error: 'Method not allowed' }); return; }
         if (CMS_FILES.get(path) === 'cms-dashboard.html' && !security.session(request)) {
@@ -103,6 +108,21 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
         }
         if (path === '/api/admin/account' || path.startsWith('/api/admin/account/')) {
           await security.settings(request, response, path); return;
+        }
+        if (path === '/api/admin/audit' && request.method === 'GET') {
+          const before = Number(url.searchParams.get('before') || Number.MAX_SAFE_INTEGER);
+          if (!Number.isSafeInteger(before) || before < 1) { json(response, 400, { error: 'Cursor tidak valid.' }); return; }
+          json(response, 200, { events: db.prepare('SELECT id, at, event FROM cms_audit WHERE id < ? ORDER BY id DESC LIMIT 50').all(before) }); return;
+        }
+        if (path === '/api/admin/content') {
+          if (request.method === 'GET') { json(response, 200, await contentResponse(dirname(dbPath))); return; }
+          if (request.method === 'POST') { const value = saveContent(dirname(dbPath), await readJson(request, 2048), now); audit('content_updated'); json(response, 200, value); return; }
+        }
+        if (path === '/api/admin/health' && request.method === 'GET') {
+          json(response, 200, { ...serviceStatus(db, dbPath, now), monitor: await readState(dirname(dbPath), 'monitor-status.json'), offsite: await readState(dirname(dbPath), 'offsite-status.json') }); return;
+        }
+        if (path === '/api/admin/reports' && request.method === 'GET') {
+          json(response, 200, { reports: db.prepare('SELECT period, generated_at, data FROM cms_reports ORDER BY period DESC LIMIT 24').all().map(row => ({ period: row.period, generatedAt: row.generated_at, ...JSON.parse(row.data) })) }); return;
         }
         if (path === '/api/admin/maintenance' && request.method === 'GET') {
           const readStatus = async name => {
@@ -173,7 +193,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
           total: total.get().total,
           since: db.prepare('SELECT MIN(first_seen) AS since FROM visitors').get().since,
           summary: analytics.summary(), charts: analytics.charts(filters), comparison: analytics.comparison(filters),
-          visitors: analytics.visits(filters), locations: analytics.locations(filters),
+          visitors: analytics.visits(filters), locations: analytics.locations(filters), provinces: analytics.provinces(), insights: analytics.insights(filters),
         });
         return;
       }
@@ -194,6 +214,9 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
         response.end(); return;
       }
       if (request.method === 'POST' && path === '/api/admin/reset') {
+        const body = await readJson(request);
+        if (body.confirmation !== 'RESET KUNJUNGAN') { json(response, 400, { error: 'Ketik RESET KUNJUNGAN untuk mengonfirmasi.' }); return; }
+        audit('visitors_reset');
         reset.run();
         json(response, 200, { total: 0 });
         return;

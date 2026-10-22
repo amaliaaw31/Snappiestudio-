@@ -1,14 +1,14 @@
 export default [
   {
-    files: ['server/**/*.js', 'scripts/maintenance.mjs', 'vite.config.js'],
+    files: ['server/**/*.js', 'scripts/maintenance.mjs', 'scripts/cms-jobs.mjs', 'vite.config.js'],
     languageOptions: { ecmaVersion: 'latest', sourceType: 'module',
-      globals: { process: 'readonly', Buffer: 'readonly', URL: 'readonly', console: 'readonly', AbortSignal: 'readonly' } },
+      globals: { process: 'readonly', Buffer: 'readonly', URL: 'readonly', console: 'readonly', AbortSignal: 'readonly', URLSearchParams: 'readonly', fetch: 'readonly' } },
     rules: { 'no-undef': 'error', 'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }], 'no-unreachable': 'error' },
   },
   {
-    files: ['public/cms-*.js'],
+    files: ['public/cms-*.js', 'public/site-notice.js'],
     languageOptions: { ecmaVersion: 'latest', sourceType: 'module', globals: {
-      window: 'readonly', document: 'readonly', sessionStorage: 'readonly', localStorage: 'readonly', location: 'readonly', fetch: 'readonly',
+      AbortSignal: 'readonly', window: 'readonly', document: 'readonly', sessionStorage: 'readonly', localStorage: 'readonly', location: 'readonly', fetch: 'readonly',
     } },
     rules: { 'no-undef': 'error', 'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }], 'no-unreachable': 'error' },
   },

@@ -1,0 +1,10 @@
+[Unit]
+Description=Snappie weekly and monthly report archive schedule
+
+[Timer]
+OnCalendar=*-*-* 20:00:00 UTC
+Persistent=true
+Unit=snappiestudio-reports.service
+
+[Install]
+WantedBy=timers.target

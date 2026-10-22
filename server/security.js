@@ -81,7 +81,7 @@ function cookieToken(request) {
 }
 
 export function createAdminSecurity({ passwordHash = '', username = 'admin',
-  accountPath,
+  accountPath, audit = () => {},
   allowedOrigins = ['https://snappiestudio.com', 'https://www.snappiestudio.com'],
   now = Date.now, trustProxy = false } = {}) {
   const sessions = new Map();
@@ -119,7 +119,7 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
     if (previous) sessions.delete(digest(previous));
     const token = randomBytes(32).toString('base64url');
     const csrfToken = randomBytes(32).toString('base64url');
-    sessions.set(digest(token), { csrfToken, created: time, lastSeen: time, authVersion: account.read().authVersion });
+    sessions.set(digest(token), { csrfToken, created: time, lastSeen: time, authVersion: account.read().authVersion, device: /Firefox/i.test(request.headers['user-agent'] || '') ? 'Firefox' : /Edg/i.test(request.headers['user-agent'] || '') ? 'Edge' : /Chrome/i.test(request.headers['user-agent'] || '') ? 'Chrome' : /Safari/i.test(request.headers['user-agent'] || '') ? 'Safari' : 'Browser / klien lain' });
     response.setHeader('Set-Cookie', `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict`);
     return csrfToken;
   }
@@ -159,12 +159,13 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
         json(response, 401, { error: 'Invalid credentials' }); return;
       }
       const state = account.read();
-      if (!await verifyPassword(password, state.authVersion) || account.read().authVersion !== state.authVersion || user !== state.username) { json(response, 401, { error: 'Invalid credentials' }); return; }
+      if (!await verifyPassword(password, state.authVersion) || account.read().authVersion !== state.authVersion || user !== state.username) { audit('login_failed'); json(response, 401, { error: 'Invalid credentials' }); return; }
       if (state.totp && !otp) { json(response, 200, { mfaRequired: true }); return; }
-      if (!account.consume(otp, now())) { json(response, 401, { error: 'Invalid credentials' }); return; }
+      if (!account.consume(otp, now())) { audit('login_failed'); json(response, 401, { error: 'Invalid credentials' }); return; }
       // Invalidate any previous session supplied by this browser (fixation/rotation).
       const csrfToken = issueSession(request, response);
       if (!csrfToken) return;
+      audit('login');
       json(response, 200, { csrfToken });
     },
     async settings(request, response, path) {
@@ -172,8 +173,16 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
         const active = [...sessions.values()].filter(value => now() - value.lastSeen < IDLE_TIMEOUT && now() - value.created < ABSOLUTE_TIMEOUT && value.authVersion === account.read().authVersion).length;
         json(response, 200, { ...account.status(), activeSessions: active }); return;
       }
+      if (request.method === 'GET' && path === '/api/admin/account/sessions') {
+        const currentId = digest(cookieToken(request));
+        const entries = [];
+        for (const [id, value] of sessions) if (now() - value.lastSeen < IDLE_TIMEOUT && now() - value.created < ABSOLUTE_TIMEOUT && value.authVersion === account.read().authVersion) {
+          entries.push({ id, current: id === currentId, device: value.device, createdAt: new Date(value.created).toISOString(), lastSeen: new Date(value.lastSeen).toISOString() });
+        }
+        json(response, 200, { sessions: entries }); return;
+      }
       if (request.method !== 'POST') { json(response, 405, { error: 'Method not allowed' }); return; }
-      if (!['/api/admin/account/password', '/api/admin/account/logout-all', '/api/admin/account/mfa/setup', '/api/admin/account/mfa/enable', '/api/admin/account/mfa/disable', '/api/admin/account/mfa/recovery'].includes(path)) {
+      if (!['/api/admin/account/sessions/revoke', '/api/admin/account/password', '/api/admin/account/logout-all', '/api/admin/account/mfa/setup', '/api/admin/account/mfa/enable', '/api/admin/account/mfa/disable', '/api/admin/account/mfa/recovery'].includes(path)) {
         json(response, 404, { error: 'Not found' }); return;
       }
       const body = await readJson(request, 2048);
@@ -181,6 +190,11 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
       if (!current) { json(response, 401, { error: 'Login required' }); return; }
       if (!await reauthenticate(request, response, body)) return;
       if (!session(request, false)) { json(response, 409, { error: 'Sesi berubah. Masuk kembali sebelum mencoba lagi.' }); return; }
+      if (path === '/api/admin/account/sessions/revoke') {
+        if (typeof body.id !== 'string' || !/^[a-f0-9]{64}$/.test(body.id) || !sessions.has(body.id)) { json(response, 404, { error: 'Sesi tidak ditemukan.' }); return; }
+        if (body.id === digest(cookieToken(request))) { json(response, 400, { error: 'Gunakan tombol Keluar untuk sesi ini.' }); return; }
+        sessions.delete(body.id); audit('session_revoked'); json(response, 200, { ok: true }); return;
+      }
       if (path === '/api/admin/account/password') {
         const password = body.newPassword;
         if (typeof password !== 'string' || [...password].length < 12 || Buffer.byteLength(password) > 72 || password === body.currentPassword) {
@@ -192,11 +206,12 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
         let hash;
         try { hash = await bcrypt.hash(password, 12); } finally { checkingPasswords--; }
         if (account.read().authVersion !== version || !session(request, false)) { json(response, 409, { error: 'Akun berubah. Masuk kembali sebelum mencoba lagi.' }); return; }
-        account.changePassword(hash);
+        account.changePassword(hash); audit('password_changed');
         sessions.clear(); clearCookie(response);
         json(response, 200, { ok: true, signedOut: true }); return;
       }
       if (path === '/api/admin/account/logout-all') {
+        audit('logout_all');
         sessions.clear(); clearCookie(response);
         json(response, 200, { ok: true, signedOut: true }); return;
       }
@@ -214,7 +229,7 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
         }
         const counter = account.validateSetup(pending.secret, body.setupCode, now());
         if (counter === null) { json(response, 400, { error: 'Kode autentikator tidak valid. Periksa waktu perangkat dan coba kode baru.' }); return; }
-        const recoveryCodes = account.enable(pending.secret, counter);
+        const recoveryCodes = account.enable(pending.secret, counter); audit('mfa_enabled');
         sessions.clear();
         const csrfToken = issueSession(request, response);
         json(response, 200, { ok: true, csrfToken, recoveryCodes }); return;
@@ -224,6 +239,7 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
         let recoveryCodes;
         if (path.endsWith('/disable')) account.disable();
         else recoveryCodes = account.regenerate();
+        audit(path.endsWith('/disable') ? 'mfa_disabled' : 'recovery_regenerated');
         sessions.clear();
         const csrfToken = issueSession(request, response);
         json(response, 200, { ok: true, csrfToken, ...(recoveryCodes ? { recoveryCodes } : {}) }); return;
@@ -248,7 +264,7 @@ export function createAdminSecurity({ passwordHash = '', username = 'admin',
     },
     logout(request, response) {
       if (!this.authorize(request, response, true)) return;
-      sessions.delete(digest(cookieToken(request)));
+      sessions.delete(digest(cookieToken(request))); audit('logout');
       clearCookie(response);
       json(response, 200, { ok: true });
     },

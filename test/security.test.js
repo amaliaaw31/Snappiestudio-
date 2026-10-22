@@ -89,7 +89,7 @@ test('cross-site and missing CSRF requests cannot reset the database or log in',
     assert.equal((await api.request('/api/admin/reset', { method: 'POST', headers: { ...headers, ...extra } })).status, 403);
   }
   assert.equal((await (await api.request('/api/visitors')).json()).total, 1);
-  assert.equal((await api.request('/api/admin/reset', { method: 'POST', headers })).status, 200);
+  assert.equal((await api.request('/api/admin/reset', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ confirmation: 'RESET KUNJUNGAN' }) })).status, 200);
   assert.equal((await (await api.request('/api/visitors')).json()).total, 0);
 });
 
@@ -189,7 +189,7 @@ test('maintenance excludes only the authenticated admin browser, including its p
   const visits = await (await api.request('/api/admin/visits', { headers })).json();
   assert.equal(visits.total, 1);
   assert.equal(visits.visits.length, 1, 'excluded browser is removed from visit times');
-  await api.request('/api/admin/reset', { method: 'POST', headers });
+  await api.request('/api/admin/reset', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ confirmation: 'RESET KUNJUNGAN' }) });
   const empty = await (await api.request('/api/admin/visits', { headers })).json();
   assert.equal(empty.total, 0);
   assert.deepEqual(empty.visits, []);

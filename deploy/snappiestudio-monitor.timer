@@ -1,0 +1,10 @@
+[Unit]
+Description=Snappie service monitoring and incident notifications schedule
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=snappiestudio-monitor.service
+
+[Install]
+WantedBy=timers.target

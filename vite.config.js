@@ -17,6 +17,7 @@ export function inlineEntryWithCsp() {
         html = html.replace(tag, () => `<script type="module" crossorigin>${code}</script>`);
         delete bundle[name];
       }
+      html = html.replace('</head>', '<link rel="stylesheet" href="./site-notice.css"><script type="module" src="./site-notice.js"></script></head>');
       const hashes = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
         .map(([, code]) => "'sha256-" + createHash('sha256').update(code).digest('base64') + "'");
       const policy = [

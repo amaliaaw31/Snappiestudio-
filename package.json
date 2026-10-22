@@ -9,7 +9,7 @@
     "start:counter": "node server/visitor-counter.js",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src test server scripts/maintenance.mjs public/cms-login.js public/cms-dashboard.js public/cms-maintenance.js public/cms-theme.js vite.config.js",
+    "lint": "eslint src test server scripts/maintenance.mjs scripts/cms-jobs.mjs public/site-notice.js public/cms-tools.js public/cms-login.js public/cms-dashboard.js public/cms-maintenance.js public/cms-theme.js vite.config.js",
     "test": "node --test"
   },
   "devDependencies": {

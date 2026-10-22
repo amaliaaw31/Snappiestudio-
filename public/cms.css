@@ -198,3 +198,33 @@ button:disabled { opacity: .5; cursor: default; }
   #reset { margin-left: 0; }
   th, td { padding: 12px 8px; }
 }
+.insights-section { margin-top: 20px; }
+.visit-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; max-width: 520px; margin-top: 12px; text-align: center; font-size: 12px; }
+.calendar-day { min-width: 0; padding: 8px 2px; border: 1px solid var(--line); border-radius: 4px; }
+.calendar-day strong { display: block; margin-top: 4px; }
+.calendar-level-1 { background: var(--soft); }
+.calendar-level-2 { background: var(--track); }
+.calendar-level-3 { background: var(--accent); color: #fff; }
+:root[data-theme="dark"] .calendar-level-3 { color: #211c23; }
+.region-comparison-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.region-comparison-controls label, .region-comparison-controls select { display: block; width: 100%; }
+.region-comparison-controls select { margin-top: 6px; }
+.account-form textarea { width: 100%; resize: vertical; min-height: 100px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: inherit; font: inherit; }
+.account-form select, #saved-report { max-width: 100%; width: 100%; }
+.audit-list { padding-left: 20px; max-height: 300px; overflow: auto; line-height: 1.8; }
+.recovery-guide { padding-left: 20px; line-height: 1.8; }
+dialog { width: min(480px, calc(100% - 32px)); padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: inherit; }
+dialog::backdrop { background: rgb(0 0 0 / .55); }
+dialog p { font-size: 14px; line-height: 1.6; }
+@media (max-width: 560px) { .region-comparison-controls { grid-template-columns: minmax(0, 1fr); } }
+@media print {
+  :root, :root[data-theme="dark"] { color: #111; background: #fff; --surface: #fff; --soft: #f4f4f4; --muted: #444; --line: #aaa; --accent: #942059; }
+  body.dashboard-page { padding: 0; }
+  .dashboard { display: block; width: 100%; padding: 0; border: 0; }
+  .dashboard-nav, .header-actions, .filters, .actions, .pagination, button, #settings-panel, #visits-panel, #status, .report-notes { display: none !important; }
+  #overview-panel { display: block !important; }
+  .dashboard .charts { grid-template-columns: 1fr 1fr; }
+  .chart-card, .dashboard-metrics, .comparison-counts { break-inside: avoid; }
+  .calendar-level-3 { color: #111; }
+  canvas { max-width: 100%; }
+}

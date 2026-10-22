@@ -1,6 +1,6 @@
 import { DatabaseSync, backup } from 'node:sqlite';
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdirSync, readFileSync, readdirSync, lstatSync, statSync, copyFileSync, cpSync, chmodSync, chownSync, renameSync, rmSync, existsSync, mkdtempSync, createWriteStream } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, statSync, copyFileSync, cpSync, chmodSync, chownSync, renameSync, rmSync, existsSync, mkdtempSync, createWriteStream } from 'node:fs';
 import { dirname, join, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
@@ -10,10 +10,12 @@ import { pipeline } from 'node:stream/promises';
 import { createGunzip } from 'node:zlib';
 import { setTimeout as delay } from 'node:timers/promises';
 import { open as openGeoip } from 'maxmind';
-import { writePrivateJson, validateAccount, decryptTotp, authenticator } from '../server/admin-account.js';
+import { verifyBackup } from '../server/backup-verifier.js';
+export { verifyBackup } from '../server/backup-verifier.js';
+import { writePrivateJson } from '../server/admin-account.js';
 
 const hash = file => createHash('sha256').update(readFileSync(file)).digest('hex');
-const files = ['visitors.sqlite', 'cms-account.json', 'cms-key.bin', 'counter.env', 'bootstrap-password.hash'];
+
 
 function status(directory, name, changes) {
   const path = join(directory, name);
@@ -22,31 +24,6 @@ function status(directory, name, changes) {
   writePrivateJson(path, { ...previous, ...changes });
   if (process.getuid() === 0) chownSync(path, 0, statSync(directory).gid);
   chmodSync(path, 0o640);
-}
-
-export function verifyBackup(directory) {
-  const manifest = JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8'));
-  if (manifest.format !== 1 || !manifest.files || !manifest.counts || !['visitors', 'visitor_activity', 'excluded_browsers'].every(name => Number.isSafeInteger(manifest.counts[name]) && manifest.counts[name] >= 0) || !['visitors.sqlite', 'cms-account.json', 'cms-key.bin'].every(name => name in manifest.files)) throw new Error('Invalid backup manifest');
-  for (const name of readdirSync(directory)) {
-    if (name !== 'manifest.json' && !files.includes(name)) throw new Error('Unexpected backup file');
-    if (!lstatSync(join(directory, name)).isFile()) throw new Error('Backup must contain regular files only');
-  }
-  for (const [name, expected] of Object.entries(manifest.files)) {
-    if (!files.includes(name) || hash(join(directory, name)) !== expected) throw new Error('Backup checksum mismatch');
-  }
-  const account = validateAccount(JSON.parse(readFileSync(join(directory, 'cms-account.json'), 'utf8')));
-  const key = readFileSync(join(directory, 'cms-key.bin'));
-  if (key.length !== 32) throw new Error('Invalid backup encryption key');
-  if (account.totp) authenticator(decryptTotp(account.totp, key), account.username);
-  const db = new DatabaseSync(join(directory, 'visitors.sqlite'), { readOnly: true });
-  try {
-    if (db.prepare('PRAGMA integrity_check').get().integrity_check !== 'ok') throw new Error('Backup integrity check failed');
-    for (const [table, count] of Object.entries(manifest.counts)) {
-      if (!['visitors', 'visitor_activity', 'excluded_browsers'].includes(table)
-        || db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count !== count) throw new Error('Restored row count mismatch');
-    }
-  } finally { db.close(); }
-  return manifest;
 }
 
 export async function backupSite({ stateDirectory, backupDirectory, configurationDirectory = '/etc/snappiestudio', now = Date.now }) {
@@ -62,6 +39,7 @@ export async function backupSite({ stateDirectory, backupDirectory, configuratio
       const sourceFile = join(configurationDirectory, sourceName);
       if (existsSync(sourceFile)) copyFileSync(sourceFile, join(staging, target));
     }
+    if (existsSync(join(stateDirectory, 'site-content.json'))) copyFileSync(join(stateDirectory, 'site-content.json'), join(staging, 'site-content.json'));
     const db = new DatabaseSync(join(staging, 'visitors.sqlite'));
     db.exec('PRAGMA journal_mode=DELETE');
     const counts = {};
@@ -133,8 +111,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const stateDirectory = dirname(process.env.VISITOR_DB_PATH || '/var/lib/snappiestudio-counter/visitors.sqlite');
   try {
     if (process.argv[2] === 'backup') {
-      const directory = await backupSite({ stateDirectory, backupDirectory: process.env.CMS_BACKUP_DIRECTORY || '/var/lib/snappiestudio-backups' });
+      const directory = await backupSite({ stateDirectory, backupDirectory: process.env.CMS_BACKUP_DIRECTORY || '/var/lib/snappiestudio-backups', configurationDirectory: process.env.CMS_CONFIGURATION_DIRECTORY || '/etc/snappiestudio' });
       console.log('Backup and restore verification completed:', basename(directory));
+      const { uploadOffsite } = await import('./cms-jobs.mjs');
+      await uploadOffsite(directory, stateDirectory);
     } else if (process.argv[2] === 'verify-backup' && process.argv[3]) {
       const temporary = mkdtempSync(join(tmpdir(), 'snappie-restore-'));
       try {

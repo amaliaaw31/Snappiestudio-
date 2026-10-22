@@ -46,6 +46,7 @@
       <div><label for="from">Dari tanggal (WIB)</label><input id="from" name="from" type="date" min="2000-01-01" max="2099-12-31"></div>
       <div><label for="to">Sampai tanggal (WIB)</label><input id="to" name="to" type="date" min="2000-01-01" max="2099-12-31"></div>
       <div class="search-field"><label for="search">Cari negara, provinsi, atau kota</label><input id="search" name="q" type="search" maxlength="100" placeholder="Nama wilayah"></div>
+      <div><label for="province-filter">Provinsi / wilayah</label><select id="province-filter" name="province"><option value="">Semua provinsi</option></select></div>
       <div class="filter-buttons"><button type="submit">Terapkan</button><button id="clear-filters" type="button">Semua data</button></div>
       <div class="presets" aria-label="Pilihan periode">
         <button type="button" data-period="today">Hari ini</button>
@@ -59,13 +60,21 @@
     </div>
     <section id="overview-panel" aria-label="Ringkasan kunjungan">
     <section class="comparison" aria-labelledby="comparison-heading">
-      <h2 id="comparison-heading">Perbandingan kunjungan</h2>
+      <div class="section-heading"><h2 id="comparison-heading">Perbandingan kunjungan</h2><button id="print-overview" type="button">Cetak / PDF</button></div>
       <p id="comparison-note" class="chart-description">Memuat dua periode dengan jumlah hari yang sama.</p>
       <div class="summary comparison-counts">
         <div><strong id="comparison-current">…</strong><span id="comparison-current-label">Periode terpilih</span></div>
         <div><strong id="comparison-previous">…</strong><span id="comparison-previous-label">Periode sebelumnya</span></div>
       </div>
       <p id="comparison-change" class="note" aria-live="polite"></p>
+    </section>
+    <section class="insights-section" aria-labelledby="audience-heading">
+      <h2 id="audience-heading">Browser baru dan kembali</h2>
+      <p id="audience-summary" class="chart-description">Memuat statistik periode.</p>
+      <div class="summary comparison-counts"><div><strong id="new-browsers">…</strong><span>Baru pada periode ini</span></div><div><strong id="returning-browsers">…</strong><span>Sudah tercatat sebelumnya</span></div></div>
+      <details><summary>Tren browser baru dan kembali</summary><p class="note">Mengikuti rentang grafik. Pada setiap baris, browser baru dihitung saat pertama tercatat dalam interval tersebut; browser yang sama dapat kembali pada interval berikutnya.</p><div class="table-wrap"><table><thead><tr><th>Periode (WIB)</th><th>Baru</th><th>Kembali</th></tr></thead><tbody id="audience-trend"></tbody></table></div></details>
+      <details><summary>Kalender kunjungan</summary><p id="calendar-month" class="note"></p><p class="note">Angka menunjukkan browser unik per hari. Kalender mengikuti bulan tanggal akhir, atau bulan ini.</p><div id="visit-calendar" class="visit-calendar" aria-label="Browser unik per hari"></div></details>
+      <details><summary>Bandingkan wilayah</summary><p class="note">Pilih dua wilayah dari data sesuai filter. Setiap browser mengikuti lokasi kunjungan pertamanya.</p><div class="region-comparison-controls"><label>Wilayah pertama<select id="region-first"></select></label><label>Wilayah kedua<select id="region-second"></select></label></div><p id="region-comparison-result" role="status" class="note"></p></details>
     </section>
     <section class="charts" aria-label="Grafik pengunjung">
       <div class="chart-card trend-card">
@@ -96,7 +105,7 @@
     </section>
     </section>
     <section id="visits-panel" aria-label="Daftar kunjungan" hidden>
-    <div class="section-heading"><h2>Daftar pengunjung</h2><button id="export" type="button" title="Unduh semua halaman sesuai filter">Unduh CSV</button></div>
+    <div class="section-heading"><h2>Daftar pengunjung</h2><button id="print-report" type="button">Cetak / PDF</button><button id="export" type="button" title="Unduh semua halaman sesuai filter">Unduh CSV</button></div>
     <p id="visits-summary" class="visits-summary">Waktu kunjungan pertama dan terakhir dalam WIB (UTC+7).</p>
     <div class="table-wrap visits-table" tabindex="0" role="region" aria-label="Daftar kunjungan, dapat digulir">
       <table aria-label="Waktu kunjungan pertama dan terakhir pengunjung">
@@ -151,6 +160,11 @@
             <button type="submit" name="action" value="password">Ubah password</button>
             <button type="submit" name="action" value="logout-all">Keluar dari semua sesi</button>
           </div>
+          <h3>Sesi perangkat</h3>
+          <p class="note">Nama browser merupakan petunjuk dari klien, bukan identitas perangkat yang terverifikasi. Sesi hilang saat layanan restart.</p>
+          <label for="session-id">Pilih sesi lain yang akan diakhiri</label><select id="session-id"><option value="">Muat daftar sesi terlebih dahulu</option></select>
+          <div class="settings-actions"><button id="refresh-sessions" type="button">Muat sesi aktif</button><button type="submit" name="action" value="sessions/revoke">Akhiri sesi terpilih</button></div>
+          <p id="sessions-status" class="note" role="status"></p>
           <h3>Autentikasi dua faktor</h3>
           <div class="settings-actions">
             <button id="mfa-setup" type="submit" name="action" value="mfa/setup">Siapkan 2FA</button>
@@ -177,6 +191,13 @@
           <div class="settings-actions"><button id="download-recovery" type="button">Unduh kode pemulihan</button><button id="hide-recovery" type="button">Sembunyikan kode</button></div>
         </div>
       </details>
+      <details id="content-settings"><summary>Pengumuman situs</summary>
+        <form id="content-form" class="account-form"><label class="auto-refresh"><input id="notice-enabled" type="checkbox"> Tampilkan pengumuman</label><label for="notice-title">Judul</label><input id="notice-title" maxlength="80"><label for="notice-message">Pesan</label><textarea id="notice-message" maxlength="500" rows="4"></textarea><button type="submit">Simpan pengumuman</button></form><p id="content-status" class="note" role="status"></p>
+      </details>
+      <details id="audit-settings"><summary>Riwayat aktivitas admin</summary><p class="note">Menyimpan maksimal 10.000 kejadian selama 90 hari. Password, kode autentikator, dan IP tidak dicatat.</p><p id="audit-status" class="note" role="status"></p><ol id="audit-list" class="audit-list"></ol><div class="settings-actions"><button id="audit-refresh" type="button">Muat terbaru</button><button id="audit-more" type="button">Muat lebih lama</button></div></details>
+      <details id="reports-settings"><summary>Laporan mingguan dan bulanan</summary><p class="note">Ringkasan periode yang sudah selesai dibuat otomatis tiap hari. Pilih laporan untuk membaca atau mengunduh salinannya. Data sebelum awal pencatatan bisa belum lengkap.</p><label for="saved-report">Laporan tersimpan</label><select id="saved-report"></select><p id="saved-report-summary" class="note" role="status"></p><button id="download-saved-report" type="button" disabled>Unduh laporan JSON</button></details>
+      <details id="health-settings"><summary>Status layanan dan pemantauan</summary><p id="health-status" class="note" role="status"></p><dl id="health-data" class="maintenance-status-grid"></dl><button id="refresh-health" type="button">Periksa status</button></details>
+      <details><summary>Pemulihan akun</summary><ol class="recovery-guide"><li>Jika autentikator hilang, gunakan satu kode pemulihan pada langkah kedua login.</li><li>Setelah masuk, buka Akun dan keamanan. Gunakan password saat ini dan kode pemulihan lain untuk menonaktifkan 2FA.</li><li>Daftarkan autentikator baru, lalu simpan set kode pemulihan baru di tempat terpisah.</li><li>Jika semua kode hilang, hubungi pengelola server. Pemulihan memerlukan verifikasi pemilik dan backup akun yang cocok. Halaman publik tidak menyediakan pintasan login.</li></ol></details>
       <details id="maintenance-settings">
         <summary>Cadangan dan data lokasi</summary>
         <p class="note">Cadangan harian pukul 02.30 WIB, menyimpan 14 salinan terakhir. Setiap cadangan diuji dengan pemulihan ke direktori sementara. Data lokasi diperbarui setiap tanggal 2 pukul 04.00 WIB.</p>
@@ -190,6 +211,7 @@
         <button id="refresh-automation" type="button">Muat ulang status</button>
       </details>
     </section>
+    <dialog id="reset-dialog"><form id="reset-form"><h2>Reset data kunjungan?</h2><p>Seluruh kunjungan dan aktivitas akan dihapus. Riwayat admin dan pengecualian browser tetap disimpan. Tindakan ini tidak dapat dibatalkan.</p><label for="reset-confirmation">Ketik RESET KUNJUNGAN</label><input id="reset-confirmation" required autocomplete="off"><p id="reset-error" role="status"></p><div class="settings-actions"><button id="cancel-reset" type="button">Batalkan</button><button type="submit">Hapus data kunjungan</button></div></form></dialog>
     <details class="report-notes" data-report-control><summary>Tentang data kunjungan</summary>
       <p id="tracking-note" class="note"></p>
       <p id="maintenance-status" class="note" role="status"></p>

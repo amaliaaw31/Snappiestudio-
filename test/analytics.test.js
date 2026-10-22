@@ -167,7 +167,7 @@ test('long ranges aggregate by month and preserve zero periods; exclusions and r
   assert.equal(excluded.summary.today, 0);
   assert.ok(excluded.charts.daily.every(row => row.count === 0));
   await api.visit(secondId);
-  await api.request('/api/admin/reset', { method: 'POST', headers });
+  await api.request('/api/admin/reset', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ confirmation: 'RESET KUNJUNGAN' }) });
   const reset = await (await api.request('/api/admin/report', { headers })).json();
   assert.equal(reset.total, 0);
   assert.equal(reset.summary.today, 0);

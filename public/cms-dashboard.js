@@ -1,3 +1,4 @@
+import { initCmsTools, renderInsights } from './cms-tools.js';
 import { excludeMaintenanceBrowser } from './cms-maintenance.js';
 
 try { sessionStorage.removeItem('snappieCmsAuth'); } catch {}
@@ -13,7 +14,7 @@ const visitTime = new Intl.DateTimeFormat('id-ID', {
 let csrfToken = '';
 let page = 1;
 let pages = 1;
-let appliedFilters = { from: '', to: '', q: '' };
+let appliedFilters = { from: '', to: '', q: '', province: '' };
 let requestController;
 let chartData;
 let timer;
@@ -289,11 +290,16 @@ async function loadData() {
     for (const key of ['today', 'yesterday', 'week', 'month']) $(key).textContent = number.format(stats.summary[key]);
     const since = utcDate(stats.summary.trackingSince);
     $('tracking-note').textContent = `Ringkasan di atas mencakup seluruh lokasi dan tidak mengikuti filter. Satu browser dihitung sekali per periode, termasuk kunjungan ulang. Riwayat kunjungan ulang tersedia mulai ${visitDate.format(since)}, ${visitTime.format(since)} WIB; data sebelumnya hanya memuat kunjungan pertama.`;
-    $('filter-summary').textContent = `Filter daftar, lokasi, grafik, dan CSV: ${appliedFilters.from || 'awal pencatatan'} s.d. ${appliedFilters.to || 'sekarang'}${appliedFilters.q ? `; lokasi “${appliedFilters.q}”` : ''}. Tanpa tanggal, grafik menampilkan 30 hari terakhir.`;
+    $('filter-summary').textContent = `Filter daftar, lokasi, grafik, dan CSV: ${appliedFilters.from || 'awal pencatatan'} s.d. ${appliedFilters.to || 'sekarang'}${appliedFilters.q ? `; lokasi “${appliedFilters.q}”` : ''}${appliedFilters.province ? `; provinsi “${appliedFilters.province}”` : ''}. Tanpa tanggal, grafik menampilkan 30 hari terakhir.`;
     renderLocations(stats.locations);
     renderVisits(stats.visitors);
     renderCharts(stats.charts);
     renderComparison(stats.comparison);
+    const selectedProvince = appliedFilters.province || '';
+    $('province-filter').replaceChildren(new window.Option('Semua provinsi', ''), ...(stats.provinces || []).map(name => new window.Option(name, name)));
+    $('province-filter').value = selectedProvince;
+    renderInsights(stats.insights, stats.locations);
+    try { localStorage.setItem('snappie-cms-report-preferences', JSON.stringify({ ...appliedFilters, pageSize: $('page-size').value })); } catch {}
     $('status').textContent = `Diperbarui ${visitTime.format(new Date())} WIB.`;
   } catch (error) {
     if (controller.signal.aborted) return;
@@ -312,13 +318,13 @@ $('filters').addEventListener('submit', event => {
     $('status').textContent = 'Tanggal mulai harus sebelum atau sama dengan tanggal akhir.';
     return;
   }
-  appliedFilters = { from: $('from').value, to: $('to').value, q: $('search').value.trim() };
+  appliedFilters = { from: $('from').value, to: $('to').value, q: $('search').value.trim(), province: $('province-filter').value };
   page = 1;
   loadData();
 });
 $('clear-filters').addEventListener('click', () => {
   $('filters').reset();
-  appliedFilters = { from: '', to: '', q: '' };
+  appliedFilters = { from: '', to: '', q: '', province: '' };
   page = 1;
   loadData();
 });
@@ -373,16 +379,21 @@ $('logout').addEventListener('click', async () => {
     $('logout').disabled = false;
   }
 });
-$('reset').addEventListener('click', async () => {
-  if (!window.confirm('Reset total pengunjung menjadi 0? Seluruh riwayat kunjungan dan data lokasi juga terhapus. Tindakan ini tidak dapat dibatalkan.')) return;
-  $('reset').disabled = true;
+$('reset').addEventListener('click', () => {
+  $('reset-confirmation').value = ''; $('reset-error').textContent = '';
+  $('reset-dialog').showModal(); $('reset-confirmation').focus();
+});
+$('cancel-reset').addEventListener('click', () => $('reset-dialog').close());
+$('reset-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if ($('reset-confirmation').value !== 'RESET KUNJUNGAN') { $('reset-error').textContent = 'Ketik RESET KUNJUNGAN persis seperti contoh.'; return; }
+  const button = event.submitter || $('reset-form').querySelector('button[type=submit]'); button.disabled = true; $('reset').disabled = true;
   requestController?.abort();
   try {
-    await api('/api/admin/reset', { method: 'POST' });
-    await loadData();
-  } catch {
-    $('status').textContent = 'Reset gagal. Coba lagi.';
-  } finally { $('reset').disabled = false; }
+    await api('/api/admin/reset', { method: 'POST', body: JSON.stringify({ confirmation: $('reset-confirmation').value }) });
+    $('reset-dialog').close(); await loadData();
+  } catch (error) { $('reset-error').textContent = `Reset gagal: ${error.message}`; }
+  finally { button.disabled = false; $('reset').disabled = false; }
 });
 
 let recoveryCodes = [];
@@ -423,6 +434,7 @@ $('account-form').addEventListener('submit', async event => {
   if (accountBusy) return;
   const action = event.submitter?.value;
   if (!action) return;
+  if (action === 'sessions/revoke' && !$('session-id').value) { $('account-status').textContent = 'Pilih sesi lain yang akan diakhiri.'; $('session-id').focus(); return; }
   if (action === 'password' && [...$('new-password').value].length < 12) {
     $('account-status').textContent = 'Masukkan password baru dengan minimal 12 karakter.';
     $('new-password').focus();
@@ -435,6 +447,7 @@ $('account-form').addEventListener('submit', async event => {
   $('account-status').textContent = 'Memeriksa dan menyimpan perubahan akun…';
   try {
     const body = { currentPassword: $('current-password').value, otp: $('account-otp').value.trim() };
+    if (action === 'sessions/revoke') body.id = $('session-id').value;
     if (action === 'password') body.newPassword = $('new-password').value;
     if (action === 'mfa/enable') body.setupCode = $('mfa-setup-code').value.trim();
     const data = await api(`/api/admin/account/${action}`, { method: 'POST', body: JSON.stringify(body) });
@@ -459,7 +472,7 @@ $('account-form').addEventListener('submit', async event => {
         $('recovery-result').hidden = false;
       }
       await loadAccount();
-      $('account-status').textContent = action === 'mfa/disable' ? '2FA dinonaktifkan. Sesi lain sudah diakhiri.'
+      $('account-status').textContent = action === 'sessions/revoke' ? 'Sesi terpilih sudah diakhiri. Muat ulang daftar sesi.' : action === 'mfa/disable' ? '2FA dinonaktifkan. Sesi lain sudah diakhiri.'
         : 'Perubahan 2FA tersimpan. Simpan kode pemulihan sekarang; sesi lain sudah diakhiri.';
     }
   } catch (error) {
@@ -515,6 +528,16 @@ $('refresh-automation').addEventListener('click', loadAutomation);
 async function start() {
   try {
     try { $('auto-refresh').checked = localStorage.getItem('snappie-cms-auto-refresh') !== '0'; } catch {}
+    try {
+      const saved = JSON.parse(localStorage.getItem('snappie-cms-report-preferences') || 'null');
+      if (saved && typeof saved === 'object') {
+        for (const key of ['from', 'to']) if (typeof saved[key] === 'string' && /^20\d{2}-\d{2}-\d{2}$/.test(saved[key])) $(key).value = saved[key];
+        if (typeof saved.q === 'string') $('search').value = saved.q.slice(0, 100);
+        if (typeof saved.province === 'string' && saved.province.length <= 100) $('province-filter').add(new window.Option(saved.province, saved.province, true, true));
+        if (['25', '50', '100'].includes(saved.pageSize)) $('page-size').value = saved.pageSize;
+        appliedFilters = { from: $('from').value, to: $('to').value, q: $('search').value, province: $('province-filter').value };
+      }
+    } catch {}
     const session = await api('/api/admin/session');
     csrfToken = session.csrfToken;
     const excluded = await excludeMaintenanceBrowser(csrfToken);
@@ -525,4 +548,5 @@ async function start() {
     timer = window.setInterval(autoRefresh, 30000);
   } catch { $('status').textContent = 'Sesi tidak tersedia. Silakan masuk kembali.'; }
 }
+initCmsTools({ api });
 start();

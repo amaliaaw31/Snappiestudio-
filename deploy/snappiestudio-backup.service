@@ -9,6 +9,8 @@ Group=ubuntu
 WorkingDirectory=/home/ubuntu/projects/project-yaya/Snappiestudio-
 Environment=VISITOR_DB_PATH=/var/lib/snappiestudio-counter/visitors.sqlite
 Environment=CMS_BACKUP_DIRECTORY=/var/lib/snappiestudio-backups
+EnvironmentFile=-/etc/snappiestudio/maintenance.env
+TimeoutStartSec=240
 ExecStart=/home/ubuntu/.nvm/versions/node/v24.21.0/bin/node /home/ubuntu/projects/project-yaya/Snappiestudio-/scripts/maintenance.mjs backup
 StateDirectory=snappiestudio-backups
 StateDirectoryMode=0700

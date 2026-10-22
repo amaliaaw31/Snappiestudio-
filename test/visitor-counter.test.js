@@ -42,7 +42,7 @@ test('counts each anonymous browser once and supports CMS stats and reset', asyn
   const stats = await (await fetch(`${base}/api/admin/stats`, { headers })).json();
   assert.equal(stats.total, 2);
   assert.match(stats.since, /^\d{4}-\d{2}-\d{2} /);
-  assert.deepEqual(await (await fetch(`${base}/api/admin/reset`, { method: 'POST', headers })).json(), { total: 0 });
+  assert.deepEqual(await (await fetch(`${base}/api/admin/reset`, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ confirmation: 'RESET KUNJUNGAN' }) })).json(), { total: 0 });
   assert.deepEqual(await (await fetch(`${base}/api/visitors`)).json(), { total: 0 });
   assert.equal((await visit('not-a-uuid')).status, 400);
 });

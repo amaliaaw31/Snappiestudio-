@@ -65,3 +65,35 @@ Untuk pemulihan produksi, hentikan layanan counter, cadangkan direktori saat ini
 GeoIP diperbarui setiap tanggal 2 pukul 04.00 WIB dari DB-IP City Lite bulan berjalan. Unduhan dibatasi ukuran dan waktu, didekompresi, serta divalidasi sebelum penggantian atomik. SIGHUP memuat database baru tanpa memutus sesi. Kegagalan memulihkan berkas sebelumnya; lokasi historis tetap sebagaimana tercatat saat kunjungan. Timer persisten menjalankan pekerjaan yang terlewat saat host kembali hidup. Periksa `systemctl list-timers 'snappiestudio-*'` dan jurnal unit ketika status CMS menunjukkan kegagalan.
 
 Perbandingan laporan memakai jumlah browser unik per periode, bukan penjumlahan harian. Periode sebelumnya memiliki panjang sama dan langsung mendahului periode terpilih. Tanpa filter tanggal, laporan membandingkan tujuh hari terakhir termasuk hari ini. Filter lokasi berlaku pada kedua periode; persentase tidak dihitung ketika periode sebelumnya nol.
+
+## Fitur operasional CMS
+
+Riwayat admin disimpan dalam tabel `cms_audit`, maksimal 10.000 kejadian dan 90 hari. Audit mencatat jenis kejadian dan waktu, bukan password, OTP, IP, token sesi, atau isi pengumuman. Reset kunjungan tidak menghapus audit. Daftar sesi menampilkan pengenal pencabutan yang tidak dapat digunakan sebagai cookie, waktu, dan nama browser ringkas dari User-Agent. Nama browser dapat dipalsukan; sesi dicabut hanya setelah autentikasi ulang. Sesi tetap berada di memori dan berakhir saat layanan restart.
+
+Reset kini memerlukan JSON `{"confirmation":"RESET KUNJUNGAN"}` selain sesi, origin, dan CSRF. UI memakai dialog dengan input konfirmasi, tombol batal, dan Escape native. Klien lama yang tidak mengirim konfirmasi ditolak dengan 400/415; jangan menurunkan versi backend untuk menghindari konfirmasi.
+
+Filter `province` mencocokkan nama provinsi secara tepat dan mengikuti laporan, grafik, perbandingan, CSV, serta jumlah baru/kembali. “Baru” berarti pertama tercatat pada periode terpilih; “kembali” berarti sudah tercatat sebelum awal periode. Data historis sebelum tracking aktif bisa belum lengkap. Kalender mengikuti bulan tanggal akhir, atau bulan berjalan, dan memakai filter lokasi. Perbandingan wilayah tidak boleh dijumlahkan jika wilayah saling mencakup. Preferensi laporan hanya menyimpan tanggal, pencarian lokasi, provinsi, dan jumlah baris di browser. Tidak ada kredensial dalam preferensi.
+
+Ekspor PDF memakai dialog cetak browser: pilih **Simpan sebagai PDF**. Laporan mencakup ringkasan dan grafik dari filter yang sedang diterapkan. Tema cetak sementara terang agar grafik terbaca; preferensi tema pengguna tidak diubah. Arsip mingguan dan bulanan dibuat pukul 03.00 WIB melalui `snappiestudio-reports.timer`, untuk minggu dan bulan terakhir yang sudah selesai. Pembuatan idempoten dan menyimpan maksimal 104 arsip. CMS menampilkan 24 arsip terbaru dan menyediakan unduhan JSON. Arsip merupakan snapshot historis; reset kunjungan tidak menghapusnya.
+
+Pengaturan konten saat ini mencakup judul dan pesan pengumuman situs. Judul maksimal 80 karakter, pesan maksimal 500 karakter; HTML tidak dijalankan. Endpoint publik `/api/site-content` hanya mengembalikan teks pengumuman dan status aktif. Foto dan identitas browser tidak dikirim ke endpoint ini. Skrip pengumuman memakai origin sendiri; kegagalan API tidak menghalangi aplikasi foto. Pengumuman terlihat pada pembukaan halaman berikutnya dan dapat ditutup. Berkas privat `site-content.json` disertakan dalam backup bila tersedia.
+
+Monitor dijalankan setiap lima menit oleh `snappiestudio-monitor.timer`, terpisah dari backend. Monitor memeriksa respons situs utama, layanan counter, integritas database, ruang disk di bawah 10%, umur backup lokal di atas 48 jam, serta GeoIP di atas 45 hari. Pemantauan dari host yang sama tidak dapat memberi tahu jika seluruh host mati; pemantauan luar host memerlukan layanan terpisah. Notifikasi mengirim transisi gangguan/pemulihan, tidak mengulang keadaan sama yang sudah terkirim, dan mencoba lagi bila pengiriman gagal.
+
+## Aktivasi backup luar server dan notifikasi
+
+Fitur eksternal belum aktif tanpa tujuan dan kredensial yang disediakan pemilik. Konfigurasi privat tinggal di `/etc/snappiestudio/maintenance.env`, pemilik root:ubuntu dan mode 0640. Jangan masukkan token atau private key ke repo maupun chat. Contoh variabel terdapat dalam `.env.example`; unit membaca berkas tersebut saat pekerjaan dimulai.
+
+Implementasi awal backup luar server memakai SFTP melalui OpenSSH, dengan akun khusus, private key terpisah, dan host key yang sudah diverifikasi di `known_hosts` milik ubuntu. `StrictHostKeyChecking=yes` dan `BatchMode=yes` menolak host tak dikenal dan login interaktif. Tujuan berbentuk `backup@host:/direktori`; path tidak boleh berisi spasi atau karakter shell. Jangan gunakan key deploy Git untuk backup. Server tujuan harus sudah menyediakan direktori dengan izin privat. Kebijakan retensi salinan jarak jauh dikelola terpisah pada tujuan; pengunggah tidak menghapus berkas remote.
+
+Setiap snapshot lokal diverifikasi, dibungkus tar, lalu dienkripsi AES-256-GCM sebelum diunggah. `CMS_BACKUP_KEY_FILE` menunjuk berkas kunci acak biner 32 byte, mode 0640 root:ubuntu atau 0600 ubuntu. Kunci tidak dimasukkan ke arsip yang dienkripsinya. Simpan salinan kunci di tempat aman di luar host secara terpisah; tanpa kunci, backup terenkripsi tidak dapat dipulihkan. `CMS_OFFSITE_SSH_KEY` menunjuk private key SFTP. Kegagalan unggahan tidak menghapus backup lokal dan dicatat dalam `offsite-status.json`.
+
+Notifikasi awal menggunakan `CMS_ALERT_WEBHOOK` HTTPS yang menerima POST JSON `text`, `issues`, dan `at`. URL dan token tetap di server. Redirect tidak diikuti. Sesuaikan endpoint dengan kanal milik pemilik sebelum mengaktifkan. Jika penyedia membutuhkan payload khusus, tambahkan integrasi sesuai dokumentasi penyedia, lalu uji pengiriman dengan persetujuan pemilik kanal.
+
+Dekripsi backup yang diambil dari server tujuan, memakai kunci terpisah:
+
+```sh
+CMS_BACKUP_KEY_FILE=/path/backup-encryption.key node scripts/cms-jobs.mjs decrypt backup.tar.enc restored.tar
+```
+
+Perintah menolak output yang sudah ada dan hanya menerbitkan plaintext setelah tag autentikasi benar. Ekstrak tar ke direktori kosong privat, jalankan `verify-backup` pada hasil ekstraksi, lalu ikuti prosedur pemulihan produksi di atas. Pemulihan penuh juga mencakup pengumuman bila tersedia. Arsip baru tetap kompatibel dengan verifier yang sudah menyertakan `site-content.json`; jangan gunakan verifier lama setelah file tersebut masuk snapshot. Migrasi tabel audit/laporan bersifat tambahan dan mempertahankan tabel visitor serta akun.
