@@ -491,6 +491,8 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .history-controls .btn { min-height: 44px; }
 .result-actions { position: sticky; bottom: 0; z-index: 20; width: 100%; display: flex; justify-content: center; padding: 8px 4px max(8px, env(safe-area-inset-bottom)); background: var(--page-bg); border-top: 1px solid var(--ui-border); margin-top: 16px; }
 .result-actions .btnrow { margin: 0; gap: 8px; flex-wrap: nowrap; }
+.result-actions > .btnrow > .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.result-actions > .btnrow > .btn > .ms { margin: 0; flex-shrink: 0; }
 .result-actions .btn { min-height: 44px; padding: 10px 14px; border-radius: 10px; font-size: 14px; }
 #scr-preview .desc { margin-bottom: 6px; }
 /* Tinggi tetap (bukan sisa layar) supaya tidak ada celah besar antara foto dan kontrol di HP,
@@ -1351,3 +1353,14 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
 .image-inner img { display: block; pointer-events: none; max-width: none; }
 #result-holder:is([data-format="story"], [data-format="post"]) { position: relative; background: white; margin-inline: auto; }
 #result-holder:is([data-format="story"], [data-format="post"]) .frame-outer { position: absolute; left: 50%; top: 50%; transform-origin: center; margin: 0; }
+
+.download-options { position: fixed; inset: auto auto calc(76px + env(safe-area-inset-bottom)) 50%; transform: translateX(-50%); margin: 0; width: min(360px, calc(100vw - 24px)); max-height: calc(100dvh - 110px); overflow: auto; padding: 16px; border: 1px solid var(--ui-border); border-radius: 12px; background: var(--ui-surface); color: var(--ui-text); box-shadow: 0 4px 16px rgba(35,35,58,.18); }
+.download-options:popover-open { display: grid; gap: 12px; }
+.download-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.download-heading h2 { margin: 0; font-size: 18px; text-align: start; }
+.download-heading .modal-close { min-width: 44px; min-height: 44px; }
+.download-options .filter-select { width: 100%; min-height: 44px; }
+.download-options .tool-note { margin: 0; text-align: start; }
+.download-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.download-buttons .btn { flex: 1; }
+#btn-download-menu .ms:last-child { margin-inline: 2px 0; font-size: 18px; }

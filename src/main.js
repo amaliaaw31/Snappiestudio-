@@ -196,8 +196,7 @@ function syncModalInteraction() {
 function openModal(id) {
   const m = $(id);
   if (!m || m.classList.contains('open')) return;
-  const shareOptions = $('share-options');
-  if (shareOptions?.matches(':popover-open')) shareOptions.hidePopover();
+  document.querySelectorAll('.result-actions [popover]:popover-open').forEach(panel => panel.hidePopover());
   if (id === 'filter-modal') {
     const demo = currentScreen === 'scr-start';
     pendingDemoFilter = demo ? state.filter : null;
@@ -2785,7 +2784,7 @@ if ($('text-edit-input')) $('text-edit-input').addEventListener('keydown', (e) =
 
 /* Kontrol keyboard untuk stiker yang dipilih (aksesibilitas) */
 document.addEventListener('keydown', (e) => {
-  if (modalStack.length || $('share-options')?.matches(':popover-open')) return;
+  if (modalStack.length || document.querySelector('.result-actions [popover]:popover-open')) return;
   const tag = (document.activeElement && document.activeElement.tagName) || '';
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
   const id = state.selectedStickerId;
@@ -3259,7 +3258,7 @@ syncWorkflow();
 document.querySelectorAll('.undo-btn').forEach(b => b.addEventListener('click', undo));
 document.querySelectorAll('.redo-btn').forEach(b => b.addEventListener('click', redo));
 document.addEventListener('keydown', (e) => {
-  if (modalStack.length || $('share-options')?.matches(':popover-open')) return;
+  if (modalStack.length || document.querySelector('.result-actions [popover]:popover-open')) return;
   const tag = (document.activeElement && document.activeElement.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
   if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
@@ -3367,6 +3366,7 @@ $('btn-gif').onclick = async () => {
     const blob = await encodeGif(frames());
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
+    if ($('download-options').matches(':popover-open')) $('download-options').hidePopover();
     anchor.href = url;
     anchor.download = 'snappie-studio-' + settings.theme + '.gif';
     document.body.appendChild(anchor); anchor.click(); anchor.remove();

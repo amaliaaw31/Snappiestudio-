@@ -99,6 +99,7 @@ async function importPhotos(count) {
   await waitFor("document.querySelector('#scr-preview').classList.contains('active')");
 }
 async function checkExport(label) {
+  if (!await evaluate("document.querySelector('#download-options').matches(':popover-open')")) await click('#btn-download-menu');
   await evaluate("document.querySelector('#btn-download').onclick()");
   const png = await evaluate('window.lastDownload');
   assert.ok(png.width > 0 && png.height > 0 && png.type === 'image/png', label);
@@ -127,6 +128,7 @@ try {
   await send('Page.addScriptToEvaluateOnNewDocument', { source: "localStorage.setItem('snappie-lang', 'id'); localStorage.removeItem('snappie-prefs-v1');" });
   await send('Page.navigate', { url });
   await waitFor("document.querySelector('#btn-start')?.onclick != null");
+  await check("document.querySelector('#btn-lang .ms').textContent === 'translate' && document.querySelector('#lang-title .ms').textContent === 'translate'", 'language control and dialog use translation icon');
   await evaluate(`window.languageMessages = ${JSON.stringify(translations)}; window.emojiNames = ${JSON.stringify(Object.fromEntries(LANGS.map(({ code }) => [code, EMOJI_LOCALES[code]['😀'].name])))};`);
   await evaluate(`navigator.mediaDevices.getUserMedia = async () => {
     const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480;
@@ -326,7 +328,7 @@ try {
   await check("document.querySelector('#scr-preview .workflow [aria-current]').dataset.screen === 'scr-preview'", 'workflow reflects review step');
   await click('#btn-preview-fix');
   await check("!document.querySelector('#scr-result .history-controls, #scr-result .undo-btn, #scr-result .redo-btn') && document.querySelectorAll('#scr-preview .history-controls button').length === 2", 'result omits Undo/Redo while preview retains history controls');
-  await check("document.querySelector('#text-tools').open === false && document.querySelectorAll('.editor-group').length === 4", 'editor groups frame, text, stickers and folds advanced text controls');
+  await check("document.querySelector('#text-tools').open === false && document.querySelectorAll('.editor-group').length === 3", 'editor groups frame, text, stickers and folds advanced text controls');
   await click('#text-tools summary');
   await evaluate("document.querySelector('#custom-text').value = 'UI verification'; document.querySelector('#custom-text').dispatchEvent(new Event('input', { bubbles: true }))");
   await waitFor("document.querySelector('#result-holder .frame-date')?.textContent === 'UI verification'");
@@ -406,7 +408,13 @@ try {
     await check('document.documentElement.scrollWidth <= innerWidth', `result editor fits ${width}px`);
     await checkHeader();
     await check("[...document.querySelectorAll('.result-actions button')].filter(el => el.getClientRects().length).every(el => el.getBoundingClientRect().width >= 40)", 'save and share controls retain usable touch width');
-    await check("(() => { const download = document.querySelector('#btn-download').getBoundingClientRect(), share = document.querySelector('#btn-share').getBoundingClientRect(); return Math.abs(download.top - share.top) < 2 && document.querySelector('.result-actions').getBoundingClientRect().height <= 76; })()", 'download footer is compact and inline');
+    await check("(() => { const download = document.querySelector('#btn-download-menu').getBoundingClientRect(), share = document.querySelector('#btn-share').getBoundingClientRect(); return Math.abs(download.top - share.top) < 2 && document.querySelector('.result-actions').getBoundingClientRect().height <= 76; })()", 'download footer is compact and inline');
+    await click('#btn-download-menu');
+    await check("document.querySelector('#download-options').matches(':popover-open') && document.querySelector('#download-options #output-format') && document.querySelector('#download-options #btn-download') && !!document.querySelector('#download-options #btn-gif')", 'download menu combines format, PNG and GIF');
+    await check("(() => { const box = document.querySelector('#download-options').getBoundingClientRect(); return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight; })()", 'download menu fits screen');
+    if (width === 390) await screenshot('download-menu-390');
+    await key('Escape');
+    await check("!document.querySelector('#download-options').matches(':popover-open') && document.activeElement.id === 'btn-download-menu'", 'Escape closes download menu and restores focus');
     await click('#btn-share');
     await check("document.querySelector('#share-options').matches(':popover-open') && [...document.querySelectorAll('#share-options button')].every(button => button.getBoundingClientRect().width >= 44)", 'Share reveals touch-friendly social controls');
     await key('Escape');
