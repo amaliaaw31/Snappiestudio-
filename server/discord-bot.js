@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { contentResponse, saveContent, validateContent } from './cms-operations.js';
 import { json } from './security.js';
+import { websiteStatus } from './discord-status.js';
 
 const snowflake = value => typeof value === 'string' && /^\d{15,22}$/.test(value);
 const DAY = 86400000;
@@ -108,10 +109,10 @@ function command(db, directory, interaction, now, audit) {
       return reply(`Jadwal ${id} ${sub.name === 'selesai' ? 'selesai' : 'dibatalkan'}. Pengumuman otomatis jadwal ini dihentikan; pengumuman manual tetap dipertahankan.`);
     }
   }
-  throw bad('Perintah tidak dikenal. Gunakan /pengumuman atau /migrasi.');
+  throw bad('Perintah tidak dikenal. Gunakan /status, /pengumuman, atau /migrasi.');
 }
 
-export async function receiveDiscord(request, response, { db, directory, configPath, now = Date.now, audit = () => {} }) {
+export async function receiveDiscord(request, response, { db, directory, configPath, now = Date.now, audit = () => {}, statusFetch = fetch }) {
   if (request.method !== 'POST') { response.setHeader('Allow', 'POST'); json(response, 405, { error: 'Method not allowed' }); return; }
   let config;
   try { config = loadBotConfig(configPath); } catch { json(response, 503, { error: 'Bot unavailable' }); return; }
@@ -139,12 +140,15 @@ export async function receiveDiscord(request, response, { db, directory, configP
     || interaction.channel_id !== config.channelId || !config.allowedUserIds.includes(user) || interaction.member?.user?.bot || !snowflake(interaction.id)) {
     json(response, 200, reply('Akun, server, atau kanal ini tidak diizinkan memakai bot Snappie.')); return;
   }
+  const cached = db.prepare('SELECT response FROM discord_interactions WHERE id=?').get(interaction.id);
+  if (cached) { json(response, 200, JSON.parse(cached.response)); return; }
+  const status = interaction.data?.name === 'status' ? reply(await websiteStatus(statusFetch)) : null;
   db.exec('BEGIN IMMEDIATE');
   try {
     const previous = db.prepare('SELECT response FROM discord_interactions WHERE id=?').get(interaction.id);
     if (previous) { db.exec('COMMIT'); json(response, 200, JSON.parse(previous.response)); return; }
     let value;
-    try { value = command(db, directory, interaction, now(), audit); }
+    try { value = status || command(db, directory, interaction, now(), audit); }
     catch (error) { if (error.status !== 400) throw error; value = reply(error.message); }
     db.prepare('INSERT INTO discord_interactions VALUES (?,?,?)').run(interaction.id, now(), JSON.stringify(value));
     db.prepare('DELETE FROM discord_interactions WHERE received_at < ? OR id NOT IN (SELECT id FROM discord_interactions ORDER BY received_at DESC LIMIT 10000)').run(now() - 600000);

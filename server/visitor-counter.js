@@ -45,7 +45,7 @@ const LOCATION_COLUMNS = [
 ];
 
 export function createVisitorServer({ dbPath, locate = () => null, admin = {}, trustProxy = false,
-  discordConfigPath, publicDirectory = new URL('../dist/', import.meta.url), now = Date.now }) {
+  discordConfigPath, discordStatusFetch = fetch, publicDirectory = new URL('../dist/', import.meta.url), now = Date.now }) {
   if (!dbPath) throw new TypeError('dbPath is required');
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new DatabaseSync(dbPath);
@@ -86,7 +86,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
       if (path === '/api/discord/interactions') {
         const retry = limit('discord:' + clientIp(request, trustProxy), 60, 60000);
         if (retry) { response.setHeader('Retry-After', String(retry)); json(response, 429, { error: 'Too many requests' }); return; }
-        await receiveDiscord(request, response, { db, directory: dirname(dbPath), configPath: botConfigPath, now, audit }); return;
+        await receiveDiscord(request, response, { db, directory: dirname(dbPath), configPath: botConfigPath, now, audit, statusFetch: discordStatusFetch }); return;
       }
       if (path === '/api/site-content' && request.method === 'GET') {
         json(response, 200, await effectiveAnnouncement(db, dirname(dbPath))); return;

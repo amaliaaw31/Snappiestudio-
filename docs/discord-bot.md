@@ -76,6 +76,20 @@ Kegagalan pengiriman Discord tidak menghalangi pengumuman website. Pengiriman di
 
 CMS → Pengaturan → Bot Discord dan jadwal migrasi menampilkan konfigurasi, waktu pemeriksaan terakhir, pengingat yang gagal, dan jadwal terbaru. Konfigurasi aplikasi belum menjamin endpoint sudah dipasang pada Developer Portal; uji `/pengumuman status` setelah langkah pemasangan lengkap.
 
+## Memeriksa website dengan /status
+
+Jalankan `/status` pada kanal dan akun yang sudah diizinkan. Bot menjawab secara privat dengan hasil website, `/api/visitors`, dan `/api/site-content`: OK beserta waktu respons, gangguan HTTP, atau tidak dapat diverifikasi. Pemeriksaan berlangsung dari server saat perintah dijalankan; hasil ini bukan riwayat uptime dan tidak menjamin koneksi dari semua lokasi.
+
+Pemeriksaan memakai HEAD untuk halaman utama dan GET untuk dua API publik. Alamat tujuan tetap, redirect ditolak, dan tiap pemeriksaan dibatasi 1,5 detik secara paralel. Tidak ada login CMS, penambahan pengunjung, perubahan pengumuman, pemeriksaan kredensial, atau pembacaan informasi privat server. Jika backend bot sendiri mati, bot tidak dapat menjawab `/status`; gunakan pemantau terpisah untuk kondisi tersebut.
+
+Command baru perlu didaftarkan pada aplikasi dan server Discord yang sama. Setelah kode backend baru diaktifkan melalui prosedur rilis Anda, jalankan kembali:
+
+```sh
+sudo bash deploy/configure-discord-bot.sh
+```
+
+Gunakan Application ID, Public Key, server, kanal, dan daftar pengguna yang sama. Masukkan token hanya pada prompt tersembunyi di VPS. Skrip memperbarui `/pengumuman`, `/migrasi`, dan `/status` satu per satu; tidak menghapus command aplikasi lainnya. Token tidak disimpan. Tidak perlu membuat bot, endpoint, atau webhook baru. Pembaruan kode handler memerlukan pemuatan kode baru oleh proses backend; perubahan konfigurasi saja langsung dibaca pada permintaan berikutnya. Penambahan ini tidak menjalankan restart layanan secara otomatis.
+
 ## Operasi dan pemulihan
 
 ```sh

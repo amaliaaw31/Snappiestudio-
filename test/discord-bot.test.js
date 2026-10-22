@@ -13,7 +13,7 @@ import { saveContent } from '../server/cms-operations.js';
 import { registerDiscordCommands } from '../server/discord-commands.js';
 
 const webhook = 'https://discord.com/api/webhooks/123456789012345678/abcdefghijklmnopqrstuvwxyz0123456789';
-async function app(t) {
+async function app(t, discordStatusFetch) {
   const directory = await mkdtemp(join(tmpdir(), 'snappie-discord-'));
   const { publicKey, privateKey } = generateKeyPairSync('ed25519');
   const config = { applicationId: '100000000000000001', guildId: '100000000000000002', channelId: '100000000000000003', allowedUserIds: ['100000000000000004'], publicKey: publicKey.export({ format: 'der', type: 'spki' }).subarray(-32).toString('hex') };
@@ -21,7 +21,7 @@ async function app(t) {
   const dbPath = join(directory, 'visitors.sqlite'); let time = Date.parse('2026-10-22T12:00:00Z');
   let server, base; let nonce = 100000000000000100n;
   async function start() {
-    server = createVisitorServer({ dbPath, discordConfigPath: configPath, now: () => time });
+    server = createVisitorServer({ dbPath, discordConfigPath: configPath, discordStatusFetch, now: () => time });
     server.listen(0, '127.0.0.1'); await once(server, 'listening'); base = 'http://127.0.0.1:' + server.address().port;
   }
   await start();
@@ -118,12 +118,45 @@ test('migration time validates WIB calendar dates and bounds, and one active sch
   assert.equal(api.rows().length, 1);
 });
 
-test('command registration upserts only two named commands and keeps bot token out of command definitions', async t => {
+test('command registration upserts named commands without deleting existing commands and keeps bot token out of command definitions', async t => {
   const api = await app(t); const commands = [];
   await registerDiscordCommands(api.config, 'test-bot-token-only-for-fixture', async (url, options) => {
     assert.match(url, /\/guilds\//); assert.equal(options.method, 'POST'); const body = JSON.parse(options.body); commands.push(body);
     assert.equal(body.default_member_permissions, '0'); assert.ok(!options.body.includes('test-bot-token'));
     return Response.json({ id: '100000000000000010', application_id: api.config.applicationId, name: body.name });
   });
-  assert.deepEqual(commands.map(command => command.name), ['pengumuman', 'migrasi']);
+  assert.deepEqual(commands.map(command => command.name), ['status', 'pengumuman', 'migrasi']);
+});
+
+
+test('/status authenticates before probing, replies privately, and reuses cached interactions', async t => {
+  const calls = [];
+  const api = await app(t, async (url, options) => {
+    calls.push({ url, method: options.method });
+    if (url.endsWith('/api/visitors')) return Response.json({ total: 26 });
+    if (url.endsWith('/api/site-content')) return Response.json({ enabled: false, message: '' });
+    return new Response(null, { headers: { 'Content-Type': 'text/html' } });
+  });
+  const status = () => { const value = api.payload('status'); value.data = { name: 'status', type: 1 }; return value; };
+  assert.equal((await api.send(status(), { tamper: true })).status, 401);
+  for (const override of [{ application_id: '100000000000000099' }, { guild_id: '100000000000000099' }, { channel_id: '100000000000000099' }, { member: { user: { id: '100000000000000099' } } }, { member: { user: { id: api.config.allowedUserIds[0], bot: true } } }, { member: null }]) {
+    const result = await (await api.send({ ...status(), ...override })).json();
+    assert.match(result.data.content, /tidak diizinkan/);
+  }
+  assert.equal(calls.length, 0);
+  const interaction = status();
+  const result = await (await api.send(interaction)).json();
+  assert.equal(result.type, 4); assert.equal(result.data.flags, 64);
+  assert.deepEqual(result.data.allowed_mentions, { parse: [] });
+  for (const name of ['Website', 'API pengunjung', 'API pengumuman']) assert.ok(result.data.content.includes(name + ': OK'));
+  assert.deepEqual(calls, [
+    { url: 'https://snappiestudio.com/', method: 'HEAD' },
+    { url: 'https://snappiestudio.com/api/visitors', method: 'GET' },
+    { url: 'https://snappiestudio.com/api/site-content', method: 'GET' },
+  ]);
+  assert.deepEqual(await (await api.send(interaction)).json(), result);
+  assert.equal(calls.length, 3);
+  assert.equal((await (await api.request('/api/visitors')).json()).total, 0);
+  assert.equal((await (await api.request('/api/site-content')).json()).enabled, false);
+  assert.deepEqual(api.rows(), []);
 });
