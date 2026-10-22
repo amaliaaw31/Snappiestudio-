@@ -1,0 +1,22 @@
+[Unit]
+Description=Snappie monthly DB-IP update
+Wants=network-online.target
+After=network-online.target snappiestudio-counter.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/projects/project-yaya/Snappiestudio-
+Environment=VISITOR_DB_PATH=/var/lib/snappiestudio-counter/visitors.sqlite
+Environment=GEOIP_DB_PATH=/var/lib/snappiestudio-counter/geo/dbip-city-lite.mmdb
+ExecStart=/home/ubuntu/.nvm/versions/node/v24.21.0/bin/node /home/ubuntu/projects/project-yaya/Snappiestudio-/scripts/maintenance.mjs geoip
+ReadWritePaths=/var/lib/snappiestudio-counter
+TimeoutStartSec=240
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+PrivateDevices=true
+CapabilityBoundingSet=

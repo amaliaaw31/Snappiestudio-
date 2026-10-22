@@ -109,6 +109,30 @@ test('invalid dates, range, query and pagination are rejected without running un
   }
 });
 
+test('comparison deduplicates returning browsers, follows location/date filters and does not invent a percentage over zero', async t => {
+  let province = 'West Java';
+  const api = await app(t, () => ({ countryCode: 'ID', country: 'Indonesia', province, city: 'Bandung' }));
+  api.setTime('2026-10-01T10:00:00Z'); await api.visit(firstId);
+  api.setTime('2026-10-08T10:00:00Z'); await api.visit(firstId);
+  api.setTime('2026-10-14T10:00:00Z'); await api.visit(firstId);
+  province = 'Central Java'; await api.visit(secondId);
+  const headers = await api.login();
+  const all = await (await api.request('/api/admin/report', { headers })).json();
+  assert.deepEqual(all.comparison, {
+    from: '2026-10-08', to: '2026-10-14', previousFrom: '2026-10-01', previousTo: '2026-10-07',
+    days: 7, current: 2, previous: 1, difference: 1, percent: 100, includesToday: true,
+  });
+  const west = await (await api.request('/api/admin/report?q=West%20Java', { headers })).json();
+  assert.equal(west.comparison.current, 1);
+  assert.equal(west.comparison.previous, 1);
+  assert.equal(west.comparison.percent, 0);
+  const single = await (await api.request('/api/admin/report?from=2026-10-14&to=2026-10-14', { headers })).json();
+  assert.equal(single.comparison.days, 1);
+  assert.equal(single.comparison.previousFrom, '2026-10-13');
+  assert.equal(single.comparison.previous, 0);
+  assert.equal(single.comparison.percent, null);
+});
+
 test('province search filters visits, locations, charts and CSV, keeping same-name cities in separate provinces', async t => {
   let province = 'West Java';
   const api = await app(t, () => ({ countryCode: 'ID', country: 'Indonesia', province, city: 'Same City' }));

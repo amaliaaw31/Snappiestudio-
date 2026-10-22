@@ -4,13 +4,13 @@
 
 Semua alias dashboard (`/cms/dashboard`, `/cms/dashboard/`, `/cms-dashboard.html`) dilayani backend setelah validasi sesi. `/cms` merupakan halaman login publik. Semua endpoint `/api/admin/*`, selain login, memerlukan sesi server; operasi POST juga memerlukan origin yang diizinkan dan token CSRF.
 
-Password diverifikasi dengan bcrypt. Produksi membaca hash dari `CMS_PASSWORD_HASH_FILE`, di luar web root dan repo. Jangan menaruh password atau hash produksi dalam commit. Tanpa hash yang valid, login ditolak. Username dan password lama dipertahankan saat migrasi.
+Password diverifikasi dengan bcrypt. Saat pertama dijalankan, produksi membaca hash dari `CMS_PASSWORD_HASH_FILE`, lalu menyimpan akun pada `cms-account.json` di direktori database. Perubahan password berikutnya memakai akun persisten ini, bukan hash bootstrap. Keduanya berada di luar web root dan repo. Jangan menaruh password atau hash produksi dalam commit. Tanpa hash yang valid, login ditolak. Username dan password lama dipertahankan saat migrasi.
 
 Cookie `__Host-snappie_cms` memakai Secure, HttpOnly, SameSite=Strict, dan Path=/. Token sesi disimpan sebagai hash di memori server. Sesi berakhir setelah 30 menit tidak aktif, maksimal 8 jam, saat logout, atau ketika layanan restart. Login berikutnya merotasi sesi browser tersebut. Password tidak disimpan dalam localStorage/sessionStorage.
 
 Login dibatasi 5 percobaan per IP selama 15 menit, 30 percobaan global per menit, dan dua verifikasi bcrypt bersamaan. API visitor dibatasi 120 permintaan per IP per menit. Pembatas ini mengurangi penyalahgunaan; serangan terdistribusi masih memerlukan proteksi pada jaringan/proxy penyedia hosting.
 
-Penulisan counter juga dibatasi secara global menjadi 600 POST per menit, termasuk jika sumber berganti IP. Batas ini tidak memblokir GET total atau login CMS. Request yang gagal pemeriksaan CSRF tidak memperpanjang waktu tidak aktif sesi. Tidak ada perubahan password atau username akun dalam hardening ini.
+Penulisan counter juga dibatasi secara global menjadi 600 POST per menit, termasuk jika sumber berganti IP. Batas ini tidak memblokir GET total atau login CMS. Request yang gagal pemeriksaan CSRF tidak memperpanjang waktu tidak aktif sesi.
 
 ## Mode maintenance
 
@@ -22,7 +22,7 @@ Blok routing/header Snappie berada di `deployment/snappie.caddy`. Produksi mengi
 
 Build menambahkan CSP dengan hash skrip inline yang tepat ke index.html; setiap build menghitung ulang hash. CMS menggunakan skrip module terpisah dan CSP yang menolak skrip inline. Style inline tetap diizinkan di aplikasi foto karena editor memakai gaya dinamis. Header proxy menambahkan HSTS, anti-framing, nosniff, kebijakan referer dan pembatasan fitur browser.
 
-Build juga menghasilkan `dist/snappie-app-csp.caddy` untuk CSP HTTP website utama. Header menolak event handler inline dan skrip tanpa sumber/hash yang diizinkan, sementara koneksi data tetap dibatasi ke origin sendiri. Font dan gambar CMS hanya diizinkan dari origin sendiri; font merek dan favicon digunakan bersama website utama dan dua simbol tema disajikan lokal. Jalur berkas internal, key/hash, konfigurasi, SQLite, serta berkas WAL/SHM ditolak oleh Caddy.
+Build juga menghasilkan `dist/snappie-app-csp.caddy` untuk CSP HTTP website utama. Header menolak event handler inline dan skrip tanpa sumber/hash yang diizinkan, sementara koneksi data tetap dibatasi ke origin sendiri. Font CMS hanya diizinkan dari origin sendiri; gambar juga mengizinkan data URL untuk QR autentikator lokal; font merek dan favicon digunakan bersama website utama dan dua simbol tema disajikan lokal. Jalur berkas internal, key/hash, konfigurasi, SQLite, serta berkas WAL/SHM ditolak oleh Caddy.
 
 Deploy situs memakai `sudo -n bash scripts/deploy.sh`, yang mencadangkan berkas situs dan snippet Caddy, memasang CSP sesuai build, memvalidasi konfigurasi sebelum reload, dan memulihkan berkas sebelumnya jika gagal. Jangan menyalin dist saja setelah CSP HTTP diaktifkan. Installer lama tidak lagi menerima hash melalui argumen command line atau membuat dashboard statis/Basic Auth. Prosedur pemasangan terdapat di `docs/visitor-counter-deploy.md`.
 
@@ -38,6 +38,30 @@ Foto tetap diproses di browser. Database visitor menyimpan hash UUID, lokasi kas
 
 Laporan, filter, pagination, grafik, dan ekspor CSV hanya tersedia melalui `/api/admin/*` setelah validasi sesi. Ekspor mengikuti filter dan mencakup semua halaman, tanpa mengirim hash/UUID browser atau IP; sel CSV di-escape dan awalan formula dinetralkan. Pembaruan otomatis dashboard berhenti saat tab disembunyikan atau setelah 5 menit tanpa interaksi, agar polling tidak mempertahankan sesi tanpa batas saat admin meninggalkan halaman.
 
-Proteksi ini tidak menjamin kebal peretasan. MFA belum diterapkan. Gunakan password admin yang panjang dan unik, lakukan pembaruan dependensi/server secara berkala, serta simpan backup di luar host untuk pemulihan bencana. Layanan lain pada host bersama memerlukan audit terpisah.
+Proteksi ini tidak menjamin kebal peretasan. 2FA tersedia tetapi baru aktif setelah admin mengonfirmasi kode aplikasi autentikator di pengaturan akun. Gunakan password admin yang panjang dan unik, lakukan pembaruan dependensi/server secara berkala, serta simpan backup di luar host untuk pemulihan bencana. Layanan lain pada host bersama memerlukan audit terpisah.
 
 Referensi: [OWASP Session Management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), [OWASP CSRF Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html), [Caddy response headers](https://caddyserver.com/docs/caddyfile/directives/header).
+
+## Pengaturan akun dan 2FA
+
+Pengaturan akun memerlukan password saat ini; ketika 2FA aktif, perubahan juga memerlukan kode autentikator atau kode pemulihan. Password baru minimal 12 karakter dan maksimal 72 byte UTF-8. Perubahan password dan keluar dari semua perangkat mencabut seluruh sesi, termasuk sesi pemohon. Username tetap mengikuti akun yang sudah dibuat.
+
+Pendaftaran 2FA memakai TOTP enam digit, periode 30 detik, dan toleransi satu periode. QR dibuat lokal tanpa layanan eksternal. Pendaftaran berlaku 10 menit dan belum aktif sebelum kode dikonfirmasi. Seed disimpan terenkripsi AES-256-GCM dengan `cms-key.bin` terpisah; kedua berkas privat memakai izin 0600. Kode TOTP tidak dapat dipakai ulang. Sepuluh kode pemulihan ditampilkan sekali, hanya hash yang disimpan, dan setiap kode berlaku sekali. Penggantian kode pemulihan membatalkan seluruh set lama. Perubahan 2FA mencabut sesi lain serta merotasi cookie dan CSRF sesi pemohon. Percobaan autentikasi ulang dibatasi seperti login.
+
+Jangan menghapus `cms-account.json` atau `cms-key.bin` untuk mereset akun. Kehilangan salah satu berkas harus dipulihkan dari backup yang sama. Aplikasi menolak kembali ke password bootstrap jika akun hilang tetapi key masih ada. Jangan menjalankan versi backend lama yang hanya membaca hash bootstrap setelah password atau 2FA diubah: itu dapat mengembalikan password lama atau melewati 2FA.
+
+## Pemeliharaan otomatis
+
+Jalankan `sudo bash deploy/install-maintenance.sh` setelah backend baru aktif dan akun persisten terbentuk. Pekerja systemd berjalan sebagai ubuntu dengan pembatasan sistem berkas, bukan root. Backup harian pukul 02.30 WIB memakai API backup SQLite agar transaksi WAL ikut tersalin. Snapshot mencakup database, akun, key, dan konfigurasi bootstrap privat; simpan direktori backup dengan izin 0700. Empat belas snapshot terakhir disimpan di `/var/lib/snappiestudio-backups`. Setiap snapshot diuji melalui salinan sementara, checksum, integritas SQLite, dekripsi seed bila aktif, dan jumlah baris. Status di CMS mencerminkan hasil aktual, termasuk kegagalan percobaan terakhir.
+
+Verifikasi pemulihan tanpa menimpa produksi:
+
+```sh
+node scripts/maintenance.mjs verify-backup /var/lib/snappiestudio-backups/backup-TIMESTAMP-SUFFIX
+```
+
+Untuk pemulihan produksi, hentikan layanan counter, cadangkan direktori saat ini, verifikasi snapshot, lalu pulihkan `visitors.sqlite`, `cms-account.json`, dan `cms-key.bin` dari snapshot yang sama. Setelah layanan berhenti, pindahkan sidecar SQLite lama (`visitors.sqlite-wal` dan `visitors.sqlite-shm`) bersama salinan keadaan lama sebelum memasang database hasil pemulihan. Pastikan pemilik ubuntu:ubuntu dan izin 0600, lalu mulai layanan dan verifikasi login serta laporan. Pulihkan konfigurasi bootstrap hanya bila diperlukan, dengan izin privat semula. Pemulihan mengembalikan keadaan akun dan kode pemulihan pada waktu snapshot; segera rotasi password dan kode pemulihan setelah pemulihan. Simpan salinan terenkripsi di luar host secara terpisah; pengiriman ke host lain belum dikonfigurasi.
+
+GeoIP diperbarui setiap tanggal 2 pukul 04.00 WIB dari DB-IP City Lite bulan berjalan. Unduhan dibatasi ukuran dan waktu, didekompresi, serta divalidasi sebelum penggantian atomik. SIGHUP memuat database baru tanpa memutus sesi. Kegagalan memulihkan berkas sebelumnya; lokasi historis tetap sebagaimana tercatat saat kunjungan. Timer persisten menjalankan pekerjaan yang terlewat saat host kembali hidup. Periksa `systemctl list-timers 'snappiestudio-*'` dan jurnal unit ketika status CMS menunjukkan kegagalan.
+
+Perbandingan laporan memakai jumlah browser unik per periode, bukan penjumlahan harian. Periode sebelumnya memiliki panjang sama dan langsung mendahului periode terpilih. Tanpa filter tanggal, laporan membandingkan tujuh hari terakhir termasuk hari ini. Filter lokasi berlaku pada kedua periode; persentase tidak dihitung ketika periode sebelumnya nol.

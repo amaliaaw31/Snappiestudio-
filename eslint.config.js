@@ -1,8 +1,8 @@
 export default [
   {
-    files: ['server/**/*.js', 'vite.config.js'],
+    files: ['server/**/*.js', 'scripts/maintenance.mjs', 'vite.config.js'],
     languageOptions: { ecmaVersion: 'latest', sourceType: 'module',
-      globals: { process: 'readonly', Buffer: 'readonly', URL: 'readonly', console: 'readonly' } },
+      globals: { process: 'readonly', Buffer: 'readonly', URL: 'readonly', console: 'readonly', AbortSignal: 'readonly' } },
     rules: { 'no-undef': 'error', 'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }], 'no-unreachable': 'error' },
   },
   {

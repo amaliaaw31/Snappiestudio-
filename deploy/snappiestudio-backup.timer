@@ -1,0 +1,10 @@
+[Unit]
+Description=Snappie daily backup at 02:30 WIB
+
+[Timer]
+OnCalendar=*-*-* 19:30:00 UTC
+Persistent=true
+Unit=snappiestudio-backup.service
+
+[Install]
+WantedBy=timers.target

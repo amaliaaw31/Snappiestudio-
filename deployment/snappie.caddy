@@ -11,7 +11,7 @@ header {
     ?Content-Security-Policy "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
 }
 
-@sensitive path_regexp sensitive (?i)(^|/)(\.[^/]+|(server|test|deploy|deployment|scripts|node_modules)(/|$)|(package(-lock)?\.json|AGENTS\.md|SECURITY\.md)$)|\.(sqlite3?|db)(-(wal|shm|journal))?$|\.(bak|old|log|sql|map|hash|pem|key|p12|pfx|conf|caddy)$
+@sensitive path_regexp sensitive (?i)(^|/)(\.[^/]+|(server|test|deploy|deployment|scripts|node_modules)(/|$)|(cms-account\.json|cms-key\.bin|package(-lock)?\.json|AGENTS\.md|SECURITY\.md)$)|\.(sqlite3?|db)(-(wal|shm|journal))?$|\.(bak|old|log|sql|map|hash|pem|key|p12|pfx|conf|caddy)$
 handle @sensitive {
     respond "Not found" 404
 }

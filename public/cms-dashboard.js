@@ -106,7 +106,7 @@ function renderProvinces(data) {
 async function api(path, { raw = false, ...options } = {}) {
   const response = await fetch(path, {
     cache: 'no-store', credentials: 'same-origin', ...options,
-    headers: { ...(options.method === 'POST' ? { 'X-CSRF-Token': csrfToken } : {}) },
+    headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.method === 'POST' ? { 'X-CSRF-Token': csrfToken } : {}) },
   });
   if (response.status === 401 || response.status === 403) {
     location.replace('/cms');
@@ -235,6 +235,23 @@ function renderCharts(data) {
   drawCharts();
 }
 
+function renderComparison(data) {
+  if (!data) {
+    $('comparison-note').textContent = 'Perbandingan belum tersedia. Muat ulang setelah pembaruan layanan selesai.';
+    return;
+  }
+  const day = value => visitDate.format(new Date(`${value}T00:00:00+07:00`));
+  $('comparison-current').textContent = number.format(data.current);
+  $('comparison-previous').textContent = number.format(data.previous);
+  $('comparison-current-label').textContent = `${day(data.from)} sampai ${day(data.to)}`;
+  $('comparison-previous-label').textContent = `${day(data.previousFrom)} sampai ${day(data.previousTo)}`;
+  $('comparison-note').textContent = `Browser unik dalam dua periode masing-masing ${number.format(data.days)} hari, sesuai filter lokasi. Tanpa tanggal, perbandingan memakai 7 hari terakhir.${data.includesToday ? ' Hari ini masih berjalan.' : ''}`;
+  const difference = `${data.difference > 0 ? '+' : ''}${number.format(data.difference)}`;
+  $('comparison-change').textContent = data.percent === null
+    ? `Selisih ${difference} browser. Periode sebelumnya belum memiliki kunjungan; persentase belum dapat dihitung.`
+    : `Selisih ${difference} browser (${data.percent > 0 ? '+' : ''}${percent.format(data.percent)}%) dibanding periode sebelumnya.`;
+}
+
 async function loadData() {
   requestController?.abort();
   const controller = new window.AbortController();
@@ -257,6 +274,7 @@ async function loadData() {
     renderLocations(stats.locations);
     renderVisits(stats.visitors);
     renderCharts(stats.charts);
+    renderComparison(stats.comparison);
     $('status').textContent = `Diperbarui ${visitTime.format(new Date())} WIB.`;
   } catch (error) {
     if (controller.signal.aborted) return;
@@ -316,7 +334,7 @@ $('auto-refresh').addEventListener('change', () => {
 });
 for (const event of ['pointerdown', 'keydown', 'input']) document.addEventListener(event, () => { lastInteraction = Date.now(); }, { passive: true });
 function autoRefresh() {
-  if (!$('auto-refresh').checked || document.hidden || $('reset').disabled || $('logout').disabled) return;
+  if (accountBusy || !$('auto-refresh').checked || document.hidden || $('reset').disabled || $('logout').disabled) return;
   if (Date.now() - lastInteraction > 5 * 60 * 1000) return;
   loadData();
 }
@@ -347,6 +365,133 @@ $('reset').addEventListener('click', async () => {
     $('status').textContent = 'Reset gagal. Coba lagi.';
   } finally { $('reset').disabled = false; }
 });
+
+let recoveryCodes = [];
+let accountBusy = false;
+
+function clearEnrollment() {
+  $('mfa-enrollment').hidden = true;
+  $('mfa-secret').textContent = '';
+  $('mfa-qr').removeAttribute('src');
+  $('mfa-setup-code').value = '';
+}
+
+function clearRecovery() {
+  recoveryCodes = [];
+  $('recovery-codes').textContent = '';
+  $('recovery-result').hidden = true;
+}
+
+async function loadAccount() {
+  const data = await api('/api/admin/account');
+  $('account-info').textContent = `Akun ${data.username}. ${data.mfaEnabled ? `2FA aktif, ${number.format(data.recoveryCodesRemaining)} kode pemulihan tersisa.` : '2FA belum aktif.'} ${number.format(data.activeSessions)} sesi aktif.`;
+  $('account-otp-fields').hidden = !data.mfaEnabled;
+  $('account-otp').required = data.mfaEnabled;
+  $('mfa-setup').hidden = data.mfaEnabled;
+  $('mfa-disable').hidden = !data.mfaEnabled;
+  $('mfa-recovery').hidden = !data.mfaEnabled;
+}
+
+$('account-settings').addEventListener('toggle', async () => {
+  if (!$('account-settings').open || accountBusy) return;
+  $('account-status').textContent = 'Memuat status akun…';
+  try { await loadAccount(); $('account-status').textContent = ''; }
+  catch (error) { $('account-status').textContent = `Status akun gagal dimuat: ${error.message}. Tutup lalu buka kembali bagian ini untuk mencoba lagi.`; }
+});
+
+$('account-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (accountBusy) return;
+  const action = event.submitter?.value;
+  if (!action) return;
+  if (action === 'password' && [...$('new-password').value].length < 12) {
+    $('account-status').textContent = 'Masukkan password baru dengan minimal 12 karakter.';
+    $('new-password').focus();
+    return;
+  }
+  accountBusy = true;
+  requestController?.abort();
+  const controls = [...$('account-form').querySelectorAll('button')];
+  controls.forEach(button => { button.disabled = true; });
+  $('account-status').textContent = 'Memeriksa dan menyimpan perubahan akun…';
+  try {
+    const body = { currentPassword: $('current-password').value, otp: $('account-otp').value.trim() };
+    if (action === 'password') body.newPassword = $('new-password').value;
+    if (action === 'mfa/enable') body.setupCode = $('mfa-setup-code').value.trim();
+    const data = await api(`/api/admin/account/${action}`, { method: 'POST', body: JSON.stringify(body) });
+    if (data.csrfToken) csrfToken = data.csrfToken;
+    if (data.signedOut) {
+      location.replace(`/cms?updated=${action === 'password' ? 'password' : 'sessions'}`);
+      return;
+    }
+    if (action === 'mfa/setup') {
+      clearRecovery();
+      $('mfa-qr').src = data.qrCode;
+      $('mfa-secret').textContent = data.secret;
+      $('mfa-enrollment').hidden = false;
+      $('mfa-setup-code').focus();
+      $('account-status').textContent = 'Pindai QR, lalu masukkan kode aplikasi dan password saat ini untuk mengaktifkan 2FA.';
+    } else {
+      clearEnrollment();
+      clearRecovery();
+      if (data.recoveryCodes) {
+        recoveryCodes = data.recoveryCodes;
+        $('recovery-codes').textContent = recoveryCodes.join('\n');
+        $('recovery-result').hidden = false;
+      }
+      await loadAccount();
+      $('account-status').textContent = action === 'mfa/disable' ? '2FA dinonaktifkan. Sesi lain sudah diakhiri.'
+        : 'Perubahan 2FA tersimpan. Simpan kode pemulihan sekarang; sesi lain sudah diakhiri.';
+    }
+  } catch (error) {
+    $('account-status').textContent = `Perubahan gagal: ${error.message}`;
+  } finally {
+    $('current-password').value = '';
+    $('account-otp').value = '';
+    $('new-password').value = '';
+    if (action !== 'mfa/setup') $('mfa-setup-code').value = '';
+    controls.forEach(button => { button.disabled = false; });
+    accountBusy = false;
+  }
+});
+
+$('mfa-cancel').addEventListener('click', () => {
+  clearEnrollment();
+  $('account-status').textContent = 'Pendaftaran dibatalkan. 2FA belum diaktifkan.';
+});
+$('hide-recovery').addEventListener('click', clearRecovery);
+$('download-recovery').addEventListener('click', () => {
+  if (!recoveryCodes.length) return;
+  const text = 'Snappie Studio: kode pemulihan 2FA\nSetiap kode hanya berlaku sekali. Simpan di tempat aman.\n\n' + recoveryCodes.join('\n') + '\n';
+  const url = window.URL.createObjectURL(new window.Blob([text], { type: 'text/plain;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url; link.download = 'snappie-kode-pemulihan.txt';
+  document.body.append(link); link.click(); link.remove();
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+});
+window.addEventListener('pagehide', () => {
+  clearEnrollment(); clearRecovery();
+  for (const id of ['current-password', 'new-password', 'account-otp']) $(id).value = '';
+});
+
+async function loadAutomation() {
+  $('automation-status').textContent = 'Memuat status cadangan dan data lokasi…';
+  $('refresh-automation').disabled = true;
+  try {
+    const { backup, geoip } = await api('/api/admin/maintenance');
+    const date = value => value ? `${visitDate.format(new Date(value))}, ${visitTime.format(new Date(value))} WIB` : 'Belum ada keberhasilan tercatat';
+    $('backup-last').textContent = date(backup?.lastSuccess);
+    $('backup-verified').textContent = date(backup?.restoreVerifiedAt);
+    $('backup-copies').textContent = backup ? `${number.format(backup.copies || 0)} dari ${number.format(backup.retention || 14)}` : 'Belum tersedia';
+    $('geoip-last').textContent = `${date(geoip?.lastSuccess)}${geoip?.edition ? `, edisi ${geoip.edition}` : ''}`;
+    const failed = [backup?.ok === false ? 'Cadangan terakhir gagal.' : '', geoip?.ok === false ? 'Pembaruan lokasi terakhir gagal.' : ''].filter(Boolean).join(' ');
+    $('automation-status').textContent = failed ? `${failed} Data keberhasilan sebelumnya tetap ditampilkan. Periksa layanan di server sebelum mencoba ulang.`
+      : backup && geoip ? 'Status otomatisasi sudah diperbarui.' : 'Sebagian proses belum mencatat hasil. Muat ulang status setelah proses terjadwal berjalan.';
+  } catch (error) { $('automation-status').textContent = `Status gagal dimuat: ${error.message}. Tekan Muat ulang status untuk mencoba lagi.`; }
+  finally { $('refresh-automation').disabled = false; }
+}
+$('maintenance-settings').addEventListener('toggle', () => { if ($('maintenance-settings').open) loadAutomation(); });
+$('refresh-automation').addEventListener('click', loadAutomation);
 
 async function start() {
   try {

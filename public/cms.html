@@ -24,6 +24,10 @@
       <input id="username" name="username" autocomplete="username" required>
       <label for="password">Password</label>
       <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <div id="login-otp-fields" hidden>
+        <label for="login-otp">Kode autentikator atau kode pemulihan</label>
+        <input id="login-otp" name="otp" autocomplete="one-time-code" maxlength="40" spellcheck="false" autocapitalize="off">
+      </div>
       <button id="login-submit" type="submit">Masuk</button>
     </form>
     <p id="status" role="status"></p>

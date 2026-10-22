@@ -89,6 +89,22 @@ export function createAnalytics(db, now) {
         trackingSince,
       };
     },
+    comparison(filters) {
+      const today = localDay(now());
+      const to = filters.to || (filters.from > today ? filters.from : today);
+      const from = filters.from || localDay(midnight(to) - 6 * DAY);
+      const days = Math.round((midnight(to) - midnight(from)) / DAY) + 1;
+      const previousTo = localDay(midnight(from) - DAY);
+      const previousFrom = localDay(midnight(from) - days * DAY);
+      const count = (start, end) => {
+        const { sql, values } = where({ ...filters, from: start, to: end });
+        return db.prepare(`SELECT COUNT(*) AS count FROM visitors v ${sql}`).get(...values).count;
+      };
+      const current = count(from, to);
+      const previous = count(previousFrom, previousTo);
+      return { from, to, previousFrom, previousTo, days, current, previous, difference: current - previous,
+        percent: previous ? (current - previous) / previous * 100 : null, includesToday: from <= today && to >= today };
+    },
     visits(filters) {
       const { sql, values } = where(filters);
       const total = db.prepare(`SELECT COUNT(*) AS total FROM visitors v ${sql}`).get(...values).total;

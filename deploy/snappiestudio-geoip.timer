@@ -1,0 +1,10 @@
+[Unit]
+Description=Snappie monthly GeoIP update at 04:00 WIB on day 2
+
+[Timer]
+OnCalendar=*-*-01 21:00:00 UTC
+Persistent=true
+Unit=snappiestudio-geoip.service
+
+[Install]
+WantedBy=timers.target

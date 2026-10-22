@@ -1,18 +1,19 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { clientIp, createAdminSecurity, createRateLimiter, json, readJson } from './security.js';
 import { createAnalytics, reportFilters, utcTimestamp, csvVisit } from './analytics.js';
+import { writePrivateJson } from './admin-account.js';
 
 const CMS_FILES = new Map([
   ['/cms', 'cms.html'], ['/cms/', 'cms.html'], ['/cms.html', 'cms.html'],
   ['/cms/dashboard', 'cms-dashboard.html'], ['/cms/dashboard/', 'cms-dashboard.html'],
   ['/cms-dashboard.html', 'cms-dashboard.html'],
 ]);
-const CMS_CSP = "default-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; object-src 'none'";
+const CMS_CSP = "default-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; object-src 'none'";
 
 // Mengubah record GeoIP menjadi negara dan kota saja. IP tidak pernah disimpan.
 export function createLocator(reader) {
@@ -70,7 +71,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
   const isExcluded = db.prepare('SELECT 1 FROM excluded_browsers WHERE visitor_hash = ?');
   const excludeBrowser = db.prepare('INSERT OR IGNORE INTO excluded_browsers (visitor_hash) VALUES (?)');
   const removeBrowser = db.prepare('DELETE FROM visitors WHERE visitor_hash = ?');
-  const security = createAdminSecurity({ ...admin, trustProxy, now });
+  const security = createAdminSecurity({ accountPath: join(dirname(dbPath), 'cms-account.json'), ...admin, trustProxy, now });
   const limit = createRateLimiter({ now });
   const origins = new Set(admin.allowedOrigins || ['https://snappiestudio.com', 'https://www.snappiestudio.com']);
   const server = createServer({ maxHeaderSize: 8192, requestTimeout: 10000, headersTimeout: 10000 }, async (request, response) => {
@@ -99,6 +100,17 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
         if (!session) return;
         if (path === '/api/admin/session' && request.method === 'GET') {
           json(response, 200, { csrfToken: session.csrfToken }); return;
+        }
+        if (path === '/api/admin/account' || path.startsWith('/api/admin/account/')) {
+          await security.settings(request, response, path); return;
+        }
+        if (path === '/api/admin/maintenance' && request.method === 'GET') {
+          const readStatus = async name => {
+            try { return JSON.parse(await readFile(join(dirname(dbPath), name), 'utf8')); }
+            catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+          };
+          const [backup, geoip] = await Promise.all([readStatus('backup-status.json'), readStatus('geoip-status.json')]);
+          json(response, 200, { backup, geoip }); return;
         }
       }
       if (path === '/api/visitors') {
@@ -160,7 +172,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
         json(response, 200, {
           total: total.get().total,
           since: db.prepare('SELECT MIN(first_seen) AS since FROM visitors').get().since,
-          summary: analytics.summary(), charts: analytics.charts(filters),
+          summary: analytics.summary(), charts: analytics.charts(filters), comparison: analytics.comparison(filters),
           visitors: analytics.visits(filters), locations: analytics.locations(filters),
         });
         return;
@@ -214,14 +226,28 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const dbPath = process.env.VISITOR_DB_PATH || '/var/lib/snappiestudio-counter/visitors.sqlite';
   const geoDbPath = process.env.GEOIP_DB_PATH || '';
   let locate = () => null;
+  const runtimePath = join(dirname(dbPath), 'geoip-runtime.json');
   if (geoDbPath) {
     const { open } = await import('maxmind');
     locate = createLocator(await open(geoDbPath));
+    writePrivateJson(runtimePath, { loadedAt: new Date().toISOString() });
+    let reloading = false;
+    process.on('SIGHUP', async () => {
+      if (reloading) return;
+      reloading = true;
+      try {
+        const next = createLocator(await open(geoDbPath));
+        writePrivateJson(runtimePath, { loadedAt: new Date().toISOString() });
+        locate = next;
+        console.log('GeoIP database reloaded.');
+      } catch { console.error('GeoIP reload failed; previous lookup remains active.'); }
+      finally { reloading = false; }
+    });
   }
   const passwordHash = process.env.CMS_PASSWORD_HASH_FILE
     ? readFileSync(process.env.CMS_PASSWORD_HASH_FILE, 'utf8').trim() : process.env.CMS_PASSWORD_HASH || '';
   const allowedOrigins = (process.env.SITE_ORIGINS || 'https://snappiestudio.com,https://www.snappiestudio.com').split(',').map(origin => origin.trim());
-  const server = createVisitorServer({ dbPath, locate, trustProxy: true,
+  const server = createVisitorServer({ dbPath, locate: ip => locate(ip), trustProxy: true,
     publicDirectory: new URL(`file://${process.env.SITE_DIRECTORY || '/var/www/snappie'}/`),
     admin: { passwordHash, username: process.env.CMS_USERNAME || 'admin', allowedOrigins } });
   server.listen(Number(process.env.PORT || 3001), '127.0.0.1', () => {

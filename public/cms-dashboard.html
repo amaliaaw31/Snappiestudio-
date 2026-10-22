@@ -48,6 +48,15 @@
     </form>
     <p id="status" role="status"></p>
     <p id="filter-summary" class="note"></p>
+    <section class="comparison" aria-labelledby="comparison-heading">
+      <h2 id="comparison-heading">Perbandingan kunjungan</h2>
+      <p id="comparison-note" class="chart-description">Memuat dua periode dengan jumlah hari yang sama.</p>
+      <div class="summary comparison-counts">
+        <div><strong id="comparison-current">…</strong><span id="comparison-current-label">Periode terpilih</span></div>
+        <div><strong id="comparison-previous">…</strong><span id="comparison-previous-label">Periode sebelumnya</span></div>
+      </div>
+      <p id="comparison-change" class="note" aria-live="polite"></p>
+    </section>
     <section class="charts" aria-label="Grafik pengunjung">
       <div class="chart-card trend-card">
         <h2>Berapa browser yang berkunjung tiap hari?</h2>
@@ -109,6 +118,65 @@
     </div>
     <p class="note">Pembaruan otomatis dijeda ketika tab disembunyikan atau setelah 5 menit tanpa interaksi. Gunakan “Muat ulang” untuk mengambil data kapan saja.</p>
     <p id="maintenance-status" class="note" role="status"></p>
+    <section class="settings-section" aria-labelledby="settings-heading">
+      <h2 id="settings-heading">Pengaturan CMS</h2>
+      <details id="account-settings">
+        <summary>Akun dan keamanan</summary>
+        <p id="account-info" class="note">Buka bagian ini untuk memuat status akun.</p>
+        <p id="account-status" role="status" class="note"></p>
+        <form id="account-form" class="account-form">
+          <label for="current-password">Password saat ini</label>
+          <input id="current-password" type="password" autocomplete="current-password" required maxlength="72">
+          <div id="account-otp-fields" hidden>
+            <label for="account-otp">Kode autentikator baru atau kode pemulihan</label>
+            <input id="account-otp" autocomplete="one-time-code" maxlength="40" spellcheck="false" autocapitalize="off">
+          </div>
+          <p class="note">Perubahan akun memerlukan password saat ini. Jika 2FA aktif, gunakan kode yang belum dipakai.</p>
+          <label for="new-password">Password baru</label>
+          <input id="new-password" type="password" autocomplete="new-password" maxlength="72" placeholder="Minimal 12 karakter">
+          <div class="settings-actions">
+            <button type="submit" name="action" value="password">Ubah password</button>
+            <button type="submit" name="action" value="logout-all">Keluar dari semua sesi</button>
+          </div>
+          <h3>Autentikasi dua faktor</h3>
+          <div class="settings-actions">
+            <button id="mfa-setup" type="submit" name="action" value="mfa/setup">Siapkan 2FA</button>
+            <button id="mfa-recovery" type="submit" name="action" value="mfa/recovery" hidden>Buat kode pemulihan baru</button>
+            <button id="mfa-disable" type="submit" name="action" value="mfa/disable" hidden>Nonaktifkan 2FA</button>
+          </div>
+          <div id="mfa-enrollment" hidden>
+            <p class="note">Pindai QR dengan aplikasi autentikator. Jika pemindaian tidak tersedia, tambahkan kunci manual berikut. Pendaftaran berlaku 10 menit.</p>
+            <img id="mfa-qr" width="240" height="240" alt="Kode QR untuk mendaftarkan autentikator Snappie Studio">
+            <p class="note">Kunci manual: <code id="mfa-secret"></code></p>
+            <label for="mfa-setup-code">Kode enam digit dari aplikasi</label>
+            <input id="mfa-setup-code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6">
+            <p class="note">Masukkan kembali password saat ini, lalu konfirmasi kode untuk mengaktifkan 2FA.</p>
+            <div class="settings-actions">
+              <button type="submit" name="action" value="mfa/enable">Aktifkan 2FA</button>
+              <button id="mfa-cancel" type="button">Batalkan pendaftaran</button>
+            </div>
+          </div>
+        </form>
+        <div id="recovery-result" hidden>
+          <h3>Kode pemulihan</h3>
+          <p class="note">Simpan di tempat aman. Setiap kode hanya dapat digunakan sekali. Kode ini tidak akan ditampilkan lagi.</p>
+          <pre id="recovery-codes"></pre>
+          <div class="settings-actions"><button id="download-recovery" type="button">Unduh kode pemulihan</button><button id="hide-recovery" type="button">Sembunyikan kode</button></div>
+        </div>
+      </details>
+      <details id="maintenance-settings">
+        <summary>Cadangan dan data lokasi</summary>
+        <p class="note">Cadangan harian pukul 02.30 WIB, menyimpan 14 salinan terakhir. Setiap cadangan diuji dengan pemulihan ke direktori sementara. Data lokasi diperbarui setiap tanggal 2 pukul 04.00 WIB.</p>
+        <p id="automation-status" class="note" role="status">Buka bagian ini untuk memuat status.</p>
+        <dl class="maintenance-status-grid">
+          <div><dt>Cadangan berhasil terakhir</dt><dd id="backup-last">Belum dimuat</dd></div>
+          <div><dt>Uji pemulihan terakhir</dt><dd id="backup-verified">Belum dimuat</dd></div>
+          <div><dt>Salinan tersedia</dt><dd id="backup-copies">Belum dimuat</dd></div>
+          <div><dt>Pembaruan lokasi terakhir</dt><dd id="geoip-last">Belum dimuat</dd></div>
+        </dl>
+        <button id="refresh-automation" type="button">Muat ulang status</button>
+      </details>
+    </section>
     <p class="note">Total menghitung satu browser sekali. Statistik periode menghitung browser yang berkunjung dalam periode tersebut, termasuk yang kembali. Waktu terakhir diperbarui saat situs dibuka kembali. Lokasi ditentukan saat kunjungan pertama; alamat IP dan foto tidak disimpan. Browser dapat dihitung ulang jika data browser dihapus atau memakai perangkat lain. Lokasi berdasarkan <a href="https://db-ip.com" rel="noopener">IP Geolocation by DB-IP</a> dan bersifat perkiraan.</p>
   </main>
   <script type="module" src="/cms-dashboard.js"></script>
