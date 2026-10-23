@@ -457,17 +457,6 @@ function renderDemo() {
   $('demo-prev').disabled = index <= 0;
   $('demo-next').disabled = index >= cards.length - 1;
 }
-const seasonTheme = seasonsFor().find(season => season.now && season.theme)?.theme;
-if (seasonTheme) {
-  const card = document.createElement('button');
-  card.type = 'button';
-  card.dataset.demoTheme = seasonTheme;
-  card.dataset.demoFilter = 'normal';
-  card.setAttribute('aria-pressed', 'false');
-  card.innerHTML = '<span class="season-now" data-i18n="st.now">' + tr('st.now') + '</span><span data-i18n="theme.' + seasonTheme + '">' + tr('theme.' + seasonTheme) +
-    '</span><span class="demo-preset-effect" data-i18n="filter.normal">' + tr('filter.normal') + '</span><span class="ms demo-selected" aria-hidden="true">check</span>';
-  document.querySelector('.demo-themes').prepend(card);
-}
 document.querySelectorAll('[data-demo-theme]').forEach(button => {
   const thumbnail = document.createElement('span');
   thumbnail.className = 'demo-theme-preview';
@@ -667,7 +656,7 @@ function buildThemePicker() {
     b.className = 'theme-option' + (t.id === state.theme ? ' sel' : '');
     b.dataset.id = t.id;
     b.dataset.group = t.id === 'custom' ? 'custom'
-      : ['birthday', 'wedding', 'lebaran', 'natal', 'valentine', 'baby', 'halloween'].includes(t.id) ? 'occasion'
+      : ['birthday', 'wedding', 'lebaran', 'natal', 'valentine', 'baby'].includes(t.id) ? 'occasion'
       : ['pastel', 'cream', 'floral', 'coquette', 'minimal'].includes(t.id) ? 'soft' : 'bold';
     b.innerHTML = themeThumbHTML(t) + '<span class="theme-option-name">' + tr('theme.' + t.id) + '</span>';
     b.onclick = () => {

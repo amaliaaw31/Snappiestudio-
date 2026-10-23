@@ -44,7 +44,6 @@ export const THEMES = [
   { id: 'natal',    name: 'Natal' },
   { id: 'valentine',name: 'Valentine' },
   { id: 'baby',     name: 'Baby Shower' },
-  { id: 'halloween',name: 'Halloween' },
 ];
 
 /* Original character stickers (classic-cartoon style, drawn as SVG).
@@ -59,6 +58,7 @@ export const CHARS = [
   'bubsalting', 'bubmager', 'bubgabut', 'bubbestie', 'bubwkwk', 'bubhealing', 'bubnocap', 'bubbucin',
   'laptopcapek', 'kopimelek', 'jamngantuk', 'skripsibuku', 'kalenderpanik', 'sandalsenang', 'bubbegadang', 'bubskripsi', 'bubdeadline', 'bubweekend', 'bubotw', 'bubsantuy', 'bubcapek', 'bubrebahan',
   'pumpkin', 'ghost', 'bat', 'witchhat', 'ketupat', 'bedug', 'crescentstar', 'pelita', 'xmastree', 'santahat', 'candycane', 'snowman', 'firework', 'terompet', 'midnightclock', 'angpao', 'redlantern', 'mandarin', 'benderaid', 'kerupuk', 'karung',
+  'rose', 'lovebox', 'cupidheart', 'chocolate', 'kurma', 'masjid', 'sajadah', 'kambing', 'sapi', 'sate', 'paskahegg', 'chickegg', 'carrot',
 ];
 
 export const CHAR_NAMES = {
@@ -76,6 +76,7 @@ export const CHAR_NAMES = {
   orangecat: 'Mager Kitty', esteh: 'Es Teh Salting', bakso: 'Bakso Melotot', peacehand: 'Peace Hand', brokenheart: 'Santai Heart', sleepypillow: 'Sleepy Pillow', bubsalting: 'Bubble salting!', bubmager: 'Bubble mager', bubgabut: 'Bubble gabut', bubbestie: 'Bubble bestie', bubwkwk: 'Bubble wkwk', bubhealing: 'Bubble healing', bubnocap: 'Bubble no cap', bubbucin: 'Bubble bucin',
   laptopcapek: 'Capek Laptop', kopimelek: 'Melek Coffee', jamngantuk: 'Ngantuk Alarm', skripsibuku: 'Stres Skripsi', kalenderpanik: 'Panik Deadline', sandalsenang: 'Weekend Sandal', bubbegadang: 'Bubble begadang', bubskripsi: 'Bubble skripsi', bubdeadline: 'Bubble deadline', bubweekend: 'Bubble weekend', bubotw: 'Bubble otw', bubsantuy: 'Bubble santuy', bubcapek: 'Bubble capek', bubrebahan: 'Bubble rebahan',
   pumpkin: 'Pumpkin Pal', ghost: 'Boo Ghost', bat: 'Little Bat', witchhat: 'Witch Hat', ketupat: 'Ketupat', bedug: 'Bedug', crescentstar: 'Bulan Bintang', pelita: 'Pelita', xmastree: 'Christmas Tree', santahat: 'Santa Hat', candycane: 'Candy Cane', snowman: 'Snowman', firework: 'Firework', terompet: 'Terompet', midnightclock: 'Midnight Clock', angpao: 'Angpao', redlantern: 'Red Lantern', mandarin: 'Lucky Orange', benderaid: 'Merah Putih', kerupuk: 'Lomba Kerupuk', karung: 'Balap Karung',
+  rose: 'Sweet Rose', lovebox: 'Love Box', cupidheart: 'Cupid Heart', chocolate: 'Choco Bar', kurma: 'Kurma Manis', masjid: 'Little Mosque', sajadah: 'Sajadah', kambing: 'Kambing Kurban', sapi: 'Sapi Kurban', sate: 'Sate Time', paskahegg: 'Easter Egg', chickegg: 'Chick Hatch', carrot: 'Bunny Carrot',
 };
 
 // Transparent SVG artwork, shared by HTML and PNG without a white backing.
@@ -167,11 +168,27 @@ export const CHAR_SVG = {
   benderaid: stickerArt('<path d="M10 44V5" fill="none" stroke="#c89e78" stroke-width="3"/><circle cx="10" cy="5" r="2.5" fill="#ffd166"/><path d="M11 8q9-3 16 0t15 0v10q-8 3-15 0t-16 0z" fill="#ff5f6d"/><path d="M11 18q9-3 16 0t15 0v10q-8 3-15 0t-16 0z" fill="#fff"/>'),
   kerupuk: stickerArt('<path d="M6 6h36" fill="none" stroke="#c89e78" stroke-width="2.4"/><path d="M24 6v8" fill="none"/><circle cx="24" cy="27" r="13" fill="#fff0d6"/><path d="M24 14q4 6 0 13t0 13M11 27q6-4 13 0t13 0M15 18q5 5 9 9t9 9M33 18q-5 5-9 9t-9 9" fill="none" stroke="#f1c27d"/><circle cx="24" cy="27" r="13" fill="none"/>'),
   karung: stickerArt('<circle cx="24" cy="9" r="6" fill="#ffd9b8"/><path d="M21.5 8.5h.1m5 0h.1" stroke-width="2.4"/><path d="M22 11.5q2 1.5 4 0" fill="none"/><path d="M17 20l-6-5m20 5 6-5" fill="none" stroke-width="2.6"/><path d="M14 18q10-4 20 0l3 22q-13 5-26 0z" fill="#d9b48a"/><path d="M14 18q10 4 20 0M18 26l1 3m9-4-1 4m-11 6 1 3m12-3-1 3" fill="none" stroke="#a98058"/>'),
+  rose: stickerArt('<path d="M24 28v16" fill="none" stroke="#729b70" stroke-width="3"/><path d="M24 38c6-1 10-4 10-9-6 0-10 3-10 9z" fill="#b4dba0"/><path d="M14 16c0-9 20-9 20 0 0 9-6 15-10 15s-10-6-10-15z" fill="#ff7a9a"/><path d="M18 14q6 6 12 0M19 21q5 4 10 0" fill="none"/>'),
+  lovebox: stickerArt('<path d="M24 42C0 26 7 6 24 16 41 6 48 26 24 42z" fill="#ff9eb8"/><path d="M24 16q-6-9-11-5t11 5q6-9 11-5t-11 5z" fill="#fff0d6"/><circle cx="24" cy="16" r="2.6" fill="#fff0d6"/><path d="M16 26q3 3 6 0" fill="none" stroke="#fff"/>'),
+  cupidheart: stickerArt('<path d="M24 41C3 26 8 8 24 17 40 8 45 26 24 41z" fill="#ff8eab"/><path d="M5 43L41 7" fill="none" stroke-width="2.4"/><path d="M41 7l-1 8m1-8l-8 1" fill="none"/><path d="M5 43l-1-5m1 5l5-1" fill="none" stroke="#e4b7ed" stroke-width="2.4"/><path d="M15 17q3-3 6 0" fill="none" stroke="#fff"/>'),
+  chocolate: stickerArt('<rect x="9" y="12" width="30" height="31" rx="4" fill="#b07a4f"/><path d="M9 22h30M9 33h30M19 12v31M29 12v31" fill="none" stroke="#7d5436"/><path d="M8 5h32v10H8z" fill="#ffb5d1"/><path d="M13 5v10m11-10v10m11-10v10" fill="none" stroke="#fff"/>'),
+  kurma: stickerArt('<path d="M24 4q-5 4 0 10" fill="none" stroke="#729b70" stroke-width="2.4"/><ellipse cx="16" cy="29" rx="8" ry="13" transform="rotate(-18 16 29)" fill="#a8764f"/><ellipse cx="32" cy="29" rx="8" ry="13" transform="rotate(18 32 29)" fill="#c08a5c"/><path d="M12 24q3 6 1 12m23-12q-3 6-1 12" fill="none" stroke="#7d5436"/><path d="M20 28h.1m8 0h.1" stroke-width="2.4"/>'),
+  masjid: stickerArt('<path d="M5 43V22h9v21M34 43V22h9v21" fill="#e8efce"/><path d="M9.5 22v-9M38.5 22v-9" fill="none" stroke-width="2.4"/><circle cx="9.5" cy="11" r="2" fill="#ffe1a1"/><circle cx="38.5" cy="11" r="2" fill="#ffe1a1"/><path d="M13 43V30q11-20 22 0v13z" fill="#c4dcae"/><path d="M24 12V6" fill="none"/><path d="M21 8q3-5 6 0" fill="none"/><path d="M20 43v-8q4-5 8 0v8" fill="#fff0d6"/>'),
+  sajadah: stickerArt('<rect x="8" y="5" width="32" height="38" rx="3" fill="#cbb7ef"/><path d="M14 38V22q10-15 20 0v16z" fill="#e8dcf8"/><path d="M8 10h32M8 38h32" fill="none" stroke="#fff0d6"/><path d="M24 20l1.4 3 3 .4-2.2 2 .6 3-2.8-1.6-2.8 1.6.6-3-2.2-2 3-.4z" fill="#ffe1a1" stroke-width="1"/>'),
+  kambing: stickerArt('<path d="M16 13q-9-5-9 5 4-1 6 1m19-6q9-5 9 5-4-1-6 1" fill="#e8d9c0"/><path d="M12 22c0-11 24-11 24 0 0 8-4 17-12 17s-12-9-12-17z" fill="#fff9ed"/><path d="M19 22h.1m10 0h.1" stroke-width="3"/><ellipse cx="24" cy="30" rx="4" ry="3" fill="#ffc5b2"/><path d="M20 38q4 7 8 0" fill="#e8d9c0"/>'),
+  sapi: stickerArt('<path d="M10 14L4 8q-1 8 7 12m27-6l6-6q1 8-7 12" fill="#fff9ed"/><path d="M13 12q2-6 5-6m17 6q-2-6-5-6" fill="none" stroke="#e8d9c0" stroke-width="3"/><rect x="10" y="10" width="28" height="29" rx="13" fill="#fff9ed"/><ellipse cx="17" cy="18" rx="5" ry="4" fill="#68465f" stroke="none"/><ellipse cx="24" cy="32" rx="11" ry="7.5" fill="#ffc5b2"/><path d="M19 31h.1m10 0h.1" stroke-width="3"/><path d="M19 22h.1m10 0h.1" stroke-width="2.6"/>'),
+  sate: stickerArt('<path d="M4 14l40 7M4 28l40 7" fill="none" stroke="#c89e78" stroke-width="2.4"/><circle cx="15" cy="16" r="5" fill="#c27a4a"/><circle cx="25" cy="18" r="5" fill="#d28b54"/><circle cx="35" cy="20" r="5" fill="#c27a4a"/><circle cx="15" cy="30" r="5" fill="#d28b54"/><circle cx="25" cy="32" r="5" fill="#c27a4a"/><circle cx="35" cy="34" r="5" fill="#d28b54"/>'),
+  paskahegg: stickerArt('<path d="M24 4C14 4 8 20 8 28c0 9 7 15 16 15s16-6 16-15C40 20 34 4 24 4z" fill="#ffd0e1"/><path d="M9 27q4-5 8 0t7 0 7 0 8 0" fill="none" stroke="#ffe1a1" stroke-width="3"/><circle cx="17" cy="19" r="2" fill="#cbb7ef" stroke="none"/><circle cx="30" cy="20" r="2" fill="#b4dba0" stroke="none"/><circle cx="24" cy="36" r="3" fill="#cbb7ef" stroke="none"/>'),
+  chickegg: stickerArt('<circle cx="24" cy="18" r="11" fill="#ffe58a"/><path d="M19 17h.1m10 0h.1" stroke-width="3"/><path d="M24 20l-4 4h8z" fill="#ff8f3f" stroke-width="1.4"/><path d="M6 30l5-5 5 5 4-5 4 5 4-5 4 5 5-5 5 5v2c0 8-7 12-18 12S6 40 6 32z" fill="#fff0d6"/>'),
+  carrot: stickerArt('<path d="M32 15L9 40q-3 4 1 4 4 0 7-3l17-21z" fill="#ffb36b"/><path d="M20 28l3 3m1-9l3 3m-12 9l3 3" fill="none" stroke="#e0883a"/><path d="M32 15q-3-10 8-11 2 9-8 11zm0 0q-10-4-9-13 10 3 9 13z" fill="#b4dba0"/>'),
 };
 
 /* Seasonal sticker groups; the picker lists active seasons first. */
-// shortcut: Lebaran/Imlek dates are tabulated through 2030 (±1 day vs official), extend the lists before 2031.
+// shortcut: Islamic/Imlek/Easter dates are tabulated through 2030 (±1 day vs official), extend the lists before 2031.
 const LEBARAN_DATES = ['2026-03-20', '2027-03-10', '2028-02-27', '2029-02-15', '2030-02-05'];
+const RAMADAN_DATES = ['2026-02-18', '2027-02-08', '2028-01-28', '2029-01-16', '2030-01-06'];
+const IDULADHA_DATES = ['2026-05-27', '2027-05-17', '2028-05-05', '2029-04-24', '2030-04-13'];
+const PASKAH_DATES = ['2026-04-05', '2027-03-28', '2028-04-16', '2029-04-01', '2030-04-21'];
 const IMLEK_DATES = ['2026-02-17', '2027-02-06', '2028-01-26', '2029-02-13', '2030-02-03'];
 const near = (date, list, before, after) => list.some(iso => {
   const days = (date - new Date(iso + 'T00:00')) / 864e5;
@@ -179,16 +196,20 @@ const near = (date, list, before, after) => list.some(iso => {
 });
 const monthDay = date => (date.getMonth() + 1) * 100 + date.getDate();
 export const SEASONS = [
-  { id: 'halloween', theme: 'halloween', chars: ['pumpkin', 'ghost', 'bat', 'witchhat'], active: d => monthDay(d) >= 1001 && monthDay(d) <= 1101 },
-  { id: 'lebaran', theme: 'lebaran', chars: ['ketupat', 'bedug', 'crescentstar', 'pelita'], active: d => near(d, LEBARAN_DATES, 30, 10) },
-  { id: 'natal', theme: 'natal', chars: ['xmastree', 'santahat', 'candycane', 'snowman'], active: d => monthDay(d) >= 1201 && monthDay(d) <= 1226 },
+  { id: 'halloween', chars: ['pumpkin', 'ghost', 'bat', 'witchhat'], active: d => monthDay(d) >= 1001 && monthDay(d) <= 1101 },
+  { id: 'lebaran', chars: ['ketupat', 'bedug', 'crescentstar', 'pelita'], active: d => near(d, LEBARAN_DATES, 30, 10) },
+  { id: 'natal', chars: ['xmastree', 'santahat', 'candycane', 'snowman'], active: d => monthDay(d) >= 1201 && monthDay(d) <= 1226 },
   { id: 'newyear', chars: ['firework', 'terompet', 'midnightclock'], active: d => monthDay(d) >= 1227 || monthDay(d) <= 107 },
   { id: 'imlek', chars: ['angpao', 'redlantern', 'mandarin'], active: d => near(d, IMLEK_DATES, 14, 15) },
+  { id: 'valentine', chars: ['rose', 'lovebox', 'cupidheart', 'chocolate'], active: d => monthDay(d) >= 201 && monthDay(d) <= 214 },
+  { id: 'ramadan', chars: ['kurma', 'masjid', 'sajadah'], active: d => near(d, RAMADAN_DATES, 3, 30) },
+  { id: 'iduladha', chars: ['kambing', 'sapi', 'sate'], active: d => near(d, IDULADHA_DATES, 7, 3) },
+  { id: 'paskah', chars: ['paskahegg', 'chickegg', 'carrot'], active: d => near(d, PASKAH_DATES, 10, 2) },
   { id: 'merdeka', chars: ['benderaid', 'kerupuk', 'karung'], active: d => monthDay(d) >= 801 && monthDay(d) <= 831 },
 ];
 export function seasonsFor(date = new Date()) {
   return [...SEASONS].sort((a, b) => b.active(date) - a.active(date))
-    .map(season => ({ id: season.id, theme: season.theme, chars: season.chars, now: season.active(date) }));
+    .map(season => ({ id: season.id, chars: season.chars, now: season.active(date) }));
 }
 
 export function filterCss(id) {
@@ -205,7 +226,6 @@ export const DATE_COLORS = {
   aero: '#0a6bb0', doodle: '#23233a', minimal: '#111111',
   birthday: '#e0487b', wedding: '#9a7b4f', lebaran: '#f0d98a',
   natal: '#0f6b3a', valentine: '#d6336c', baby: '#5a8fc0',
-  halloween: '#ffb36b',
 };
 
 /* Jarak antar-huruf per font (dalam em) supaya spasi teks konsisten
@@ -330,6 +350,5 @@ export const CAPTIONS = {
   natal:    { main: 'Merry Christmas!', sub: '' },
   valentine:{ main: 'Be Mine ♡', sub: '' },
   baby:     { main: 'Hello Baby!', sub: '' },
-  halloween:{ main: 'Happy Halloween!', sub: '' },
 };
 
