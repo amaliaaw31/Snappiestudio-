@@ -108,7 +108,17 @@
       <button type="button" data-demo-theme="film" aria-pressed="false"><span data-i18n="theme.film">35mm Film</span></button>
       <button type="button" data-demo-theme="minimal" aria-pressed="false"><span data-i18n="theme.minimal">Seoul Minimal</span></button>
     </div>
+    <div class="demo-play-actions">
+      <button type="button" id="demo-shuffle" class="btn ghost"><span class="ms" aria-hidden="true">shuffle</span><span data-i18n="home.shuffle">Acak gaya</span></button>
+      <p id="demo-style" class="demo-style" role="status" aria-live="polite" aria-atomic="true"></p>
+    </div>
     <div id="demo-frame" aria-hidden="true"></div>
+    <div class="demo-comparison">
+      <label for="demo-compare" data-i18n="home.compare">Bandingkan efek</label>
+      <div class="demo-compare-labels"><span data-i18n="home.original">Asli</span><output id="demo-compare-effect" for="demo-compare"></output></div>
+      <input type="range" id="demo-compare" min="0" max="100" value="100" aria-describedby="demo-compare-hint">
+      <p id="demo-compare-hint" class="tool-note" data-i18n="home.pickEffect">Pilih efek atau acak gaya untuk membandingkan.</p>
+    </div>
   </figure>
   <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
 </div>
@@ -223,10 +233,12 @@
   <summary data-i18n="edit.text">Teks &amp; Tanggal</summary>
   <div class="toggle-row">
     <label class="date-toggle" for="toggle-date">
-      <input type="checkbox" id="toggle-date">
+      <input type="checkbox" id="toggle-date" aria-controls="date-controls">
       <span class="track"><span class="thumb"></span></span>
       <span class="date-toggle-label"><span class="ms">event</span><span data-i18n="rs.date">Tanggal</span></span>
     </label>
+  </div>
+  <div id="date-controls" hidden>
     <div class="setting result-font">
       <span class="ms font-sym">text_fields</span>
       <select id="date-font" class="filter-select small" data-i18n-aria="ui.font" aria-label="Font">
@@ -258,10 +270,10 @@
       </select>
       <button type="button" class="font-color" id="date-color" data-color="#8a5b7e" data-i18n-aria="ui.color" aria-label="Warna" data-i18n-title="ui.color" title="Warna"></button>
     </div>
-  </div>
   <button type="button" id="date-edit-btn" class="date-edit-btn">
     <span class="ms">edit_calendar</span><span id="date-edit-label">Tanggal</span>
   </button>
+  </div>
   <input type="text" id="custom-text" class="custom-text-input" maxlength="28"
     data-i18n-ph="rs.namePh" data-i18n-aria="rs.namePh" aria-label="Tulis nama / ucapan (opsional)" placeholder="Tulis nama / ucapan (opsional)" autocomplete="off">
   <div class="setting result-font">

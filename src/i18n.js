@@ -3642,6 +3642,125 @@ for (const [code, messages] of Object.entries(featureMessages)) {
   featureKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
 }
 
+const homeKeys = ["home.shuffle", "home.compare", "home.original", "home.pickEffect", "home.compareHint"];
+const homeMessages = {
+  "id": [
+    "Acak gaya",
+    "Bandingkan efek",
+    "Asli",
+    "Pilih efek atau acak gaya untuk membandingkan.",
+    "Geser untuk membandingkan efek dengan foto asli."
+  ],
+  "en": [
+    "Shuffle style",
+    "Compare effect",
+    "Original",
+    "Choose an effect or shuffle a style to compare.",
+    "Slide to compare the effect with the original photo."
+  ],
+  "ms": [
+    "Rawak gaya",
+    "Bandingkan kesan",
+    "Asal",
+    "Pilih kesan atau rawak gaya untuk membandingkan.",
+    "Leret untuk membandingkan kesan dengan foto asal."
+  ],
+  "ar": [
+    "نمط عشوائي",
+    "مقارنة التأثير",
+    "الأصلية",
+    "اختر تأثيرًا أو نمطًا عشوائيًا للمقارنة.",
+    "حرّك المؤشر لمقارنة التأثير بالصورة الأصلية."
+  ],
+  "es": [
+    "Estilo al azar",
+    "Comparar efecto",
+    "Original",
+    "Elige un efecto o un estilo al azar para comparar.",
+    "Desliza para comparar el efecto con la foto original."
+  ],
+  "fr": [
+    "Style au hasard",
+    "Comparer l’effet",
+    "Original",
+    "Choisissez un effet ou un style au hasard pour comparer.",
+    "Faites glisser pour comparer l’effet à la photo originale."
+  ],
+  "de": [
+    "Stil auswürfeln",
+    "Effekt vergleichen",
+    "Original",
+    "Wähle einen Effekt oder einen zufälligen Stil zum Vergleichen.",
+    "Verschiebe den Regler, um den Effekt mit dem Original zu vergleichen."
+  ],
+  "pt": [
+    "Estilo aleatório",
+    "Comparar efeito",
+    "Original",
+    "Escolha um efeito ou um estilo aleatório para comparar.",
+    "Deslize para comparar o efeito com a foto original."
+  ],
+  "ru": [
+    "Случайный стиль",
+    "Сравнить эффект",
+    "Оригинал",
+    "Выберите эффект или случайный стиль для сравнения.",
+    "Перемещайте ползунок для сравнения с оригиналом."
+  ],
+  "ja": [
+    "スタイルをおまかせ",
+    "エフェクトを比較",
+    "元の写真",
+    "エフェクトやおまかせスタイルを選んで比較できます。",
+    "スライダーでエフェクトと元の写真を比較できます。"
+  ],
+  "ko": [
+    "스타일 섞기",
+    "효과 비교",
+    "원본",
+    "효과를 고르거나 스타일을 섞어 비교하세요.",
+    "슬라이더를 움직여 효과와 원본 사진을 비교하세요."
+  ],
+  "zh": [
+    "随机风格",
+    "对比效果",
+    "原图",
+    "选择效果或随机风格进行对比。",
+    "拖动滑块，对比效果与原图。"
+  ],
+  "hi": [
+    "शैली बदलें",
+    "इफ़ेक्ट की तुलना",
+    "मूल",
+    "तुलना के लिए इफ़ेक्ट या रैंडम शैली चुनें।",
+    "इफ़ेक्ट और मूल फ़ोटो की तुलना के लिए स्लाइड करें।"
+  ],
+  "vi": [
+    "Phong cách ngẫu nhiên",
+    "So sánh hiệu ứng",
+    "Ảnh gốc",
+    "Chọn hiệu ứng hoặc phong cách ngẫu nhiên để so sánh.",
+    "Kéo thanh trượt để so sánh hiệu ứng với ảnh gốc."
+  ],
+  "th": [
+    "สุ่มสไตล์",
+    "เปรียบเทียบเอฟเฟกต์",
+    "ต้นฉบับ",
+    "เลือกเอฟเฟกต์หรือสุ่มสไตล์เพื่อเปรียบเทียบ",
+    "เลื่อนเพื่อเปรียบเทียบเอฟเฟกต์กับรูปต้นฉบับ"
+  ],
+  "tr": [
+    "Rastgele stil",
+    "Efekti karşılaştır",
+    "Özgün",
+    "Karşılaştırmak için bir efekt veya rastgele stil seçin.",
+    "Efekti özgün fotoğrafla karşılaştırmak için kaydırın."
+  ]
+};
+for (const [code, messages] of Object.entries(homeMessages)) {
+  homeKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
+}
+
 let lang = 'id';
 try {
   const saved = localStorage.getItem('snappie-lang');

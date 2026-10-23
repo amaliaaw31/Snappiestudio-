@@ -1364,3 +1364,27 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
 .download-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .download-buttons .btn { flex: 1; }
 #btn-download-menu .ms:last-child { margin-inline: 2px 0; font-size: 18px; }
+
+.demo-play-actions { width: 100%; max-width: 360px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.demo-play-actions .btn { display: inline-flex; align-items: center; padding: 10px 14px; min-height: 44px; font-size: 13px; }
+.demo-style { flex: 1; min-width: 100px; font-size: 12px; color: var(--ui-muted); text-align: end; }
+.demo-comparison { width: 100%; max-width: 360px; display: grid; gap: 8px; color: var(--ui-text); }
+.demo-comparison > label { font-size: 14px; font-weight: 700; }
+.demo-compare-labels { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--ui-muted); }
+.demo-comparison input { width: 100%; min-height: 44px; cursor: ew-resize; accent-color: var(--ui-accent); direction: ltr; }
+.demo-comparison input:disabled { cursor: default; opacity: .5; }
+.demo-comparison .tool-note { margin: 0; min-height: 36px; text-align: start; }
+#demo-frame .slot { position: relative; }
+#demo-frame .demo-effect { position: absolute; inset: 0; clip-path: inset(0 0 0 calc(100% - var(--demo-reveal, 100%))); }
+#demo-frame.is-comparing .slot::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(100% - var(--demo-reveal)); width: 2px; background: white; box-shadow: 0 0 2px #23233a; pointer-events: none; }
+#date-controls[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .start-intro { animation: home-arrive 320ms ease-out both; }
+  #demo-frame .frame-outer { animation: home-develop 200ms ease-out both; }
+  .demo-themes button { transition: border-color 140ms ease, background-color 140ms ease; }
+  .demo-play-actions .btn { transition: transform 140ms ease; }
+  .demo-themes button:hover { border-color: var(--ui-accent); }
+  .demo-play-actions .btn:hover { transform: translateY(-2px); }
+}
+@keyframes home-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes home-develop { from { opacity: .35; } to { opacity: 1; } }

@@ -131,6 +131,7 @@ let historyWorks = true;
 let updateFilterEdges = () => {};
 let refreshEmojiPicker = () => {};
 let demoTheme = 'pastel';
+let demoComparison = 100;
 let pendingDemoFilter = null;
 
 function activateScreen(id) {
@@ -303,7 +304,7 @@ function makeDraggableScroll(el) {
 function chooseFilter(id) {
   state.filter = id;
   const i = state.selectedPhotoIndex;
-  if (currentScreen === 'scr-start') renderDemo();
+  if (currentScreen === 'scr-start') { demoComparison = 100; renderDemo(); }
   else if (i != null && state.photos[i]) {
     state.photos[i].filter = id;
     renderThumbs();
@@ -406,11 +407,17 @@ function refreshPhotoSamples() {
 function renderDemo() {
   const holder = $('demo-frame');
   if (!holder) return;
-  const photos = ('<div class="slot"><img src="' + filterSampleUrl + '" alt="" style="filter:' + filterCss(state.filter) + '"></div>').repeat(3);
+  const photos = ('<div class="slot"><img class="demo-original" src="' + filterSampleUrl + '" alt=""><img class="demo-effect" src="' + filterSampleUrl + '" alt="" style="filter:' + filterCss(state.filter) + '"></div>').repeat(3);
   holder.innerHTML = '<div class="frame-outer th-' + demoTheme + ' strip"><div class="frame">' +
     '<div class="photos-strip">' + photos + '</div><div class="frame-captions"></div></div></div>';
   fitFrame('demo-frame');
   if ($('demo-filter')) $('demo-filter').textContent = filterName();
+  $('demo-style').textContent = tr('theme.' + demoTheme) + ' · ' + filterName();
+  $('demo-compare-effect').textContent = filterName();
+  $('demo-compare').disabled = state.filter === 'normal';
+  $('demo-compare-hint').dataset.i18n = state.filter === 'normal' ? 'home.pickEffect' : 'home.compareHint';
+  $('demo-compare-hint').textContent = tr($('demo-compare-hint').dataset.i18n);
+  updateDemoComparison();
   document.querySelectorAll('[data-demo-theme]').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.demoTheme === demoTheme));
   });
@@ -423,6 +430,24 @@ document.querySelectorAll('[data-demo-theme]').forEach(button => {
   button.prepend(thumbnail);
   button.onclick = () => { demoTheme = button.dataset.demoTheme; renderDemo(); };
 });
+function updateDemoComparison() {
+  const value = state.filter === 'normal' ? 100 : demoComparison;
+  $('demo-frame').style.setProperty('--demo-reveal', value + '%');
+  $('demo-frame').classList.toggle('is-comparing', state.filter !== 'normal' && value > 0 && value < 100);
+  $('demo-compare').value = String(demoComparison);
+}
+$('demo-compare').oninput = event => {
+  demoComparison = Number(event.target.value);
+  updateDemoComparison();
+};
+$('demo-shuffle').onclick = () => {
+  const themes = [...document.querySelectorAll('[data-demo-theme]')].map(button => button.dataset.demoTheme).filter(id => id !== demoTheme);
+  const filters = FILTERS.filter(filter => filter.id !== 'normal' && filter.id !== state.filter);
+  demoTheme = themes[Math.floor(Math.random() * themes.length)];
+  chooseFilter(filters[Math.floor(Math.random() * filters.length)].id);
+  demoComparison = 65;
+  updateDemoComparison();
+};
 const demoFilter = $('demo-filter');
 if (demoFilter) {
   filterBtns.push(demoFilter);
@@ -625,7 +650,8 @@ function applyLang(code) {
   syncWorkflow();
   const grid = $('lang-grid');
   if (grid) grid.querySelectorAll('.lang-option').forEach(x => x.classList.toggle('sel', x.dataset.code === code));
-  if (currentScreen === 'scr-preview') renderPreview();
+  if (currentScreen === 'scr-start') renderDemo();
+  else if (currentScreen === 'scr-preview') renderPreview();
   else if (currentScreen === 'scr-result') renderResult();
 }
 
@@ -1660,6 +1686,7 @@ if (dateToggle) {
   dateToggle.checked = state.showDate;
   dateToggle.onchange = () => {
     state.showDate = dateToggle.checked;
+    updateDateButton();
     refreshActiveFrame();
     savePrefs();
   };
@@ -1788,6 +1815,7 @@ function initDateWheel() {
 initDateWheel();
 
 function updateDateButton() {
+  if ($('date-controls')) $('date-controls').hidden = !state.showDate;
   const lbl = $('date-edit-label');
   if (lbl) lbl.textContent = currentDateText();
   const btn = $('date-edit-btn');

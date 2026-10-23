@@ -71,6 +71,7 @@ async function screenshot(name) {
   writeFileSync(`/tmp/snappie-${name}.png`, Buffer.from(data, 'base64'));
 }
 async function checkHeader() {
+  await evaluate("window.scrollTo(0, 0)");
   await check(`(() => {
     const screen = document.querySelector('.screen.active');
     const header = screen.querySelector('.mini-header'), slogan = header.querySelector('.mh-tag');
@@ -181,6 +182,13 @@ try {
   await check("[...document.querySelectorAll('[role=dialog]')].every(m => m.getAttribute('aria-label') || document.getElementById(m.getAttribute('aria-labelledby'))?.textContent.trim())", 'all dialogs have accessible names');
   await check("[...document.querySelectorAll('.modal-overlay')].every(m => m.inert)", 'closed dialogs cannot receive focus');
   await check("[...document.querySelectorAll('.tagline, .mh-tag')].length === 4 && [...document.querySelectorAll('.tagline, .mh-tag')].every(el => el.textContent === 'your little photo moment' && el.lang === 'en')", 'all four main screens use the exact English brand slogan');
+  await check("document.querySelector('#demo-compare').disabled", 'comparison explains that an effect must be selected first');
+  await evaluate("window.initialDemoTheme = document.querySelector('[data-demo-theme][aria-pressed=true]').dataset.demoTheme");
+  await click('#demo-shuffle');
+  await check("!document.querySelector('#demo-compare').disabled && document.querySelector('#demo-compare').value === '65' && document.querySelector('[data-demo-theme][aria-pressed=true]').dataset.demoTheme !== window.initialDemoTheme && document.querySelector('#demo-style').textContent.includes(document.querySelector('#demo-filter').textContent)", 'shuffle changes theme and effect and exposes comparison');
+  await click('#demo-filter');
+  await click('#filter-grid [data-id=normal]');
+  await click('#btn-apply-filter');
   await click('[data-demo-theme=film]');
   await check("document.querySelector('#demo-frame .frame-outer').classList.contains('th-film') && document.querySelector('[data-demo-theme=film]').getAttribute('aria-pressed') === 'true'", 'demo switches real frame styles and selected state');
   await check("document.querySelector('.start-demo figcaption').textContent.includes('foto')", 'example is labelled as photo example');
@@ -191,18 +199,26 @@ try {
   await check("document.querySelector('#filter-modal').classList.contains('open') && document.querySelector('#scr-start').inert", 'homepage effects open an accessible modal');
   await click('#filter-grid [data-id=bw]');
   await check("document.querySelector('#filter-modal').classList.contains('open') && document.querySelector('#filter-preview-photo').style.filter === 'grayscale(1)' && document.querySelector('#filter-grid [data-id=bw]').getAttribute('aria-pressed') === 'true'", 'effect can be tried inside modal with accessible selected state');
-  await check("[...document.querySelectorAll('#demo-frame img')].every(img => img.style.filter === 'none')", 'trying an effect leaves committed homepage photos unchanged');
+  await check("[...document.querySelectorAll('#demo-frame .demo-effect')].every(img => img.style.filter === 'none')", 'trying an effect leaves committed homepage photos unchanged');
   await click('#filter-grid [data-id=sepia]');
   await check("document.querySelector('#filter-grid [data-id=sepia]').getAttribute('aria-pressed') === 'true' && document.querySelector('#filter-grid [data-id=bw]').getAttribute('aria-pressed') === 'false'", 'multiple effects can be compared before applying');
   await click('#filter-grid [data-id=bw]');
   await click('#btn-apply-filter');
-  await check("[...document.querySelectorAll('#demo-frame img')].every(img => img.style.filter === 'grayscale(1)')", 'homepage effect picker updates every demo photo');
+  await check("[...document.querySelectorAll('#demo-frame .demo-effect')].every(img => img.style.filter === 'grayscale(1)')", 'homepage effect picker updates every demo photo');
   await check("document.activeElement.id === 'demo-filter' && !document.querySelector('#filter-modal').classList.contains('open')", 'effect selection closes modal and restores focus');
+  for (const value of [0, 50, 100]) {
+    await evaluate(`document.querySelector('#demo-compare').value = ${value}; document.querySelector('#demo-compare').dispatchEvent(new Event('input', { bubbles: true }))`);
+    await check(`document.querySelector('#demo-frame').style.getPropertyValue('--demo-reveal') === '${value}%' && document.querySelector('#demo-frame').classList.contains('is-comparing') === ${value === 50} && [...document.querySelectorAll('#demo-frame .demo-original')].every(image => !image.style.filter)`, `comparison slider reveals ${value}% effect without changing originals`);
+  }
+  await evaluate("document.querySelector('#demo-compare').focus()");
+  await key('ArrowLeft');
+  await check("document.querySelector('#demo-compare').value === '99'", 'comparison supports keyboard arrows');
+
   await click('#demo-filter');
   await click('#filter-grid [data-id=sepia]');
   await key('Escape');
   await check("document.activeElement.id === 'demo-filter' && !document.querySelector('#filter-modal').classList.contains('open')", 'homepage effects support Escape and focus restoration');
-  await check("[...document.querySelectorAll('#demo-frame img')].every(img => img.style.filter === 'grayscale(1)')", 'Escape discards unconfirmed effect');
+  await check("[...document.querySelectorAll('#demo-frame .demo-effect')].every(img => img.style.filter === 'grayscale(1)')", 'Escape discards unconfirmed effect');
   await click('#demo-filter');
   await check("document.querySelector('#filter-grid [data-id=bw]').getAttribute('aria-pressed') === 'true'", 'reopening effects restores committed selection');
   await evaluate("document.querySelector('#btn-close-filter').focus()");
@@ -247,7 +263,7 @@ try {
     await waitFor("document.querySelector('#filter-grid [data-id=bw]').getAttribute('aria-pressed') === 'true'");
     await tap('#btn-apply-filter');
     await waitFor("!document.querySelector('#filter-modal').classList.contains('open')");
-    await check("[...document.querySelectorAll('#demo-frame img')].every(img => img.style.filter === 'grayscale(1)')", `touch applies effect at ${width}x${height}`);
+    await check("[...document.querySelectorAll('#demo-frame .demo-effect')].every(img => img.style.filter === 'grayscale(1)')", `touch applies effect at ${width}x${height}`);
   }
   await send('Emulation.setTouchEmulationEnabled', { enabled: false });
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
@@ -330,6 +346,16 @@ try {
   await check("!document.querySelector('#scr-result .history-controls, #scr-result .undo-btn, #scr-result .redo-btn') && document.querySelectorAll('#scr-preview .history-controls button').length === 2", 'result omits Undo/Redo while preview retains history controls');
   await check("document.querySelector('#text-tools').open === false && document.querySelectorAll('.editor-group').length === 3", 'editor groups frame, text, stickers and folds advanced text controls');
   await click('#text-tools summary');
+  await check("document.querySelector('#date-controls').hidden && !document.querySelector('#date-edit-btn').getClientRects().length", 'date controls stay hidden while date toggle is off');
+  await click('#toggle-date');
+  await check("!document.querySelector('#date-controls').hidden && !document.querySelector('#date-edit-btn').disabled && document.querySelector('#date-color').getClientRects().length > 0", 'date toggle reveals date picker, font and color');
+  await click('#date-edit-btn');
+  await check("document.querySelector('#date-modal').classList.contains('open')", 'revealed date control opens date picker');
+  await key('Escape');
+  await evaluate("document.querySelector('#date-font').value = 'Quicksand'; document.querySelector('#date-font').dispatchEvent(new Event('change', { bubbles: true }))");
+  await click('#toggle-date');
+  await check("document.querySelector('#date-controls').hidden && document.querySelector('#date-font').value === 'Quicksand'", 'turning dates off hides controls and retains session settings');
+
   await evaluate("document.querySelector('#custom-text').value = 'UI verification'; document.querySelector('#custom-text').dispatchEvent(new Event('input', { bubbles: true }))");
   await waitFor("document.querySelector('#result-holder .frame-date')?.textContent === 'UI verification'");
   await new Promise(resolve => setTimeout(resolve, 300));
@@ -364,6 +390,7 @@ try {
   await check("!document.querySelector('#scr-result .sticker-hint').hidden && getComputedStyle(document.querySelector('.screen.active .user-sticker')).animationName === 'none'", 'sticker hint appears and selection has no looping animation');
   await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
   await check("getComputedStyle(document.querySelector('#btn-add-sticker')).transitionDuration.split(',').every(value => parseFloat(value) <= .001)", 'reduced motion disables decorative transitions');
+  await check("getComputedStyle(document.querySelector('.start-intro')).animationName === 'none' && getComputedStyle(document.querySelector('#demo-frame .frame-outer')).animationName === 'none'", 'homepage motion respects reduced motion');
   await send('Emulation.setEmulatedMedia', { features: [] });
   await click('#btn-add-sticker');
   await click('#btn-close-sticker');
@@ -530,8 +557,9 @@ try {
   await check('document.documentElement.scrollWidth <= innerWidth', 'result editor has no horizontal overflow');
   await click('#btn-preview-fix');
   await evaluate("document.querySelector('#favorite-name').value = 'Reload test'; document.querySelector('#favorite-save').click()");
+  await evaluate('window.beforeVerificationReload = true');
   await send('Page.reload');
-  await waitFor("document.querySelector('#btn-start')?.onclick != null && document.querySelector('#favorite-list')?.value === 'Reload test'");
+  await waitFor("!window.beforeVerificationReload && document.querySelector('#btn-start')?.onclick != null && document.querySelector('#favorite-list')?.value === 'Reload test'");
   await check("document.querySelector('#favorite-list').value === 'Reload test' && document.querySelector('#scr-start').classList.contains('active') && document.querySelectorAll('#preview-holder .slot').length === 0", 'favorites survive reload without restoring private photos');
   await evaluate("document.querySelector('#favorite-delete').click()");
   assert.deepEqual(exceptions, [], 'no uncaught browser exceptions');
