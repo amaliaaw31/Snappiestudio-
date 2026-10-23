@@ -4052,6 +4052,28 @@ const howMessages = {
 for (const [code, messages] of Object.entries(howMessages)) {
   howKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
 }
+const seasonKeys = ["st.seasonal", "st.now", "season.halloween", "season.lebaran", "season.natal", "season.newyear", "season.imlek"];
+const seasonMessages = {
+  "id": ["Musiman", "Sekarang", "Halloween", "Lebaran", "Natal", "Tahun Baru", "Imlek"],
+  "en": ["Seasonal", "Now", "Halloween", "Eid al-Fitr", "Christmas", "New Year", "Lunar New Year"],
+  "ms": ["Bermusim", "Sekarang", "Halloween", "Hari Raya Aidilfitri", "Krismas", "Tahun Baru", "Tahun Baru Cina"],
+  "ar": ["موسمية", "الآن", "الهالوين", "عيد الفطر", "عيد الميلاد", "رأس السنة", "رأس السنة القمرية"],
+  "es": ["De temporada", "Ahora", "Halloween", "Eid al-Fitr", "Navidad", "Año Nuevo", "Año Nuevo Lunar"],
+  "fr": ["Saisonniers", "En ce moment", "Halloween", "Aïd el-Fitr", "Noël", "Nouvel An", "Nouvel An lunaire"],
+  "de": ["Saisonal", "Jetzt", "Halloween", "Zuckerfest", "Weihnachten", "Neujahr", "Mondneujahr"],
+  "pt": ["Sazonais", "Agora", "Halloween", "Eid al-Fitr", "Natal", "Ano-Novo", "Ano-Novo Lunar"],
+  "ru": ["Сезонные", "Сейчас", "Хэллоуин", "Ураза-байрам", "Рождество", "Новый год", "Лунный Новый год"],
+  "ja": ["季節", "開催中", "ハロウィン", "イード・アル＝フィトル", "クリスマス", "新年", "旧正月"],
+  "ko": ["시즌", "지금", "핼러윈", "이드 알피트르", "크리스마스", "새해", "설날"],
+  "zh": ["节日", "当季", "万圣节", "开斋节", "圣诞节", "新年", "春节"],
+  "hi": ["मौसमी", "अभी", "हैलोवीन", "ईद-उल-फ़ित्र", "क्रिसमस", "नया साल", "चंद्र नव वर्ष"],
+  "vi": ["Theo mùa", "Đang diễn ra", "Halloween", "Lễ Eid al-Fitr", "Giáng sinh", "Năm mới", "Tết Nguyên đán"],
+  "th": ["ตามเทศกาล", "ตอนนี้", "ฮาโลวีน", "วันอีดิลฟิฏริ", "คริสต์มาส", "ปีใหม่", "ตรุษจีน"],
+  "tr": ["Mevsimlik", "Şimdi", "Cadılar Bayramı", "Ramazan Bayramı", "Noel", "Yılbaşı", "Ay Yeni Yılı"]
+};
+for (const [code, messages] of Object.entries(seasonMessages)) {
+  seasonKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
+}
 
 let lang = 'id';
 try {

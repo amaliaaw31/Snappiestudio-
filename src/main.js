@@ -1,6 +1,6 @@
 /* Photo Booth — app logic: camera, filters, countdown, capture, result, stickers. */
 
-import { FILTERS, THEMES, CHARS, CHAR_SVG, CHAR_NAMES, dateLine, formatDate, filterCss, fontTracking, fontLineHeight, DATE_COLORS } from './data.js';
+import { FILTERS, THEMES, CHARS, CHAR_SVG, CHAR_NAMES, dateLine, formatDate, filterCss, fontTracking, fontLineHeight, DATE_COLORS, seasonsFor } from './data.js';
 import { OUTPUT_FORMATS, formatOutput } from './output.js';
 import { FAVORITES_KEY, favoriteSettings, readFavorites } from './favorites.js';
 import { movePhoto } from './photo-order.js';
@@ -2595,6 +2595,27 @@ function initStickerPicker() {
   search.oninput = renderEmojiPicker;
   refreshEmojiPicker = renderEmojiPicker;
   renderEmojiPicker();
+
+  seasonsFor().forEach(season => {
+    const group = document.createElement('div');
+    group.className = 'season-group';
+    group.innerHTML = '<h3 class="sticker-section-title"><span data-i18n="season.' + season.id + '">' + tr('season.' + season.id) + '</span>' +
+      (season.now ? ' <span class="season-now" data-i18n="st.now">' + tr('st.now') + '</span>' : '') + '</h3><div class="sticker-grid"></div>';
+    season.chars.forEach(id => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'sticker-item';
+      item.title = CHAR_NAMES[id];
+      item.setAttribute('aria-label', CHAR_NAMES[id]);
+      item.innerHTML = '<svg aria-hidden="true"><use href="#ch-' + id + '"/></svg>';
+      item.onclick = () => {
+        addSticker('char', id);
+        closeModal('sticker-modal');
+      };
+      group.lastChild.appendChild(item);
+    });
+    $('sticker-season-panel').appendChild(group);
+  });
 
   const textInput = $('sticker-text-input');
   const btnAddText = $('btn-add-text');

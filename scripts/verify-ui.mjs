@@ -277,7 +277,9 @@ try {
   }; window.demoDimensions = {};`);
   for (const width of [320, 390, 720, 1000, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
-    await check("document.querySelector('.demo-themes').getBoundingClientRect().bottom <= document.querySelector('#demo-frame').getBoundingClientRect().top && document.querySelector('#demo-filter').getBoundingClientRect().bottom <= document.querySelector('#demo-frame').getBoundingClientRect().top", `homepage controls appear above frame at ${width}px`);
+    // Phones show the sample strip before the controls; wider layouts keep controls above it.
+    await check(`(() => { const frame = document.querySelector('#demo-frame').getBoundingClientRect(); const themes = document.querySelector('.demo-themes').getBoundingClientRect(); const filter = document.querySelector('#demo-filter').getBoundingClientRect();
+      return ${width < 720} ? frame.bottom <= filter.top && frame.bottom <= themes.top : themes.bottom <= frame.top && filter.bottom <= frame.top; })()`, `homepage frame order is correct at ${width}px`);
     await check("document.querySelectorAll('.demo-theme-preview img').length === 9 && [...document.querySelectorAll('.demo-theme-preview img')].every(img => img.getBoundingClientRect().width >= 20)", 'each homepage theme has a visible photo thumbnail');
     await evaluate("window.themeButtonBounds = [...document.querySelectorAll('[data-demo-theme]')].map(button => { const box = button.getBoundingClientRect(); return [box.width, box.height]; })");
     for (const theme of ['pastel', 'minimal', 'film']) {

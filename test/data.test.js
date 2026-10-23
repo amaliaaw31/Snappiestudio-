@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FILTERS, THEMES, CAPTIONS, CHARS, CHAR_SVG, CHAR_NAMES, EMOJI_STICKERS, dateLine, filterCss,
+  FILTERS, THEMES, CAPTIONS, CHARS, CHAR_SVG, CHAR_NAMES, EMOJI_STICKERS, dateLine, filterCss, SEASONS, seasonsFor,
 } from '../src/data.js';
 
 test('filters: unique ids, name + css present', () => {
@@ -76,4 +76,17 @@ test('filterCss resolves ids and falls back to none', () => {
   if (bw) assert.equal(filterCss('bw'), bw.css);
   assert.equal(filterCss('tidak-ada'), 'none');
   assert.equal(filterCss(undefined), 'none');
+});
+
+test('seasonal stickers exist and the active season is listed first', () => {
+  for (const season of SEASONS) for (const c of season.chars) assert.ok(CHAR_SVG[c], `season sticker "${c}" has no art`);
+  const now = date => seasonsFor(new Date(date + 'T12:00')).filter(s => s.now).map(s => s.id);
+  assert.deepEqual(now('2026-10-23'), ['halloween']);
+  assert.deepEqual(now('2026-12-31'), ['newyear']);
+  assert.deepEqual(now('2027-01-05'), ['newyear']);
+  assert.deepEqual(now('2026-12-20'), ['natal']);
+  assert.deepEqual(now('2027-03-01'), ['lebaran']);
+  assert.deepEqual(now('2028-02-01').sort(), ['imlek', 'lebaran']);
+  assert.deepEqual(now('2026-07-01'), []);
+  assert.equal(seasonsFor(new Date('2026-12-20T12:00'))[0].id, 'natal');
 });

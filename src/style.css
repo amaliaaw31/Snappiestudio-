@@ -1450,3 +1450,20 @@ body.on-start .btn { transition: transform 140ms ease; }
   .how-steps li:nth-child(3) { animation-delay: 1.2s; }
 }
 @keyframes how-step { 0%, 60%, 100% { transform: none; border-color: var(--home-border); } 25% { transform: translateY(-3px); border-color: var(--ui-accent); } }
+
+.season-group + .season-group { margin-top: 14px; }
+.season-group .sticker-section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.season-now { padding: 2px 8px; border-radius: 999px; background: #b1266b; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0; }
+body.dark-mode .season-now { background: #ff8fc0; color: #14121d; }
+
+/* Contoh strip sedikit miring seperti baru dicetak; tegak saat disentuh. rotate tidak menimpa transform skala dari fitFrame. */
+#demo-frame .frame-outer { rotate: -2deg; }
+#demo-frame:hover .frame-outer, #demo-frame:active .frame-outer { rotate: 0deg; }
+@media (prefers-reduced-motion: no-preference) {
+  #demo-frame .frame-outer { transition: rotate 220ms ease; }
+}
+/* Ponsel: foto contoh tampil sebelum pengaturan efek dan galeri gaya (#demo-frame aria-hidden, urutan fokus tidak berubah). */
+@media (max-width: 719px) {
+  .start-demo > figcaption { order: -2; }
+  #demo-frame { order: -1; }
+}

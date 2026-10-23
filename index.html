@@ -373,8 +373,10 @@
       <p class="tool-note" data-i18n="upload.note">PNG, JPEG, WebP · maksimal 8 MB. Transparansi PNG tetap terjaga.</p>
       <div class="sticker-tabs" role="tablist" data-i18n-aria="st.tabs" aria-label="Jenis stiker">
         <button type="button" class="sticker-tab" id="sticker-emoji-tab" role="tab" aria-selected="true" aria-controls="sticker-emoji-panel" data-i18n="st.emojis">Emoji</button>
+        <button type="button" class="sticker-tab" id="sticker-season-tab" role="tab" aria-selected="false" aria-controls="sticker-season-panel" tabindex="-1" data-i18n="st.seasonal">Musiman</button>
         <button type="button" class="sticker-tab" id="sticker-text-tab" role="tab" aria-selected="false" aria-controls="sticker-text-panel" tabindex="-1" data-i18n="md.text">Teks</button>
       </div>
+      <section class="sticker-panel" id="sticker-season-panel" role="tabpanel" aria-labelledby="sticker-season-tab" hidden></section>
       <section class="sticker-panel" id="sticker-emoji-panel" role="tabpanel" aria-labelledby="sticker-emoji-tab">
         <input type="search" id="emoji-search" class="custom-text-input emoji-search" data-i18n-ph="st.search" data-i18n-aria="st.search" placeholder="Cari emoji…" aria-label="Cari emoji" autocomplete="off">
         <div class="emoji-categories" id="emoji-categories" data-i18n-aria="st.categories" aria-label="Kategori emoji" role="group"></div>
