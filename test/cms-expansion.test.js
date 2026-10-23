@@ -126,9 +126,10 @@ test('monitor retries failed notifications, suppresses repeats, and sends recove
     if (!options?.method) return new Response('', { status: down ? 503 : 200 });
     notices.push(JSON.parse(options.body)); return new Response('', { status: reject ? 500 : 200 });
   };
-  for (const name of ['backup', 'geoip']) await writeFile(join(api.directory, name + '-status.json'), JSON.stringify({ ok: true, lastSuccess: new Date(api.now()).toISOString() }));
-  const check = () => checkMonitor(api.directory, { CMS_ALERT_WEBHOOK: 'https://example.invalid/notify' }, fetchMock, api.now, () => {});
+  for (const name of ['backup', 'geoip']) await writeFile(join(api.directory, name + '-status.json'), JSON.stringify({ ok: true, lastSuccess: new Date(api.now()).toISOString(), restoreVerifiedAt: new Date(api.now()).toISOString() }));
+  const check = () => checkMonitor(api.directory, { CMS_ALERT_WEBHOOK: 'https://example.invalid/notify' }, fetchMock, api.now, () => {}, { backupDirectory: api.directory });
   assert.equal((await check()).notificationOk, false); reject = false;
+  await check(); assert.equal(notices.length, 1); api.advance(15 * 60000);
   assert.equal((await check()).notificationOk, true); await check(); assert.equal(notices.length, 2);
   down = false; assert.equal((await check()).ok, true); assert.equal(notices.length, 3); assert.deepEqual(notices.at(-1).issues, []);
 });

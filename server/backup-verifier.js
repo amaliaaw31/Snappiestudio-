@@ -7,10 +7,12 @@ const hash = file => createHash('sha256').update(readFileSync(file)).digest('hex
 const files = ['visitors.sqlite', 'cms-account.json', 'cms-key.bin', 'counter.env', 'bootstrap-password.hash', 'site-content.json', 'discord-bot.json'];
 
 export function verifyBackup(directory) {
+  if (!lstatSync(directory).isDirectory() || !lstatSync(join(directory, 'manifest.json')).isFile()
+    || lstatSync(join(directory, 'manifest.json')).size > 65536) throw new Error('Invalid backup manifest');
   const manifest = JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8'));
   if (manifest.format !== 1 || !manifest.files || !manifest.counts || !['visitors', 'visitor_activity', 'excluded_browsers'].every(name => Number.isSafeInteger(manifest.counts[name]) && manifest.counts[name] >= 0) || !['visitors.sqlite', 'cms-account.json', 'cms-key.bin'].every(name => name in manifest.files)) throw new Error('Invalid backup manifest');
   for (const name of readdirSync(directory)) {
-    if (name !== 'manifest.json' && !files.includes(name)) throw new Error('Unexpected backup file');
+    if (name !== 'manifest.json' && (!files.includes(name) || !(name in manifest.files))) throw new Error('Unexpected backup file');
     if (!lstatSync(join(directory, name)).isFile()) throw new Error('Backup must contain regular files only');
   }
   for (const [name, expected] of Object.entries(manifest.files)) {

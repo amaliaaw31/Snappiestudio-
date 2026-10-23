@@ -42,12 +42,12 @@ test('scheduled backup captures live WAL data and private account state, then ve
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM visitors').get().n, 1);
 });
 
-test('backup retention keeps 14 verified snapshots without removing source data', async t => {
+test('backup keeps every verified snapshot without automatic deletion', async t => {
   const { db, options } = await fixture(t);
   for (let index = 0; index < 15; index++) await backupSite({ ...options, now: () => Date.parse('2026-10-01T00:00:00Z') + index * 86400000 });
   const copies = (await readdir(options.backupDirectory)).filter(name => name.startsWith('backup-'));
-  assert.equal(copies.length, 14);
-  assert.ok(copies.every(name => !name.startsWith('backup-20261001T')));
+  assert.equal(copies.length, 15);
+  assert.ok(copies.some(name => name.startsWith('backup-20261001T')));
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM visitors').get().n, 1);
 });
 

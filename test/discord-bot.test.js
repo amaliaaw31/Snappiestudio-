@@ -133,7 +133,7 @@ test('command registration upserts named commands without deleting existing comm
     assert.equal(body.default_member_permissions, '0'); assert.ok(!options.body.includes('test-bot-token'));
     return Response.json({ ...body, id: '100000000000000010', application_id: api.config.applicationId });
   });
-  assert.deepEqual(commands.map(command => command.name), ['status', 'website', 'server', 'ssl', 'logs', 'uptime', 'pengumuman', 'migrasi']);
+  assert.deepEqual(commands.map(command => command.name), ['status', 'website', 'server', 'ssl', 'logs', 'uptime', 'backup', 'alert', 'pengumuman', 'migrasi']);
 });
 
 
@@ -211,4 +211,21 @@ test('unexpected read-only checker errors return a safe public UNKNOWN result', 
   const command = api.payload('server'); command.data = { name: 'server', type: 1 };
   const result = await (await api.send(command)).json();
   assert.match(result.data.content, /UNKNOWN/); assert.doesNotMatch(result.data.content, /private-env-token/);
+});
+
+test('backup and alert authorize callers before verification or sending notifications', async t => {
+  let calls = 0;
+  const commands = { backup: async () => { calls++; return 'Backup: UP'; }, alert: async () => { calls++; return 'Uji dikonfirmasi'; } };
+  const api = await app(t, undefined, commands);
+  for (const name of ['backup', 'alert']) {
+    const command = api.payload(name, name === 'backup' ? 'verify' : 'test', { konfirmasi: true });
+    assert.equal((await api.send(command, { tamper: true })).status, 401);
+    const before = calls;
+    for (const override of [{ application_id: '100000000000000099' }, { guild_id: '100000000000000099' }, { channel_id: '100000000000000099' }, { member: { user: { id: '100000000000000099' } } }, { member: null }]) {
+      assert.match((await (await api.send({ ...command, ...override })).json()).data.content, /tidak diizinkan/);
+    }
+    assert.equal(calls, before);
+    const result = await (await api.send(command)).json(); assert.equal(result.type, 4);
+    assert.deepEqual(await (await api.send(command)).json(), result); assert.equal(calls, before + 1);
+  }
 });

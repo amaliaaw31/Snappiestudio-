@@ -122,3 +122,7 @@ Command baru perlu didaftarkan pada aplikasi dan guild lama saat rilis disetujui
 Rencana aktivasi: review hasil lint/tes/build dan diff berkas bot, siapkan revisi kode sebelumnya, lalu muat kode backend serta daftarkan command baru hanya setelah persetujuan rilis. Perubahan ini tidak menambah tabel atau mengubah data statistik. Rollback mengembalikan berkas backend ke revisi sebelumnya; tidak menghapus tabel, jadwal, atau backup. Command baru yang terlanjur terdaftar harus dikelola secara terarah setelah persetujuan, tanpa bulk overwrite yang menghapus command lama. Aktivasi/rollback proses backend mengakhiri sesi CMS aktif.
 
 Persiapan aktivasi terarah, pemeriksaan, dan rollback dijelaskan di [Panduan rilis FASE 1](discord-phase1-release.md). Registrasi tidak memuat ulang proses backend atau mengirim pesan ke channel.
+
+## FASE 2: backup dan alert
+
+Branch pengembangan menambahkan `/backup status`, `/backup history`, `/backup verify`, dan `/alert test konfirmasi:True`. Command belum boleh dianggap aktif hanya karena source tersedia. Batas pemeriksaan, kebijakan tanpa penghapusan snapshot, cooldown, serta prosedur aktivasi/rollback ada di [panduan FASE 2](discord-phase2-release.md). Mode registrasi `--plan-phase2`/`--register-phase2` hanya memilih backup dan alert. Jangan menjalankan registrasi, verifikasi backup produksi, atau pengiriman uji sebelum tindakan tersebut disetujui.
