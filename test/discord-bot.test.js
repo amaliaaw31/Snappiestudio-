@@ -129,9 +129,9 @@ test('migration time validates WIB calendar dates and bounds, and one active sch
 test('command registration upserts named commands without deleting existing commands and keeps bot token out of command definitions', async t => {
   const api = await app(t); const commands = [];
   await registerDiscordCommands(api.config, 'test-bot-token-only-for-fixture', async (url, options) => {
-    assert.match(url, /\/guilds\//); assert.equal(options.method, 'POST'); const body = JSON.parse(options.body); commands.push(body);
+    assert.match(url, /\/guilds\//); if (options.method === 'GET') return Response.json([]); assert.equal(options.method, 'POST'); const body = JSON.parse(options.body); commands.push(body);
     assert.equal(body.default_member_permissions, '0'); assert.ok(!options.body.includes('test-bot-token'));
-    return Response.json({ id: '100000000000000010', application_id: api.config.applicationId, name: body.name });
+    return Response.json({ ...body, id: '100000000000000010', application_id: api.config.applicationId });
   });
   assert.deepEqual(commands.map(command => command.name), ['status', 'website', 'server', 'ssl', 'logs', 'uptime', 'pengumuman', 'migrasi']);
 });

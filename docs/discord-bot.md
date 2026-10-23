@@ -88,7 +88,7 @@ Command baru perlu didaftarkan pada aplikasi dan server Discord yang sama. Setel
 sudo bash deploy/configure-discord-bot.sh
 ```
 
-Gunakan Application ID, Public Key, server, kanal, dan daftar pengguna yang sama. Masukkan token hanya pada prompt tersembunyi di VPS. Skrip memperbarui `/pengumuman`, `/migrasi`, dan `/status` satu per satu; tidak menghapus command aplikasi lainnya. Token tidak disimpan. Tidak perlu membuat bot, endpoint, atau webhook baru. Pembaruan kode handler memerlukan pemuatan kode baru oleh proses backend; perubahan konfigurasi saja langsung dibaca pada permintaan berikutnya. Penambahan ini tidak menjalankan restart layanan secara otomatis.
+Gunakan Application ID, Public Key, server, kanal, dan daftar pengguna yang sama. Masukkan token hanya pada prompt tersembunyi di VPS. Skrip membandingkan definisi command guild dan hanya memperbarui nama yang berubah atau belum ada; tidak menghapus command aplikasi lainnya. Token tidak disimpan. Tidak perlu membuat bot, endpoint, atau webhook baru. Pembaruan kode handler memerlukan pemuatan kode baru oleh proses backend; perubahan konfigurasi saja langsung dibaca pada permintaan berikutnya. Penambahan ini tidak menjalankan restart layanan secara otomatis.
 
 ## Operasi dan pemulihan
 
@@ -117,6 +117,8 @@ Command tambahan: `/website`, `/server`, `/ssl`, `/logs`, dan `/uptime`. `/statu
 - `/logs` menghitung login CMS gagal selama 24 jam dan membaca status terakhir monitor, backup, serta scheduler. Ini ringkasan sumber yang diizinkan, bukan seluruh error aplikasi. Tidak membaca journal sistem atau mengembalikan log mentah. Waktu catatan disertakan; status lama bukan hasil probe baru.
 - `/uptime` menampilkan uptime host dan lama dua layanan aktif. Satu-satunya proses eksternal adalah `systemctl show` untuk layanan backend Snappie dan Caddy yang namanya tetap, dengan timeout 700 ms dan output terbatas. Tidak tersedia aksi restart, deploy, shell, atau layanan dari input pengguna. DOWN di sini dapat berarti layanan secara eksplisit inactive/failed, bukan kesimpulan dari satu timeout HTTP.
 
-Command baru perlu didaftarkan pada aplikasi dan guild lama saat rilis disetujui. Tidak ada registrasi, notifikasi percobaan, restart, perubahan Caddy, atau deployment produksi dalam tahap pengembangan lokal ini. Skrip registrasi saat ini masih memperbarui seluruh definisi; seleksi hanya definisi yang berubah perlu diselesaikan sebelum registrasi rilis. Jangan menjalankan setup hanya untuk menguji kode lokal.
+Command baru perlu didaftarkan pada aplikasi dan guild lama saat rilis disetujui. Tidak ada registrasi, notifikasi percobaan, restart, perubahan Caddy, atau deployment produksi dalam tahap pengembangan lokal ini. Mode `--plan-phase1` membaca rencana tanpa menulis. Mode `--register-phase1` hanya menyinkronkan enam nama command FASE 1 yang berbeda atau belum ada, memakai konfigurasi aplikasi/guild lama. Jangan menjalankan setup hanya untuk menguji kode lokal.
 
 Rencana aktivasi: review hasil lint/tes/build dan diff berkas bot, siapkan revisi kode sebelumnya, lalu muat kode backend serta daftarkan command baru hanya setelah persetujuan rilis. Perubahan ini tidak menambah tabel atau mengubah data statistik. Rollback mengembalikan berkas backend ke revisi sebelumnya; tidak menghapus tabel, jadwal, atau backup. Command baru yang terlanjur terdaftar harus dikelola secara terarah setelah persetujuan, tanpa bulk overwrite yang menghapus command lama. Aktivasi/rollback proses backend mengakhiri sesi CMS aktif.
+
+Persiapan aktivasi terarah, pemeriksaan, dan rollback dijelaskan di [Panduan rilis FASE 1](discord-phase1-release.md). Registrasi tidak memuat ulang proses backend atau mengirim pesan ke channel.

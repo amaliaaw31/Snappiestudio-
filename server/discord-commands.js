@@ -27,16 +27,48 @@ export const discordCommands = [
   ] },
 ];
 
-export async function registerDiscordCommands(configuration, token, fetchImpl = fetch) {
+const optionDefinition = option => {
+  const result = { type: option.type, name: option.name, description: option.description };
+  if (option.type >= 3) result.required = option.required === true;
+  for (const key of ['min_length', 'max_length', 'min_value', 'max_value']) {
+    if (option[key] !== undefined) result[key] = option[key];
+  }
+  result.options = (option.options || []).map(optionDefinition);
+  result.choices = (option.choices || []).map(({ name, value }) => ({ name, value }));
+  return result;
+};
+const definition = command => JSON.stringify({ type: command.type || 1, name: command.name,
+  description: command.description, default_member_permissions: command.default_member_permissions ?? null,
+  options: (command.options || []).map(optionDefinition) });
+export const phaseOneCommands = ['status', 'website', 'server', 'ssl', 'logs', 'uptime'];
+
+export async function registerDiscordCommands(configuration, token, fetchImpl = fetch, { names = discordCommands.map(command => command.name), dryRun = false } = {}) {
   const config = validateBotConfig(configuration);
   if (typeof token !== 'string' || !/^[A-Za-z0-9._-]{20,500}$/.test(token)) throw new Error('Invalid bot token');
-  for (const command of discordCommands) {
-    const response = await fetchImpl(`https://discord.com/api/v10/applications/${config.applicationId}/guilds/${config.guildId}/commands`, {
-      method: 'POST', headers: { Authorization: 'Bot ' + token, 'Content-Type': 'application/json' },
-      redirect: 'error', signal: AbortSignal.timeout(10000), body: JSON.stringify(command),
+  if (!Array.isArray(names) || !names.length || new Set(names).size !== names.length
+    || !names.every(name => discordCommands.some(command => command.name === name))) throw new Error('Invalid command selection');
+  const endpoint = `https://discord.com/api/v10/applications/${config.applicationId}/guilds/${config.guildId}/commands`;
+  const request = async (method, command) => {
+    const response = await fetchImpl(endpoint, {
+      method, headers: { Authorization: 'Bot ' + token, 'Content-Type': 'application/json' },
+      redirect: 'error', signal: AbortSignal.timeout(10000), ...(command ? { body: JSON.stringify(command) } : {}),
     });
     if (!response.ok) { await response.body?.cancel(); throw new Error('Command registration failed: HTTP ' + response.status); }
-    const value = await response.json();
-    if (value?.name !== command.name || value.application_id !== config.applicationId || !/^\d{15,22}$/.test(value.id || '')) throw new Error('Command registration not confirmed');
+    try { return await response.json(); } catch { throw new Error('Command registration response invalid'); }
+  };
+  const existing = await request('GET');
+  if (!Array.isArray(existing) || existing.some(command => !command || typeof command.name !== 'string'
+    || command.application_id !== config.applicationId || !/^\d{15,22}$/.test(command.id || ''))) throw new Error('Command registration list invalid');
+  const result = { created: [], updated: [], unchanged: [], dryRun };
+  for (const command of discordCommands.filter(command => names.includes(command.name))) {
+    const previous = existing.find(value => value.name === command.name && (value.type || 1) === command.type);
+    if (previous && definition(previous) === definition(command)) { result.unchanged.push(command.name); continue; }
+    if (!dryRun) {
+      const value = await request('POST', command);
+      if (value?.name !== command.name || value.application_id !== config.applicationId || !/^\d{15,22}$/.test(value.id || '')
+        || definition(value) !== definition(command)) throw new Error('Command registration not confirmed');
+    }
+    result[previous ? 'updated' : 'created'].push(command.name);
   }
+  return result;
 }

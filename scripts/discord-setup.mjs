@@ -1,11 +1,22 @@
 import { readFileSync, chmodSync, chownSync, existsSync, copyFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { validateBotConfig } from '../server/discord-bot.js';
+import { validateBotConfig, loadBotConfig } from '../server/discord-bot.js';
 import { writePrivateJson } from '../server/admin-account.js';
-import { registerDiscordCommands } from '../server/discord-commands.js';
+import { registerDiscordCommands, phaseOneCommands } from '../server/discord-commands.js';
 
 if (process.getuid() !== 0) { console.error('Run through sudo bash deploy/configure-discord-bot.sh'); process.exit(64); }
 try {
+  const mode = process.argv[2];
+  if (mode) {
+    if (!['--plan-phase1', '--register-phase1'].includes(mode) || process.argv.length !== 3) throw new Error('Invalid setup mode');
+    const config = loadBotConfig();
+    if (!config) throw new Error('Bot configuration missing');
+    const token = readFileSync(0, 'utf8').trim();
+    const plan = await registerDiscordCommands(config, token, fetch, { names: phaseOneCommands, dryRun: mode === '--plan-phase1' });
+    console.log(JSON.stringify(plan));
+    console.log(mode === '--plan-phase1' ? 'Read-only plan. No command or server configuration was changed.' : 'Selected commands synchronized. Server configuration was not changed.');
+    process.exit(0);
+  }
   const [applicationId, publicKey, guildId, channelId, users, token] = readFileSync(0, 'utf8').trim().split('\n');
   const config = validateBotConfig({ applicationId, publicKey, guildId, channelId, allowedUserIds: users.split(',').map(value => value.trim()) });
   await registerDiscordCommands(config, token);

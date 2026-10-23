@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd -- "$(dirname -- "$0")/.."
-if [[ $EUID != 0 || $# != 0 ]]; then
-  echo 'Usage: sudo bash deploy/configure-discord-bot.sh' >&2
+if [[ $EUID != 0 || $# -gt 1 || ( $# == 1 && $1 != --plan-phase1 && $1 != --register-phase1 ) ]]; then
+  echo 'Usage: sudo bash deploy/configure-discord-bot.sh [--plan-phase1|--register-phase1]' >&2
   exit 64
+fi
+if [[ $# == 1 ]]; then
+  IFS= read -r -s -p 'Bot token (hidden, not stored): ' discord_token
+  printf '\n'
+  printf '%s\n' "$discord_token" | /home/ubuntu/.nvm/versions/node/v24.21.0/bin/node scripts/discord-setup.mjs "$1"
+  unset discord_token
+  exit 0
 fi
 read -r -p 'Application ID: ' discord_application
 read -r -p 'Public Key: ' discord_public_key
