@@ -89,7 +89,10 @@
 <!-- START -->
 <div class="screen active" id="scr-start">
   <button id="btn-lang" class="lang-fab" type="button" data-i18n-aria="start.lang" aria-label="Language" data-i18n-title="start.lang" title="Language"><span class="ms" aria-hidden="true">translate</span></button>
+  <div class="top-extras">
+    <p class="visitor-count top-visitors" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span class="top-visitors-label" data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
   <button type="button" id="btn-install-top" class="install-fab" hidden><span class="ms install-wide" aria-hidden="true">install_desktop</span><span class="ms install-narrow" aria-hidden="true">install_mobile</span><span data-i18n="pwa.install">Pasang aplikasi</span></button>
+  </div>
   <button id="btn-faq" class="faq-fab" type="button" aria-haspopup="dialog" aria-controls="faq-modal" data-i18n-aria="faq.title" aria-label="Pertanyaan umum" data-i18n-title="faq.title" title="Pertanyaan umum"><span class="ms" aria-hidden="true">help</span></button>
   <button id="toggle-dark" class="theme-fab" type="button" data-i18n-aria="start.dark" aria-label="Dark mode" data-i18n-title="start.dark" title="Dark mode"><span class="ms" id="dark-ico">dark_mode</span></button>
   <div class="start-intro">
@@ -128,7 +131,6 @@
       <p id="demo-style" class="demo-style" role="status" aria-live="polite" aria-atomic="true"></p>
     </div>
   </figure>
-  <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
   <div id="home-actions" class="home-actions" role="group" data-i18n-aria="home.actions" aria-label="Mulai sesi foto" hidden>
     <button type="button" id="home-camera" class="btn" aria-describedby="start-cam-status"><span class="ms" aria-hidden="true">photo_camera</span><span id="home-camera-label" data-i18n="start.open">Buka Kamera</span></button>
     <button type="button" id="home-gallery" class="btn ghost"><span class="ms" aria-hidden="true">image</span><span data-i18n="home.gallery">Galeri</span></button>

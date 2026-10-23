@@ -212,7 +212,6 @@ body.on-start::before {
   mask: url('./assets/start-lines.png') center / cover no-repeat;
 }
 body.dark-mode.on-start::before { background-color: #ff7ab8; opacity: .025; }
-#scr-start > .visitor-count { justify-self: center; margin: 0 0 12px; }
 h1 { font-family: 'The Magic Cookie', 'Fredoka', cursive; font-size: clamp(48px, 10vw, 88px); font-weight: 400; color: #d63384; margin: 18px 0 6px; text-align: center; }
 /* header rata kiri di halaman selain awal (klik = ke tampilan awal) */
 .screen:not(#scr-start) { padding-top: 88px; }
@@ -1335,14 +1334,12 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
 @media (min-width: 720px) {
   #scr-start, #scr-result { max-width: 760px; padding-inline: 28px; }
   #scr-start { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; align-content: center; }
-  #scr-start > .visitor-count { grid-column: 1 / -1; }
   .editor-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #text-tools { grid-column: 1 / -1; grid-row: 2; }
 }
 @media (min-width: 1000px) {
   #scr-start, #scr-result { max-width: 1080px; }
   #scr-start { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 40px; align-content: center; }
-  #scr-start > .visitor-count { grid-column: 1 / -1; }
   .result-workspace { grid-template-columns: minmax(0, 1fr) 360px; gap: 36px; }
   .result-canvas { position: sticky; top: 94px; }
   .editor-panel { grid-template-columns: minmax(0, 1fr); }
@@ -1461,9 +1458,15 @@ body.dark-mode .season-now { background: #ff8fc0; color: #14121d; }
 #support-modal .modal-body > .btn { align-self: center; }
 .dark-mode #support-modal .again-text { color: #d8c8e8; }
 
+/* Hitungan pengunjung dan tombol pasang berdampingan di pojok kanan atas, di kiri ikon FAQ. */
+.top-extras { position: fixed; top: 11px; right: 108px; z-index: 5; display: flex; align-items: center; gap: 4px; }
+.top-extras .visitor-count { margin: 0; min-height: 44px; padding: 0 8px; white-space: nowrap; }
+@media (max-width: 719px) {
+  .top-extras .top-visitors-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 /* Tombol pasang tetap di pojok kanan atas, di kiri ikon FAQ. Bentuk ikonnya sama dengan ikon FAQ
    (30px, merah muda, tanpa bingkai); di layar sempit hanya ikonnya yang tampil. */
-#btn-install-top { position: fixed; top: 11px; right: 108px; z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 4px 8px;
+#btn-install-top { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 4px 8px;
   background: none; border: none; color: #d63384; font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 body.dark-mode #btn-install-top { color: #ff8fc0; }
 #btn-install-top .ms { margin: 0; color: inherit; font-size: 30px; filter: drop-shadow(0 1px 2px rgba(35,35,58,.2)); }
