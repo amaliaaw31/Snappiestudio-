@@ -36,3 +36,5 @@ ENERGY 2 / RHYTHM 2 / MOTION 2. Foto pengguna, identitas pink, font merek, dan s
 - Pemeriksaan tambahan Chrome menguji swipe/drag, RTL, kontras pola, zoom, motion, dan penolakan izin kamera. Tangkapan layar ditinjau pada lebar 390 dan 1440 px.
 
 Nomor 1 dan 4 tetap tercatat sebagai rekomendasi pada audit awal.
+
+Verifikasi produksi `https://snappiestudio.com/` lulus untuk swipe/drag, keyboard RTL, transisi cetak, kontras, zoom, ruang bar aksi, dan pemulihan kesalahan kamera. SHA-256 `dist/index.html` identik dengan berkas yang dilayani dari web root produksi.
