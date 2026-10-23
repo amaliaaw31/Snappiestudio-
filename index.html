@@ -107,28 +107,25 @@
   </ol>
   </div>
   <figure class="start-demo">
-    <div class="demo-gallery">
-      <h2 id="demo-gallery-title" data-i18n="home.styles">Gaya foto</h2>
-      <div class="demo-themes" role="group" aria-labelledby="demo-gallery-title">
-        <button type="button" data-demo-theme="pastel" aria-pressed="true"><span data-i18n="theme.pastel">Princess Pastel</span><span class="ms demo-selected" aria-hidden="true">check</span></button>
-        <button type="button" data-demo-theme="film" aria-pressed="false"><span data-i18n="theme.film">35mm Film</span><span class="ms demo-selected" aria-hidden="true">check</span></button>
-        <button type="button" data-demo-theme="minimal" aria-pressed="false"><span data-i18n="theme.minimal">Seoul Minimal</span><span class="ms demo-selected" aria-hidden="true">check</span></button>
-      </div>
-    </div>
-    <div class="demo-play-actions">
-      <button type="button" id="demo-shuffle" class="btn ghost"><span class="ms" aria-hidden="true">shuffle</span><span data-i18n="home.shuffle">Acak gaya</span></button>
-      <p id="demo-style" class="demo-style" role="status" aria-live="polite" aria-atomic="true"></p>
-    </div>
     <p class="demo-caption" data-i18n="start.example">Contoh bingkai dengan foto</p>
     <div id="demo-frame" aria-hidden="true"></div>
-    <div class="demo-filter-label"><span id="demo-filter-label" data-i18n="start.tryFilter">Coba efek foto</span>
-      <button type="button" id="demo-filter" class="filter-select" aria-haspopup="dialog" aria-controls="filter-modal" aria-labelledby="demo-filter-label demo-filter"></button>
-    </div>
     <div class="demo-comparison">
       <label for="demo-compare" data-i18n="home.compare">Bandingkan efek</label>
       <div class="demo-compare-labels"><span data-i18n="home.original">Asli</span><output id="demo-compare-effect" for="demo-compare"></output></div>
       <input type="range" id="demo-compare" min="0" max="100" value="100" aria-describedby="demo-compare-hint">
       <p id="demo-compare-hint" class="tool-note" data-i18n="home.pickEffect">Pilih efek atau acak gaya untuk membandingkan.</p>
+    </div>
+    <div class="demo-controls">
+      <div class="demo-filter-label"><span id="demo-filter-label" data-i18n="start.tryFilter">Coba efek foto</span>
+        <button type="button" id="demo-filter" class="filter-select" aria-haspopup="dialog" aria-controls="filter-modal" aria-labelledby="demo-filter-label demo-filter"></button>
+      </div>
+      <div class="demo-filter-label"><span id="demo-theme-label" data-i18n="home.styles">Gaya foto</span>
+        <button type="button" id="demo-theme-btn" class="filter-select" aria-haspopup="dialog" aria-controls="theme-modal" aria-labelledby="demo-theme-label demo-theme-btn"></button>
+      </div>
+    </div>
+    <div class="demo-play-actions">
+      <button type="button" id="demo-shuffle" class="btn ghost"><span class="ms" aria-hidden="true">shuffle</span><span data-i18n="home.shuffle">Acak gaya</span></button>
+      <p id="demo-style" class="demo-style" role="status" aria-live="polite" aria-atomic="true"></p>
     </div>
   </figure>
   <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>

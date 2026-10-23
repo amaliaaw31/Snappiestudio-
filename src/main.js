@@ -265,6 +265,14 @@ function openModal(id) {
     if (demo) $('filter-preview-photo').src = filterSampleUrl;
     syncFilterPicker();
   }
+  if (id === 'theme-modal') {
+    // Di halaman utama modal ini hanya memilih bingkai contoh; bingkai custom tidak ditawarkan.
+    const home = currentScreen === 'scr-start', group = $('theme-category');
+    m.dataset.home = home ? '1' : '0';
+    group.querySelector('option[value="custom"]').hidden = home;
+    if (home && group.value === 'custom') { group.value = 'all'; group.onchange(); }
+    syncThemePickers();
+  }
   modalStack.push({ modal: m, trigger: document.activeElement });
   m.classList.add('open');
   if (id === 'filter-modal') m.querySelector('.modal-body').scrollTop = 0;
@@ -479,31 +487,9 @@ function renderDemo() {
   $('demo-compare-hint').dataset.i18n = state.filter === 'normal' ? 'home.pickEffect' : 'home.compareHint';
   $('demo-compare-hint').textContent = tr($('demo-compare-hint').dataset.i18n);
   updateDemoComparison();
-  document.querySelectorAll('[data-demo-theme]').forEach(button => {
-    button.setAttribute('aria-pressed', String(button.dataset.demoTheme === demoTheme));
-  });
+  $('demo-theme-btn').textContent = tr('theme.' + demoTheme);
 }
-document.querySelectorAll('[data-demo-theme]').forEach(button => {
-  button.onclick = () => { demoTheme = button.dataset.demoTheme; renderDemo(); printDemo(); };
-  button.onkeydown = event => {
-    const direction = document.documentElement.dir === 'rtl' ? -1 : 1;
-    const step = { ArrowLeft: -direction, ArrowRight: direction }[event.key];
-    const cards = [...document.querySelectorAll('[data-demo-theme]')];
-    const index = cards.indexOf(button);
-    const target = event.key === 'Home' ? 0 : event.key === 'End' ? cards.length - 1 : step === undefined ? null : index + step;
-    if (target === null) return;
-    event.preventDefault(); event.stopPropagation();
-    selectDemoCard(Math.max(0, Math.min(cards.length - 1, target)));
-  };
-});
-function selectDemoCard(index) {
-  const button = document.querySelectorAll('[data-demo-theme]')[index];
-  if (!button) return;
-  button.focus({ preventScroll: true });
-  button.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
-  button.click();
-}
-makeDraggableScroll(document.querySelector('.demo-themes'), false);
+$('demo-theme-btn').onclick = () => { syncThemePickers(); openModal('theme-modal'); };
 function printDemo() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   $('demo-frame').querySelector('.frame-outer')?.animate([
@@ -522,7 +508,7 @@ $('demo-compare').oninput = event => {
   updateDemoComparison();
 };
 $('demo-shuffle').onclick = () => {
-  const themes = [...document.querySelectorAll('[data-demo-theme]')].map(button => button.dataset.demoTheme).filter(id => id !== demoTheme);
+  const themes = THEMES.map(theme => theme.id).filter(id => id !== 'custom' && id !== demoTheme);
   const filters = FILTERS.filter(filter => filter.id !== 'normal' && filter.id !== state.filter);
   demoTheme = themes[Math.floor(Math.random() * themes.length)];
   chooseFilter(filters[Math.floor(Math.random() * filters.length)].id);
@@ -540,8 +526,9 @@ if (demoFilter) {
 renderDemo();
 function syncThemePickers() {
   themeBtns.forEach(b => { if (b) b.textContent = themeName(); });
+  const current = currentScreen === 'scr-start' ? demoTheme : state.theme;
   document.querySelectorAll('#theme-grid .theme-option').forEach(x => {
-    x.classList.toggle('sel', x.dataset.id === state.theme);
+    x.classList.toggle('sel', x.dataset.id === current);
   });
 }
 
@@ -673,6 +660,7 @@ function buildThemePicker() {
       : ['pastel', 'cream', 'floral', 'coquette', 'minimal'].includes(t.id) ? 'soft' : 'bold';
     b.innerHTML = themeThumbHTML(t) + '<span class="theme-option-name">' + tr('theme.' + t.id) + '</span>';
     b.onclick = () => {
+      if (currentScreen === 'scr-start') { demoTheme = t.id; closeModal('theme-modal'); renderDemo(); printDemo(); return; }
       state.theme = t.id;
       syncThemePickers();
       closeModal('theme-modal');

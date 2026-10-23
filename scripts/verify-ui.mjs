@@ -224,20 +224,25 @@ try {
   await check("[...document.querySelectorAll('.modal-overlay')].every(m => m.inert)", 'closed dialogs cannot receive focus');
   await check("[...document.querySelectorAll('.tagline, .mh-tag')].length === 4 && [...document.querySelectorAll('.tagline, .mh-tag')].every(el => el.textContent === 'your little photo moment' && el.lang === 'en')", 'all four main screens use the exact English brand slogan');
   await check("document.querySelector('#demo-compare').disabled", 'comparison explains that an effect must be selected first');
-  await evaluate("window.initialDemoTheme = document.querySelector('[data-demo-theme][aria-pressed=true]').dataset.demoTheme");
+  await evaluate("window.initialDemoTheme = document.querySelector('#demo-frame .frame-outer').className.match(/th-(\\w+)/)[1]");
   await click('#demo-shuffle');
   await check("!document.querySelector('#demo-compare').disabled && document.querySelector('#demo-compare').value === '65' && !document.querySelector('#demo-frame .frame-outer').classList.contains('th-' + window.initialDemoTheme) && document.querySelector('#demo-style').textContent.includes(document.querySelector('#demo-filter').textContent)", 'shuffle changes theme and effect and exposes comparison');
   await click('#demo-filter');
   await click('#filter-grid [data-id=normal]');
   await click('#btn-apply-filter');
-  await click('[data-demo-theme=film]');
-  await check("document.querySelector('#demo-frame .frame-outer').classList.contains('th-film') && document.querySelector('[data-demo-theme=film]').getAttribute('aria-pressed') === 'true'", 'demo switches real frame styles and selected state');
-  await check("!document.querySelector('.demo-theme-preview, .demo-preset-effect, #demo-prev, #demo-next, .demo-gallery-nav') && [...document.querySelectorAll('.demo-themes button')].every(button => button.textContent.replace('check', '').trim() === button.querySelector('[data-i18n^=\"theme.\"]').textContent.trim()) && [...document.querySelectorAll('#demo-frame .demo-effect')].every(image => image.style.filter === 'none')", 'style chips show only the frame name, change only the frame and keep the chosen effect');
-  await key('ArrowRight');
-  await check("document.querySelector('[data-demo-theme=minimal]').getAttribute('aria-pressed') === 'true' && getComputedStyle(document.querySelector('[data-demo-theme=minimal] .demo-selected')).visibility === 'visible'", 'gallery keyboard selects a style with a visible check mark');
-  await key('ArrowLeft');
-  await check("(() => { const card = document.activeElement, gallery = document.querySelector('.demo-themes').getBoundingClientRect(), box = card.getBoundingClientRect(), style = getComputedStyle(card); return card.matches(':focus-visible') && parseFloat(style.outlineWidth) >= 2 && box.left - 5 >= gallery.left - 1 && box.right + 5 <= gallery.right + 1; })()", 'gallery focus ring stays visible inside scroll container');
-  await check("(() => { document.querySelector('[data-demo-theme=film]').click(); return document.querySelector('#demo-frame .frame-outer').getAnimations().some(animation => animation.effect.getKeyframes().some(frame => frame.clipPath)); })()", 'style selection triggers one print reveal');
+  await check("document.querySelector('#demo-theme-btn').textContent === document.querySelector('#demo-style').textContent.split(' · ')[0] && document.querySelector('#demo-theme-btn').getAttribute('aria-haspopup') === 'dialog'", 'photo style control shows the current frame like the effect control');
+  await click('#demo-theme-btn');
+  await check("document.querySelector('#theme-modal').classList.contains('open') && document.querySelector('#scr-start').inert && [...document.querySelectorAll('#theme-grid .theme-option')].filter(option => getComputedStyle(option).display !== 'none').length >= 15 && getComputedStyle(document.querySelector('#theme-grid [data-id=custom]')).display === 'none' && [...document.querySelectorAll('#theme-grid .theme-option')].filter(option => getComputedStyle(option).display !== 'none').every(option => option.querySelector('.theme-thumb') && option.querySelector('.theme-option-name').textContent.trim())", 'style popup lists many frames with previews and no custom frame');
+  await check("document.querySelectorAll('#theme-grid .theme-option.sel').length === 1 && document.querySelector('#theme-grid .theme-option.sel').dataset.id === document.querySelector('#demo-frame .frame-outer').className.match(/th-(\\w+)/)[1]", 'style popup marks the current homepage frame');
+  await key('Escape');
+  await check("!document.querySelector('#theme-modal').classList.contains('open') && document.activeElement.id === 'demo-theme-btn'", 'Escape closes the style popup and returns focus to its button');
+  await click('#demo-theme-btn');
+  await click('#theme-grid [data-id=film]');
+  await check("document.querySelector('#demo-frame .frame-outer').classList.contains('th-film') && document.querySelector('#demo-theme-btn').textContent === document.querySelector('#theme-grid [data-id=film] .theme-option-name').textContent && !document.querySelector('#theme-modal').classList.contains('open') && document.activeElement.id === 'demo-theme-btn'", 'choosing a frame in the popup changes the demo and restores focus');
+  await check("[...document.querySelectorAll('#demo-frame .demo-effect')].every(image => image.style.filter === 'none')", 'choosing a frame keeps the chosen effect');
+  await click('#demo-theme-btn');
+  await click('#theme-grid [data-id=pastel]');
+  await check("document.querySelector('#demo-frame .frame-outer').getAnimations().some(animation => animation.effect.getKeyframes().some(frame => frame.clipPath))", 'frame selection triggers one print reveal');
   await click('#demo-filter');
   await click('#filter-grid [data-id=normal]');
   await click('#btn-apply-filter');
@@ -288,9 +293,11 @@ try {
   }; window.demoDimensions = {};`);
   for (const width of [320, 390, 720, 1000, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
-    // Urutan sama di semua lebar: gaya foto, contoh bingkai, coba efek, lalu bandingkan efek.
-    await check(`(() => { const rect = selector => document.querySelector(selector).getBoundingClientRect(); const themes = rect('.demo-themes'), frame = rect('#demo-frame'), filter = rect('#demo-filter'), compare = rect('#demo-compare');
-      return themes.bottom <= frame.top && frame.bottom <= filter.top && filter.bottom <= compare.top; })()`, `homepage order is styles, frame, effect, comparison at ${width}px`);
+    // Urutan sama di semua lebar: contoh bingkai, bandingkan efek, lalu efek dan gaya foto.
+    await check(`(() => { const rect = selector => document.querySelector(selector).getBoundingClientRect(); const frame = rect('#demo-frame'), compare = rect('.demo-comparison'), filter = rect('#demo-filter'), style = rect('#demo-theme-btn'), actions = rect('.demo-play-actions');
+      const wide = ${width >= 720};
+      return frame.bottom <= compare.top && compare.bottom <= filter.top && compare.bottom <= style.top && Math.min(filter.bottom, style.bottom) <= actions.top && filter.height >= 44 && style.height >= 44
+        && (wide ? style.left >= filter.right - 1 && Math.abs(style.top - filter.top) < 12 : style.top >= filter.bottom - 1) && style.right <= innerWidth + 1 && filter.left >= -1; })()`, `homepage order is frame, comparison, then effect and style (${width >= 720 ? 'side by side' : 'stacked'}) at ${width}px`);
     await check("(() => { const button = document.querySelector('#btn-faq').getBoundingClientRect(), theme = document.querySelector('#toggle-dark').getBoundingClientRect(), lang = document.querySelector('#btn-lang').getBoundingClientRect(); return button.width >= 44 && button.height >= 44 && button.right <= theme.left && button.left >= lang.right && Math.abs((button.top + button.height / 2) - (theme.top + theme.height / 2)) < 6; })()", `FAQ icon sits beside the theme toggle and is tappable at ${width}px`);
     await evaluate("window.installHidden = document.getElementById('btn-install-top').hidden; document.getElementById('btn-install-top').hidden = false");
     await check(`(() => { const button = document.querySelector('#btn-install-top'), faq = document.querySelector('#btn-faq').getBoundingClientRect(), lang = document.querySelector('#btn-lang').getBoundingClientRect(), box = button.getBoundingClientRect();
@@ -309,11 +316,9 @@ try {
     await check("(() => { const modal = document.querySelector('#faq-modal .modal-body'); return document.documentElement.scrollWidth <= innerWidth && modal.scrollWidth <= modal.clientWidth + 1; })()", `FAQ answers fit without horizontal scrolling at ${width}px`);
     await key('Escape');
     await check("!document.querySelector('#faq-modal').classList.contains('open') && document.activeElement.id === 'btn-faq'", `Escape closes the FAQ popup and returns focus to its icon at ${width}px`);
-    await check("(() => { const gallery = document.querySelector('.demo-themes'); return [...gallery.querySelectorAll('button')].every(button => button.getBoundingClientRect().height >= 44 && button.getBoundingClientRect().width >= 44) && gallery.offsetHeight === gallery.clientHeight && getComputedStyle(gallery).scrollbarWidth === 'none'; })()", `style chips are tappable and the gallery shows no scrollbar at ${width}px`);
-    await evaluate("window.themeButtonBounds = [...document.querySelectorAll('[data-demo-theme]')].map(button => { const box = button.getBoundingClientRect(); return [box.width, box.height]; })");
     for (const theme of ['pastel', 'minimal', 'film']) {
-      await click(`[data-demo-theme=${theme}]`);
-      await check("JSON.stringify(window.themeButtonBounds) === JSON.stringify([...document.querySelectorAll('[data-demo-theme]')].map(button => { const box = button.getBoundingClientRect(); return [box.width, box.height]; }))", `gallery card sizes stay stable when selecting ${theme} at ${width}px`);
+      await click('#demo-theme-btn');
+      await click(`#theme-grid [data-id=${theme}]`);
       await evaluate(`window.demoDimensions['${width}-${theme}'] = window.frameDimensions(document.querySelector('#demo-frame'))`);
       await check(`(() => { const frame = document.querySelector('#demo-frame .frame'); const bounds = frame.getBoundingClientRect(); return getComputedStyle(frame).display === 'block' && frame.querySelectorAll('.slot').length === 3 && [...frame.querySelectorAll('.slot')].every(slot => { const box = slot.getBoundingClientRect(); return box.width > 0 && box.left >= bounds.left && box.right <= bounds.right + 1 && box.top >= bounds.top && box.bottom <= bounds.bottom + 1; }); })()`, `homepage ${theme} frame contains photos at ${width}px`);
     }
@@ -412,7 +417,7 @@ try {
         const input = document.querySelector('#custom-text');
         return desc.every(el => ratio(getComputedStyle(el).color, background) >= 4.5)
           && ratio(getComputedStyle(input, '::placeholder').color, getComputedStyle(input).backgroundColor) >= 4.5
-          && [...document.querySelectorAll('.demo-themes button')].every(button => ratio(getComputedStyle(button).color, getComputedStyle(button).backgroundColor) >= 4.5);
+          && ratio(getComputedStyle(document.querySelector('#demo-theme-btn')).color, getComputedStyle(document.querySelector('#demo-theme-btn')).backgroundColor) >= 4.5;
       })()`, `description and placeholder contrast pass in ${dark ? 'dark' : 'light'} mode at ${width}px`);
       await click('#btn-lang');
       await check(`(() => {
