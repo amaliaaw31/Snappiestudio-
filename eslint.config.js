@@ -56,4 +56,10 @@ export default [
     files: ['test/**/*.js'],
     languageOptions: { ecmaVersion: 'latest', sourceType: 'module' },
   },
+  {
+    files: ['src/sw.template.js'],
+    languageOptions: { ecmaVersion: 'latest', sourceType: 'script',
+      globals: { self: 'readonly', caches: 'readonly', fetch: 'readonly', Request: 'readonly', URL: 'readonly', AbortSignal: 'readonly', __PRECACHE__: 'readonly' } },
+    rules: { 'no-undef': 'error', 'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }] },
+  },
 ];

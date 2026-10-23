@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 // Inline only the entry module; avoid glob-parsing dependencies in the build.
 export function inlineEntryWithCsp() {
@@ -38,6 +39,13 @@ export function inlineEntryWithCsp() {
         return `@font-face { font-family: '${family}'; src: url('/${file}'); font-weight: 400; font-style: normal; font-display: swap; }`;
       }).join('\n');
       this.emitFile({ type: 'asset', fileName: 'cms-brand.css', source: brandCss });
+      // Service worker: aset inti disimpan saat pemasangan agar aplikasi terbuka tanpa internet.
+      const core = /^(style-.*\.css|start-lines-.*\.png|sample-group-.*\.jpe?g|gif-export-.*\.js|(the-magic-cookie|orange-lovely|matcha-iced)-.*\.(ttf|otf))$/;
+      const precache = ['./', './manifest.webmanifest', './icons/icon-192.png', './icons/apple-touch-icon.png', './site-notice.css', './site-notice.js',
+        ...Object.keys(bundle).filter(name => core.test(name)).map(name => './' + name)].sort();
+      const build = createHash('sha256').update(html).update(JSON.stringify(precache)).digest('hex').slice(0, 12);
+      this.emitFile({ type: 'asset', fileName: 'sw.js', source: readFileSync(new URL('./src/sw.template.js', import.meta.url), 'utf8')
+        .replace('__BUILD__', build).replace('__PRECACHE__', JSON.stringify(precache)) });
     } },
   };
 }

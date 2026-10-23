@@ -121,6 +121,31 @@ async function updateVisitorCount() {
 }
 updateVisitorCount();
 
+/* ============ PWA: pemasangan ke layar utama dan pemakaian tanpa internet ============ */
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault(); installPrompt = event; $('btn-install').hidden = false;
+});
+window.addEventListener('appinstalled', () => { installPrompt = null; $('btn-install').hidden = true; });
+$('btn-install').onclick = async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null; $('btn-install').hidden = true;
+};
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(async () => {
+      await navigator.serviceWorker.ready;
+      try {
+        if (localStorage.getItem('snappie-offline-ready') === '1') return;
+        localStorage.setItem('snappie-offline-ready', '1');
+      } catch { /* tanpa storage, kabar ini tampil setiap kali */ }
+      showToast(tr('pwa.ready'));
+    }).catch(() => { /* tanpa service worker, aplikasi tetap berjalan seperti biasa */ });
+  });
+}
+
 /* ============ preferences (localStorage) ============ */
 /* Catatan privasi: settingan BINGKAI (tema, warna, font, ukuran/caption frame)
    sengaja TIDAK disimpan. Web ini dipakai banyak orang, jadi tiap kunjungan
