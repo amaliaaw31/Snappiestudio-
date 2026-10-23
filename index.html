@@ -181,11 +181,11 @@
   </div>
   <div class="label" data-i18n="cam.count">JUMLAH FOTO</div>
   <div class="seg" id="layoutseg">
-    <button data-layout="1" data-i18n="cam.n1">1 foto</button>
-    <button data-layout="3" class="sel" data-i18n="cam.n3">3 foto</button>
-    <button data-layout="4" data-i18n="cam.n4">4 foto</button>
-    <button data-layout="6" data-i18n="cam.n6">6 foto</button>
-    <button data-layout="8" data-i18n="cam.n8">8 foto</button>
+    <button data-layout="1" data-i18n-aria="cam.n1" aria-label="1 foto">1</button>
+    <button data-layout="3" class="sel" data-i18n-aria="cam.n3" aria-label="3 foto">3</button>
+    <button data-layout="4" data-i18n-aria="cam.n4" aria-label="4 foto">4</button>
+    <button data-layout="6" data-i18n-aria="cam.n6" aria-label="6 foto">6</button>
+    <button data-layout="8" data-i18n-aria="cam.n8" aria-label="8 foto">8</button>
   </div>
   <button class="btn" id="btn-to-preview" style="margin-top:12px; display:none;"><span class="ms">check</span><span data-i18n="cam.preview">Preview / Selesai</span></button>
   <p class="visitor-count cam-visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
@@ -206,10 +206,6 @@
   </section>
   <p class="gesture-hint" data-i18n="edit.photoHint">Geser foto untuk mengatur posisi. Cubit atau gulir untuk zoom. Keyboard: pilih foto, lalu gunakan panah dan +/−.</p>
   <p class="gesture-hint sticker-hint" data-i18n="edit.stickerHint" hidden>Geser stiker untuk memindahkan. Cubit untuk ukuran dan putaran. Keyboard: panah, +/−, [ ], Delete.</p>
-  <div class="history-controls" role="group" data-i18n-aria="edit.history" aria-label="Riwayat perubahan">
-    <button type="button" class="btn ghost small undo-btn" disabled><span class="ms" aria-hidden="true">undo</span><span data-i18n="edit.undo">Urungkan</span></button>
-    <button type="button" class="btn ghost small redo-btn" disabled><span class="ms" aria-hidden="true">redo</span><span data-i18n="edit.redo">Ulangi</span></button>
-  </div>
   <div class="toggle-row">
     <label class="date-toggle" for="toggle-frame">
       <input type="checkbox" id="toggle-frame" checked>

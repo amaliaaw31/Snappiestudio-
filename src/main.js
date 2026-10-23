@@ -3384,11 +3384,6 @@ function stateKey() {
     cf: state.customFrame, outputFormat: state.outputFormat,
   });
 }
-function updateUndoUI() {
-  const cu = history.length > 1, cr = redoStack.length > 0;
-  document.querySelectorAll('.undo-btn').forEach(b => { b.disabled = !cu; });
-  document.querySelectorAll('.redo-btn').forEach(b => { b.disabled = !cr; });
-}
 function commitHistory() {
   syncLeaveWarning();
   if (applyingHistory) return;
@@ -3401,7 +3396,6 @@ function commitHistory() {
     if (history.length > HISTORY_MAX) history.shift();
     redoStack = [];
     prunePhotoUrls();
-    updateUndoUI();
   }, 250);
 }
 function applySnapshot(s) {
@@ -3438,14 +3432,12 @@ function undo() {
   redoStack.push(history.pop());
   applySnapshot(history[history.length - 1]);
   lastKey = stateKey();
-  updateUndoUI();
 }
 function redo() {
   if (!redoStack.length) return;
   history.push(redoStack.pop());
   applySnapshot(history[history.length - 1]);
   lastKey = stateKey();
-  updateUndoUI();
 }
 function initHistory() {
   clearTimeout(historyTimer);
@@ -3453,7 +3445,6 @@ function initHistory() {
   redoStack = [];
   lastKey = stateKey();
   prunePhotoUrls();
-  updateUndoUI();
 }
 /* Sesi baru: kosongkan foto, kembalikan bingkai ke default, dan reset riwayat undo
    (supaya Ctrl+Z tidak memunculkan foto sesi sebelumnya). */
@@ -3518,9 +3509,7 @@ function syncWorkflow() {
 addHeaders();
 syncWorkflow();
 
-/* undo/redo: tombol + pintasan papan tombol */
-document.querySelectorAll('.undo-btn').forEach(b => b.addEventListener('click', undo));
-document.querySelectorAll('.redo-btn').forEach(b => b.addEventListener('click', redo));
+/* undo/redo: pintasan papan tombol (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z atau Y) */
 document.addEventListener('keydown', (e) => {
   if (modalStack.length || document.querySelector('.result-actions [popover]:popover-open')) return;
   const tag = (document.activeElement && document.activeElement.tagName) || '';

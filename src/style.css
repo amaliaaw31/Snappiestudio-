@@ -488,8 +488,6 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .tool-note { margin-top: 12px; }
 .gesture-hint { max-width: 480px; text-align: center; margin: 12px auto; }
 .gesture-hint[hidden] { display: none; }
-.history-controls { display: flex; gap: 8px; justify-content: center; margin: 14px 0; }
-.history-controls .btn { min-height: 44px; }
 .result-actions { position: sticky; bottom: 0; z-index: 20; width: 100%; display: flex; justify-content: center; padding: 8px 4px max(8px, env(safe-area-inset-bottom)); background: var(--page-bg); border-top: 1px solid var(--ui-border); margin-top: 16px; }
 .result-actions .btnrow { margin: 0; gap: 8px; flex-wrap: nowrap; }
 .result-actions > .btnrow > .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
@@ -1329,7 +1327,6 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
 }
 @media (max-width: 599px) {
   .theme-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .history-controls .btn { padding-inline: 14px; font-size: 14px; }
 }
 @media (min-width: 720px) {
   #scr-start, #scr-result { max-width: 760px; padding-inline: 28px; }

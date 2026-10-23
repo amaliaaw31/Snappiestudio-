@@ -57,7 +57,7 @@ async function check(expression, description) {
   console.log(`PASS ${description}`);
 }
 async function key(key, modifiers = 0) {
-  const windowsVirtualKeyCode = { Escape: 27, Tab: 9 }[key];
+  const windowsVirtualKeyCode = { Escape: 27, Tab: 9, z: 90, y: 89 }[key];
   await send('Input.dispatchKeyEvent', { type: 'keyDown', key, modifiers, windowsVirtualKeyCode });
   await send('Input.dispatchKeyEvent', { type: 'keyUp', key, modifiers, windowsVirtualKeyCode });
 }
@@ -396,6 +396,7 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await check("getComputedStyle(document.body, '::before').content === 'none' && getComputedStyle(document.body, '::before').maskImage === 'none'", 'restored background appears only on homepage');
   await check("document.querySelector('#video').srcObject.active && [...document.querySelectorAll('[data-camera-status]')].every(el => el.style.display === 'none') && !document.querySelector('#btn-start').disabled", 'retry succeeds and clears camera status');
+  await check("[...document.querySelectorAll('#layoutseg button')].map(button => button.textContent.trim()).join() === '1,3,4,6,8' && [...document.querySelectorAll('#layoutseg button')].every(button => button.getAttribute('aria-label').startsWith(button.textContent.trim() + ' ') && button.getBoundingClientRect().height >= 36)", 'photo count buttons show digits only and keep a full accessible name');
   await click('#layoutseg [data-layout="8"]');
   await check("document.querySelector('#layoutseg [data-layout=\"8\"]').classList.contains('sel') && document.querySelector('#shot-count').textContent === '0 / 8' && JSON.parse(localStorage.getItem('snappie-prefs-v1')).layout === 8", 'camera selects eight photos and remembers the preference');
   await click('#layoutseg [data-layout="3"]');
@@ -458,7 +459,7 @@ try {
   await check("document.querySelector('#preview-holder .slot-img').style.transform.includes('scale(1.1)')", 'photo zoom works with keyboard');
   await check("document.querySelector('#scr-preview .workflow [aria-current]').dataset.screen === 'scr-preview'", 'workflow reflects review step');
   await click('#btn-preview-fix');
-  await check("!document.querySelector('#scr-result .history-controls, #scr-result .undo-btn, #scr-result .redo-btn') && document.querySelectorAll('#scr-preview .history-controls button').length === 2", 'result omits Undo/Redo while preview retains history controls');
+  await check("!document.querySelector('.history-controls, .undo-btn, .redo-btn')", 'neither preview nor result shows Undo/Redo controls');
   await check("document.querySelector('#text-tools').open === false && document.querySelectorAll('.editor-group').length === 3", 'editor groups frame, text, stickers and folds advanced text controls');
   await click('#text-tools summary');
   await check("document.querySelector('#date-controls').hidden && !document.querySelector('#date-edit-btn').getClientRects().length", 'date controls stay hidden while date toggle is off');
@@ -475,10 +476,11 @@ try {
   await waitFor("document.querySelector('#result-holder .frame-date')?.textContent === 'UI verification'");
   await new Promise(resolve => setTimeout(resolve, 300));
   await click('#scr-result .workflow [data-screen=scr-preview]');
-  await click('#scr-preview .undo-btn');
-  await check("document.querySelector('#custom-text').value === ''", 'visible Undo restores previous caption');
-  await click('#scr-preview .redo-btn');
-  await check("document.querySelector('#custom-text').value === 'UI verification'", 'visible Redo restores edited caption');
+  await evaluate("document.activeElement.blur()");
+  await key('z', 2);
+  await check("document.querySelector('#custom-text').value === ''", 'Ctrl+Z restores previous caption');
+  await key('y', 2);
+  await check("document.querySelector('#custom-text').value === 'UI verification'", 'Ctrl+Y restores edited caption');
   await click('#btn-preview-fix');
   await check("document.querySelector('#result-holder .frame-outer').style.transform.startsWith('scale(')", 'rerendered frame keeps fitted scale');
   await click('#themepick2');
@@ -581,9 +583,10 @@ try {
       await check("JSON.stringify([...document.querySelectorAll('#photo-order-list img')].map(image => image.src)) === JSON.stringify([...window.initialPhotoOrder.slice(1), window.initialPhotoOrder[0]])", `${count} photos reorder by ${count === 6 ? 'touch' : 'mouse'} drag`);
       await check("JSON.stringify([...document.querySelectorAll('#preview-holder .slot-img')].map(image => image.src)) === JSON.stringify([...document.querySelectorAll('#photo-order-list img')].map(image => image.src))", 'frame preview follows thumbnail order');
       await new Promise(resolve => setTimeout(resolve, 300));
-      await click('#scr-preview .undo-btn');
-      await check("JSON.stringify([...document.querySelectorAll('#photo-order-list img')].map(image => image.src)) === JSON.stringify(window.initialPhotoOrder)", 'Undo restores photo order');
-      await click('#scr-preview .redo-btn');
+      await evaluate("document.activeElement.blur()");
+      await key('z', 2);
+      await check("JSON.stringify([...document.querySelectorAll('#photo-order-list img')].map(image => image.src)) === JSON.stringify(window.initialPhotoOrder)", 'Ctrl+Z restores photo order');
+      await key('y', 2);
       await dragOrder(count - 1, 0, count === 6);
       await click('#order-next');
       await key('ArrowLeft');
