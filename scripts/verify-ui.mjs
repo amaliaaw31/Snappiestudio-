@@ -10,6 +10,8 @@ const target = await (await fetch(`${endpoint}/json/new?about:blank`, { method: 
 const socket = new WebSocket(target.webSocketDebuggerUrl);
 await new Promise(resolve => socket.addEventListener('open', resolve, { once: true }));
 let nextId = 0;
+let acceptDialogs = true;
+const nativeDialogs = [];
 const pending = new Map(), exceptions = [];
 socket.addEventListener('message', async event => {
   const message = JSON.parse(event.data);
@@ -18,6 +20,9 @@ socket.addEventListener('message', async event => {
     pending.delete(message.id);
     if (message.error) task.reject(new Error(message.error.message));
     else task.resolve(message.result);
+  } else if (message.method === 'Page.javascriptDialogOpening') {
+    nativeDialogs.push(message.params);
+    await send('Page.handleJavaScriptDialog', { accept: acceptDialogs });
   } else if (message.method === 'Runtime.exceptionThrown') {
     exceptions.push(message.params.exceptionDetails.text);
   } else if (message.method === 'Fetch.requestPaused') {
@@ -106,7 +111,29 @@ async function checkExport(label) {
   assert.ok(png.width > 0 && png.height > 0 && png.type === 'image/png', label);
   await check("document.querySelector('#again-modal').classList.contains('open')", `${label}: PNG ready with next-session dialog`);
   await click('#btn-close-again');
+  await check("window.dispatchEvent(new Event('beforeunload', { cancelable: true }))", `${label}: downloaded output no longer triggers exit warning`);
   return png;
+}
+async function dragOrder(from, to, touch = false) {
+  await evaluate("document.querySelector('#photo-order').scrollIntoView({ block: 'center' })");
+  const points = await evaluate(`[${from}, ${to}].map(index => { const box = document.querySelector('.order-photo[data-index="' + index + '"]').getBoundingClientRect(); return { x: box.x + box.width / 2, y: box.y + box.height / 2 }; })`);
+  const [start, end] = points;
+  if (touch) {
+    await send('Emulation.setTouchEmulationEnabled', { enabled: true });
+    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...start, id: 1 }] });
+  } else {
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...start });
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...start, button: 'left', buttons: 1, clickCount: 1 });
+  }
+  for (let step = 1; step <= 8; step++) {
+    const point = { x: start.x + (end.x - start.x) * step / 8, y: start.y + (end.y - start.y) * step / 8 };
+    if (touch) await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...point, id: 1 }] });
+    else await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point, button: 'left', buttons: 1 });
+  }
+  if (touch) {
+    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  } else await send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...end, button: 'left', buttons: 0, clickCount: 1 });
 }
 async function checkPhotoLayout(holder, count) {
   await check(`(() => {
@@ -333,6 +360,7 @@ try {
   }
 
   await importPhotos(1);
+  await check("document.querySelector('#photo-order').hidden && !window.dispatchEvent(new Event('beforeunload', { cancelable: true }))", 'single photo hides reorder tools and unsaved photos enable exit warning');
   for (const width of [320, 390, 600, 719, 720, 1000, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
     await checkHeader();
@@ -458,6 +486,41 @@ try {
     await importPhotos(count);
     await check(`document.querySelectorAll('#preview-holder .slot').length === ${count}`, `${count}-photo layout preserves every imported photo`);
     await checkPhotoLayout('#preview-holder', count);
+    if (count >= 4) {
+      await waitFor("[...document.querySelectorAll('#photo-order-list img')].every(image => image.complete && image.naturalWidth > 0)");
+      await evaluate("window.initialPhotoOrder = [...document.querySelectorAll('#photo-order-list img')].map(image => image.src)");
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await dragOrder(0, count - 1, count === 6);
+      await check("JSON.stringify([...document.querySelectorAll('#photo-order-list img')].map(image => image.src)) === JSON.stringify([...window.initialPhotoOrder.slice(1), window.initialPhotoOrder[0]])", `${count} photos reorder by ${count === 6 ? 'touch' : 'mouse'} drag`);
+      await check("JSON.stringify([...document.querySelectorAll('#preview-holder .slot-img')].map(image => image.src)) === JSON.stringify([...document.querySelectorAll('#photo-order-list img')].map(image => image.src))", 'frame preview follows thumbnail order');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await click('#scr-preview .undo-btn');
+      await check("JSON.stringify([...document.querySelectorAll('#photo-order-list img')].map(image => image.src)) === JSON.stringify(window.initialPhotoOrder)", 'Undo restores photo order');
+      await click('#scr-preview .redo-btn');
+      await dragOrder(count - 1, 0, count === 6);
+      await click('#order-next');
+      await key('ArrowLeft');
+      await check("JSON.stringify([...document.querySelectorAll('#photo-order-list img')].map(image => image.src)) === JSON.stringify(window.initialPhotoOrder)", 'move button and keyboard preserve original photo objects');
+      if (count === 8) {
+        await click('#scr-preview .workflow [data-screen=scr-cam]');
+        const before = nativeDialogs.length;
+        acceptDialogs = false;
+        await click('#layoutseg [data-layout="1"]');
+        acceptDialogs = true;
+        assert.equal(nativeDialogs.length, before + 1, 'layout reset requests confirmation');
+        await check(`document.querySelector('#layoutseg [data-layout="8"]').classList.contains('sel') && document.querySelector('#shot-count').textContent === '8 / 8'`, 'canceling layout reset preserves all eight photos');
+        await click('#scr-cam .workflow [data-screen=scr-preview]');
+        const beforeReload = nativeDialogs.length;
+        await evaluate('window.orderReloadMarker = true');
+        acceptDialogs = false;
+        await send('Page.reload');
+        for (let attempt = 0; attempt < 100 && nativeDialogs.length === beforeReload; attempt++) await new Promise(resolve => setTimeout(resolve, 50));
+        acceptDialogs = true;
+        assert.equal(nativeDialogs.at(-1).type, 'beforeunload', 'browser warns before reload with unsaved photos');
+        await check("window.orderReloadMarker === true && document.querySelectorAll('#preview-holder .slot').length === 8", 'canceling reload retains the photo session');
+      }
+    }
+
     if (count === 3) {
       await check("JSON.stringify(window.frameDimensions(document.querySelector('#preview-holder'))) === JSON.stringify(window.demoDimensions['1440-film'])", 'homepage frame dimensions match three-photo preview');
     }
@@ -547,6 +610,7 @@ try {
   const storyGif = await evaluate('window.gifDownload');
   assert.deepEqual([storyGif.width, storyGif.height, storyGif.count], [405, 720, 8], 'GIF respects selected Story format');
   console.log('PASS GIF Story format is 405 × 720 with eight frames');
+  await check("window.dispatchEvent(new Event('beforeunload', { cancelable: true }))", 'GIF download clears exit warning');
   await click('#favorite-delete');
   await check("JSON.parse(localStorage.getItem('snappie-favorites-v1')).length === 0 && document.querySelector('#favorite-use').disabled", 'favorite deletion updates storage and controls');
   await click('#scr-result .workflow [data-screen=scr-cam]');
@@ -562,6 +626,7 @@ try {
   await waitFor("!window.beforeVerificationReload && document.querySelector('#btn-start')?.onclick != null && document.querySelector('#favorite-list')?.value === 'Reload test'");
   await check("document.querySelector('#favorite-list').value === 'Reload test' && document.querySelector('#scr-start').classList.contains('active') && document.querySelectorAll('#preview-holder .slot').length === 0", 'favorites survive reload without restoring private photos');
   await evaluate("document.querySelector('#favorite-delete').click()");
+  assert.ok(nativeDialogs.every(dialog => ['confirm', 'beforeunload'].includes(dialog.type)), 'no unexpected alert dialogs');
   assert.deepEqual(exceptions, [], 'no uncaught browser exceptions');
   console.log('PASS no uncaught browser exceptions');
 } finally {

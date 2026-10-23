@@ -179,6 +179,14 @@
   <h1 style="margin-top:4px"><span data-i18n="pv.title">Cek Foto</span></h1>
   <p class="desc" data-i18n="pv.desc">Cek tiap foto, jepret ulang, atau ganti dari galeri. Setelah siap, lanjut ke hasil.</p>
   <div id="preview-holder"></div>
+  <section class="photo-order" id="photo-order" aria-labelledby="photo-order-title" hidden>
+    <div class="photo-order-heading"><h2 id="photo-order-title" data-i18n="order.title">Urutan foto</h2>
+      <div class="photo-order-actions"><button type="button" id="order-prev" class="btn ghost small" data-i18n-aria="order.prev" aria-label="Pindahkan lebih awal"><span class="ms" aria-hidden="true">arrow_back</span></button><button type="button" id="order-next" class="btn ghost small" data-i18n-aria="order.next" aria-label="Pindahkan lebih akhir"><span class="ms" aria-hidden="true">arrow_forward</span></button></div>
+    </div>
+    <p id="photo-order-hint" class="tool-note" data-i18n="order.hint">Geser thumbnail untuk mengurutkan. Pilih foto lalu gunakan panah atau tombol pindah.</p>
+    <ol id="photo-order-list" class="photo-order-list"></ol>
+    <p class="order-status" id="photo-order-status" role="status" aria-live="polite" aria-atomic="true"></p>
+  </section>
   <p class="gesture-hint" data-i18n="edit.photoHint">Geser foto untuk mengatur posisi. Cubit atau gulir untuk zoom. Keyboard: pilih foto, lalu gunakan panah dan +/−.</p>
   <p class="gesture-hint sticker-hint" data-i18n="edit.stickerHint" hidden>Geser stiker untuk memindahkan. Cubit untuk ukuran dan putaran. Keyboard: panah, +/−, [ ], Delete.</p>
   <div class="history-controls" role="group" data-i18n-aria="edit.history" aria-label="Riwayat perubahan">

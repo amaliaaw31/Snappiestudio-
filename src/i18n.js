@@ -3761,6 +3761,157 @@ for (const [code, messages] of Object.entries(homeMessages)) {
   homeKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
 }
 
+const orderKeys = ["order.title", "order.hint", "order.photo", "order.prev", "order.next", "order.moved", "leave.confirm"];
+const orderMessages = {
+  "id": [
+    "Urutan foto",
+    "Geser thumbnail untuk mengurutkan. Pilih foto lalu gunakan panah atau tombol pindah.",
+    "Foto {number}. Geser atau gunakan panah untuk mengurutkan.",
+    "Pindahkan lebih awal",
+    "Pindahkan lebih akhir",
+    "Foto {from} dipindahkan ke posisi {to}.",
+    "Foto dan editan belum diunduh. Memulai ulang akan menghapus sesi ini. Lanjutkan?"
+  ],
+  "en": [
+    "Photo order",
+    "Drag thumbnails to reorder. Select a photo and use arrows or move buttons.",
+    "Photo {number}. Drag or use arrow keys to reorder.",
+    "Move earlier",
+    "Move later",
+    "Photo {from} moved to position {to}.",
+    "Your photos and edits have not been downloaded. Starting over will clear this session. Continue?"
+  ],
+  "ms": [
+    "Susunan foto",
+    "Seret thumbnail untuk menyusun. Pilih foto dan gunakan anak panah atau butang pindah.",
+    "Foto {number}. Seret atau guna anak panah untuk menyusun.",
+    "Pindah lebih awal",
+    "Pindah lebih akhir",
+    "Foto {from} dipindahkan ke kedudukan {to}.",
+    "Foto dan suntingan belum dimuat turun. Bermula semula akan memadam sesi ini. Teruskan?"
+  ],
+  "ar": [
+    "ترتيب الصور",
+    "اسحب الصور المصغرة لترتيبها. اختر صورة واستخدم الأسهم أو أزرار النقل.",
+    "الصورة {number}. اسحبها أو استخدم الأسهم لترتيبها.",
+    "نقل إلى موضع سابق",
+    "نقل إلى موضع لاحق",
+    "نُقلت الصورة {from} إلى الموضع {to}.",
+    "لم تُنزّل الصور والتعديلات. البدء من جديد سيمسح هذه الجلسة. هل تريد المتابعة؟"
+  ],
+  "es": [
+    "Orden de fotos",
+    "Arrastra las miniaturas para ordenar. Selecciona una foto y usa las flechas o los botones.",
+    "Foto {number}. Arrastra o usa las flechas para ordenar.",
+    "Mover antes",
+    "Mover después",
+    "Foto {from} movida a la posición {to}.",
+    "No has descargado tus fotos y cambios. Empezar de nuevo borrará esta sesión. ¿Continuar?"
+  ],
+  "fr": [
+    "Ordre des photos",
+    "Glissez les miniatures pour les réorganiser. Sélectionnez une photo et utilisez les flèches ou les boutons.",
+    "Photo {number}. Glissez ou utilisez les flèches pour réorganiser.",
+    "Déplacer avant",
+    "Déplacer après",
+    "Photo {from} déplacée à la position {to}.",
+    "Vos photos et modifications ne sont pas téléchargées. Recommencer effacera cette session. Continuer ?"
+  ],
+  "de": [
+    "Fotoreihenfolge",
+    "Ziehe die Vorschaubilder zum Sortieren. Wähle ein Foto und nutze Pfeiltasten oder Verschieben-Tasten.",
+    "Foto {number}. Zum Sortieren ziehen oder Pfeiltasten nutzen.",
+    "Nach vorne verschieben",
+    "Nach hinten verschieben",
+    "Foto {from} auf Position {to} verschoben.",
+    "Deine Fotos und Änderungen wurden nicht heruntergeladen. Ein Neustart löscht diese Sitzung. Fortfahren?"
+  ],
+  "pt": [
+    "Ordem das fotos",
+    "Arraste as miniaturas para ordenar. Selecione uma foto e use as setas ou os botões.",
+    "Foto {number}. Arraste ou use as setas para ordenar.",
+    "Mover antes",
+    "Mover depois",
+    "Foto {from} movida para a posição {to}.",
+    "Você não baixou suas fotos e edições. Recomeçar apagará esta sessão. Continuar?"
+  ],
+  "ru": [
+    "Порядок фото",
+    "Перетащите миниатюры для сортировки. Выберите фото и используйте стрелки или кнопки.",
+    "Фото {number}. Перетащите или используйте стрелки для сортировки.",
+    "Переместить раньше",
+    "Переместить позже",
+    "Фото {from} перемещено на позицию {to}.",
+    "Фото и изменения не скачаны. Начало заново очистит этот сеанс. Продолжить?"
+  ],
+  "ja": [
+    "写真の順序",
+    "サムネイルをドラッグして並べ替えます。写真を選び、矢印キーや移動ボタンも使えます。",
+    "写真 {number}。ドラッグか矢印キーで並べ替えます。",
+    "前へ移動",
+    "後ろへ移動",
+    "写真 {from} を位置 {to} に移動しました。",
+    "写真と編集内容は未ダウンロードです。最初から始めると現在のセッションが消去されます。続けますか？"
+  ],
+  "ko": [
+    "사진 순서",
+    "썸네일을 드래그해 순서를 바꾸세요. 사진을 선택하고 화살표 키나 이동 버튼을 사용할 수도 있습니다.",
+    "사진 {number}. 드래그하거나 화살표 키로 순서를 바꾸세요.",
+    "앞으로 이동",
+    "뒤로 이동",
+    "사진 {from}을(를) {to}번 위치로 옮겼습니다.",
+    "사진과 편집 내용을 다운로드하지 않았습니다. 다시 시작하면 현재 세션이 지워집니다. 계속할까요?"
+  ],
+  "zh": [
+    "照片顺序",
+    "拖动缩略图排序。也可选中照片后使用方向键或移动按钮。",
+    "照片 {number}。拖动或使用方向键排序。",
+    "向前移动",
+    "向后移动",
+    "照片 {from} 已移至位置 {to}。",
+    "照片和编辑尚未下载。重新开始会清除此会话，是否继续？"
+  ],
+  "hi": [
+    "फ़ोटो का क्रम",
+    "क्रम बदलने के लिए थंबनेल खींचें। फ़ोटो चुनकर तीर कुंजियाँ या मूव बटन भी इस्तेमाल कर सकते हैं।",
+    "फ़ोटो {number}। क्रम बदलने के लिए खींचें या तीर कुंजियाँ दबाएँ।",
+    "पहले ले जाएँ",
+    "बाद में ले जाएँ",
+    "फ़ोटो {from} को स्थान {to} पर ले जाया गया।",
+    "फ़ोटो और बदलाव डाउनलोड नहीं हुए हैं। दोबारा शुरू करने पर यह सत्र मिट जाएगा। जारी रखें?"
+  ],
+  "vi": [
+    "Thứ tự ảnh",
+    "Kéo ảnh thu nhỏ để sắp xếp. Chọn ảnh rồi dùng phím mũi tên hoặc nút di chuyển.",
+    "Ảnh {number}. Kéo hoặc dùng phím mũi tên để sắp xếp.",
+    "Chuyển lên trước",
+    "Chuyển ra sau",
+    "Ảnh {from} đã chuyển đến vị trí {to}.",
+    "Bạn chưa tải ảnh và các chỉnh sửa. Bắt đầu lại sẽ xóa phiên này. Tiếp tục?"
+  ],
+  "th": [
+    "ลำดับรูป",
+    "ลากภาพย่อเพื่อจัดลำดับ หรือเลือกรูปแล้วใช้ปุ่มลูกศรหรือปุ่มย้าย",
+    "รูป {number} ลากหรือใช้ปุ่มลูกศรเพื่อจัดลำดับ",
+    "ย้ายไปก่อนหน้า",
+    "ย้ายไปถัดไป",
+    "ย้ายรูป {from} ไปตำแหน่ง {to} แล้ว",
+    "ยังไม่ได้ดาวน์โหลดรูปและการแก้ไข การเริ่มใหม่จะล้างเซสชันนี้ ต้องการดำเนินการต่อหรือไม่?"
+  ],
+  "tr": [
+    "Fotoğraf sırası",
+    "Sıralamak için küçük resimleri sürükleyin. Fotoğraf seçip ok tuşlarını veya taşıma düğmelerini de kullanabilirsiniz.",
+    "Fotoğraf {number}. Sıralamak için sürükleyin veya ok tuşlarını kullanın.",
+    "Öne taşı",
+    "Arkaya taşı",
+    "Fotoğraf {from}, {to}. konuma taşındı.",
+    "Fotoğraflar ve düzenlemeler indirilmedi. Yeniden başlamak bu oturumu silecek. Devam edilsin mi?"
+  ]
+};
+for (const [code, messages] of Object.entries(orderMessages)) {
+  orderKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
+}
+
 let lang = 'id';
 try {
   const saved = localStorage.getItem('snappie-lang');

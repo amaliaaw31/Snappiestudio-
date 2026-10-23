@@ -3,6 +3,7 @@
 import { FILTERS, THEMES, CHARS, CHAR_SVG, CHAR_NAMES, dateLine, formatDate, filterCss, fontTracking, fontLineHeight, DATE_COLORS } from './data.js';
 import { OUTPUT_FORMATS, formatOutput } from './output.js';
 import { FAVORITES_KEY, favoriteSettings, readFavorites } from './favorites.js';
+import { movePhoto } from './photo-order.js';
 import { compose } from './composer.js';
 import { emojiArtMarkup, splitEmojiRuns } from './emoji.js';
 import { EMOJI_CATEGORIES, findEmojiStickers } from './emoji-catalog.js';
@@ -53,6 +54,32 @@ const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const localNumber = value => new Intl.NumberFormat(getLang(), { useGrouping: false }).format(value);
 let visitorTotal = null;
+
+
+let savedPhotoKey = null;
+let leaveWarningAttached = false;
+function hasUnsavedPhotos() {
+  return state.photos.length > 0 && stateKey() !== savedPhotoKey;
+}
+function warnBeforeUnload(event) {
+  if (!hasUnsavedPhotos()) return;
+  event.preventDefault();
+  event.returnValue = true;
+}
+function syncLeaveWarning() {
+  const needed = hasUnsavedPhotos();
+  if (needed === leaveWarningAttached) return;
+  leaveWarningAttached = needed;
+  if (needed) window.addEventListener('beforeunload', warnBeforeUnload);
+  else window.removeEventListener('beforeunload', warnBeforeUnload);
+}
+function markPhotosSaved(key) {
+  savedPhotoKey = key;
+  syncLeaveWarning();
+}
+function confirmPhotoDiscard() {
+  return !hasUnsavedPhotos() || window.confirm(tr('leave.confirm'));
+}
 
 function renderVisitorCount() {
   if (visitorTotal === null) return;
@@ -689,6 +716,7 @@ applyLayoutAspect();
 document.querySelectorAll('#layoutseg button').forEach(b => {
   b.classList.toggle('sel', +b.dataset.layout === state.layout);
   b.onclick = () => {
+    if (+b.dataset.layout === state.layout || !confirmPhotoDiscard()) return;
     document.querySelectorAll('#layoutseg button').forEach(x => x.classList.remove('sel'));
     b.classList.add('sel');
     state.layout = +b.dataset.layout;
@@ -699,6 +727,7 @@ document.querySelectorAll('#layoutseg button').forEach(b => {
 });
 
 function resetPhotos() {
+  savedPhotoKey = null;
   state.photos = [];
   state.stickers = [];
   state.selectedStickerId = null;
@@ -957,6 +986,7 @@ async function startCamera() {
 }
 
 $('btn-start').onclick = async () => {
+  if (!confirmPhotoDiscard()) return;
   const button = $('btn-start');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
@@ -1216,6 +1246,7 @@ if (fileInput) {
     if (galleryIntent === 'start') {
       const files = Array.from(fileInput.files || []).filter(isImageFile);
       if (files.length) {
+        if (!confirmPhotoDiscard()) { fileInput.value = ''; return; }
         setLayout(layoutForCount(files.length));
         startNewSession();
         savePrefs();
@@ -1609,11 +1640,104 @@ function renderPreview() {
     if (p) attachSlotGestures(img, p, i);
   });
   applySlotSelection();
+  renderPhotoOrder();
   renderUserStickers();
   fitFrame('preview-holder');
   invalidateShareFile();
   commitHistory();
 }
+
+
+let orderSelected = 0;
+function selectOrderPhoto(index) {
+  orderSelected = index;
+  state.slotSelected = index;
+  applySlotSelection();
+  document.querySelectorAll('.order-photo').forEach(button => button.setAttribute('aria-pressed', String(+button.dataset.index === index)));
+  $('order-prev').disabled = index <= 0;
+  $('order-next').disabled = index >= state.photos.length - 1;
+}
+function movePreviewPhoto(from, to) {
+  const photos = movePhoto(state.photos, from, to);
+  if (photos === state.photos) return;
+  const selected = state.photos[state.selectedPhotoIndex];
+  const replacing = state.photos[state.replaceIndex];
+  state.photos = photos;
+  if (selected) state.selectedPhotoIndex = photos.indexOf(selected);
+  if (replacing) state.replaceIndex = photos.indexOf(replacing);
+  orderSelected = to;
+  state.slotSelected = to;
+  renderDots(); renderThumbs(); renderPreview();
+  $('photo-order-status').textContent = tr('order.moved', { from: localNumber(from + 1), to: localNumber(to + 1) });
+  document.querySelector('.order-photo[data-index="' + to + '"]')?.focus({ preventScroll: true });
+}
+function renderPhotoOrder() {
+  const section = $('photo-order'), list = $('photo-order-list');
+  section.hidden = state.photos.length < 2;
+  $('photo-order-status').textContent = '';
+  list.replaceChildren();
+  orderSelected = Math.min(orderSelected, Math.max(0, state.photos.length - 1));
+  state.photos.forEach((photo, index) => {
+    const item = document.createElement('li');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'order-photo';
+    button.dataset.index = index;
+    button.setAttribute('aria-label', tr('order.photo', { number: localNumber(index + 1) }));
+    button.setAttribute('aria-describedby', 'photo-order-hint');
+    const media = document.createElement('span');
+    media.className = 'order-image';
+    media.setAttribute('aria-hidden', 'true');
+    media.innerHTML = slotMedia(photo, index, false);
+    const number = document.createElement('span');
+    number.className = 'order-number';
+    number.textContent = localNumber(index + 1);
+    button.append(media, number);
+    let drag = null, suppressClick = false;
+    const clearDrag = () => list.querySelectorAll('.order-dragging, .order-target').forEach(el => el.classList.remove('order-dragging', 'order-target'));
+    button.onclick = () => { if (!suppressClick) selectOrderPhoto(index); };
+    button.onkeydown = event => {
+      const direction = document.documentElement.dir === 'rtl' ? -1 : 1;
+      const target = { ArrowLeft: index - direction, ArrowUp: index - 1, ArrowRight: index + direction, ArrowDown: index + 1, Home: 0, End: state.photos.length - 1 }[event.key];
+      if (target === undefined) return;
+      event.preventDefault(); event.stopPropagation();
+      movePreviewPhoto(index, target);
+    };
+    button.onpointerdown = event => {
+      if (!event.isPrimary || event.button !== 0) return;
+      suppressClick = false;
+      selectOrderPhoto(index);
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, target: index, moved: false };
+      button.setPointerCapture(event.pointerId);
+    };
+    button.onpointermove = event => {
+      if (!drag || drag.id !== event.pointerId) return;
+      if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 6) return;
+      drag.moved = true;
+      suppressClick = true;
+      clearDrag();
+      button.classList.add('order-dragging');
+      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.order-photo');
+      drag.target = target && list.contains(target) ? +target.dataset.index : index;
+      if (target && list.contains(target)) target.classList.add('order-target');
+    };
+    button.onpointerup = event => {
+      if (!drag || drag.id !== event.pointerId) return;
+      const { target, moved } = drag;
+      drag = null; clearDrag();
+      if (button.hasPointerCapture(event.pointerId)) button.releasePointerCapture(event.pointerId);
+      if (moved) movePreviewPhoto(index, target);
+    };
+    button.onpointercancel = button.onlostpointercapture = () => { drag = null; clearDrag(); };
+    item.appendChild(button); list.appendChild(item);
+  });
+  hydrateSlotImages(list);
+  $('order-prev').disabled = orderSelected <= 0;
+  $('order-next').disabled = orderSelected >= state.photos.length - 1;
+  list.querySelectorAll('.order-photo').forEach(button => button.setAttribute('aria-pressed', String(+button.dataset.index === orderSelected)));
+}
+$('order-prev').onclick = () => movePreviewPhoto(orderSelected, orderSelected - 1);
+$('order-next').onclick = () => movePreviewPhoto(orderSelected, orderSelected + 1);
 
 let refitPending = false;
 function refitFrames() {
@@ -3085,11 +3209,13 @@ const againModal = $('again-modal');
 if (againModal) againModal.onclick = (e) => { if (e.target === againModal) closeModal('again-modal'); };
 if ($('btn-close-again')) $('btn-close-again').onclick = () => closeModal('again-modal');
 if ($('btn-again-no')) $('btn-again-no').onclick = () => {
+  if (!confirmPhotoDiscard()) return;
   closeModal('again-modal');
   startNewSession();
   show('scr-start');
 };
 if ($('btn-again-yes')) $('btn-again-yes').onclick = () => {
+  if (!confirmPhotoDiscard()) return;
   closeModal('again-modal');
   startNewSession();
   show('scr-cam');
@@ -3097,6 +3223,7 @@ if ($('btn-again-yes')) $('btn-again-yes').onclick = () => {
 
 /* ============ download ============ */
 $('btn-download').onclick = async () => {
+  const exportKey = stateKey();
   const btn = $('btn-download');
   const ico = $('download-ico');
   const label = $('download-label');
@@ -3113,6 +3240,7 @@ $('btn-download').onclick = async () => {
     a.download = 'snappie-studio-' + state.theme + '-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.png';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    markPhotosSaved(exportKey);
     offerAnotherSession();
   } catch (e) {
     alert(tr('toast.failPng'));
@@ -3156,6 +3284,7 @@ function updateUndoUI() {
   document.querySelectorAll('.redo-btn').forEach(b => { b.disabled = !cr; });
 }
 function commitHistory() {
+  syncLeaveWarning();
   if (applyingHistory) return;
   clearTimeout(historyTimer);
   historyTimer = setTimeout(() => {
@@ -3196,6 +3325,7 @@ function applySnapshot(s) {
   else if (currentScreen === 'scr-result') renderResult();
   savePrefs();
   applyingHistory = false;
+  syncLeaveWarning();
 }
 function undo() {
   if (history.length < 2) return;
@@ -3382,6 +3512,7 @@ $('sticker-file').onchange = async event => {
 };
 
 $('btn-gif').onclick = async () => {
+  const exportKey = stateKey();
   const button = $('btn-gif');
   button.disabled = true;
   button.textContent = tr('rs.making');
@@ -3399,6 +3530,7 @@ $('btn-gif').onclick = async () => {
     anchor.download = 'snappie-studio-' + settings.theme + '.gif';
     document.body.appendChild(anchor); anchor.click(); anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
+    markPhotosSaved(exportKey);
   } catch { showToast(tr('out.error')); }
   finally { button.disabled = false; button.textContent = tr('out.gif'); }
 };
