@@ -30,6 +30,8 @@ Selalu jalankan `npm run lint`, `npm test`, dan `npm run build` setelah mengubah
 - Login CMS mengaktifkan pengecualian visitor untuk browser admin, termasuk menghapus kunjungan sebelumnya dari total. Pengecualian berupa hash UUID dan tetap berlaku setelah reset counter.
 - Produksi menjalankan `snappiestudio-counter.service`; database tinggal di `/var/lib/snappiestudio-counter`.
 - Setiap browser mengirim UUID acak sekali-sekali; server hanya menyimpan SHA-256-nya. Foto tidak ikut dikirim.
+- CMS juga mengelola musim stiker (`SEASON_IDS` di `server/site-config.js` harus sama dengan `SEASONS` di `src/data.js`), tautan dukungan (hanya `trakteer.id` dan `ko-fi.com`), jadwal pengumuman, statistik penggunaan (`usage_daily`), dan peringatan lonjakan/penurunan kunjungan di monitor (`server/traffic-alert.js`).
+- Perubahan backend memerlukan `sudo -n systemctl restart snappiestudio-counter` setelah deploy; sesi admin yang ada berakhir.
 - Saat mengubah autentikasi, routing server, atau CSP, baca `SECURITY.md` dan jalankan tes keamanan. Pertahankan jalur CMS melalui backend; CSP produksi dibuat otomatis saat build.
 
 ## Arsitektur
@@ -51,4 +53,4 @@ Perlu ubah 3 tempat agar tampil di preview **dan** PNG:
 ## Catatan
 - State foto: `state.photos` berisi objek `{ canvas, filter }` (bukan canvas langsung).
 - Stiker punya `type`: `char` | `emoji` | `text`; interaksi pakai pointer gestures di `attachStickerGestures`.
-- Penghitung pengunjung adalah satu-satunya panggilan data ke backend; jangan kirim foto atau data pribadi pengguna.
+- Panggilan data ke backend hanya: penghitung pengunjung (`/api/visitors`), pengumuman (`/api/site-content`), pengaturan musim stiker dan tautan dukungan dari CMS (`/api/site-config`, dibaca saja), dan hitungan penggunaan anonim (`/api/events`: nama kejadian, id tema, id filter). Jangan kirim foto, teks pengguna, atau ID browser lewat endpoint selain penghitung; browser admin (mode maintenance) tidak mengirim hitungan penggunaan.

@@ -19,12 +19,33 @@ export async function readState(directory, name, fallback = null) {
   catch (error) { if (error.code === 'ENOENT') return fallback; throw error; }
 }
 
+const ISO_TIME = /^20\d{2}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+function scheduleTime(value, label) {
+  if (value === undefined || value === null || value === '') return null;
+  const time = typeof value === 'string' && ISO_TIME.test(value) ? Date.parse(value) : NaN;
+  if (!Number.isFinite(time)) throw Object.assign(new Error(`Waktu ${label} tidak valid.`), { status: 400 });
+  return new Date(time).toISOString();
+}
+
 export function validateContent(body) {
   if (typeof body.enabled !== 'boolean' || typeof body.title !== 'string' || typeof body.message !== 'string'
     || body.title.length > 80 || body.message.length > 500 || (body.enabled && !body.message.trim())) {
     throw Object.assign(new Error('Judul maksimal 80 karakter; pesan wajib diisi jika aktif, maksimal 500 karakter.'), { status: 400 });
   }
-  return { enabled: body.enabled, title: body.title.trim(), message: body.message.trim() };
+  const startsAt = scheduleTime(body.startsAt, 'mulai'), endsAt = scheduleTime(body.endsAt, 'selesai');
+  if (startsAt && endsAt && Date.parse(endsAt) <= Date.parse(startsAt)) {
+    throw Object.assign(new Error('Waktu selesai harus setelah waktu mulai.'), { status: 400 });
+  }
+  return { enabled: body.enabled, title: body.title.trim(), message: body.message.trim(), startsAt, endsAt };
+}
+
+// Versi publik: di luar jendela jadwal pengumuman dianggap mati; jadwal sendiri tidak dikirim ke pengunjung.
+export function publicAnnouncement(value, now = Date.now()) {
+  const start = Date.parse(value.startsAt), end = Date.parse(value.endsAt);
+  const outside = (Number.isFinite(start) && now < start) || (Number.isFinite(end) && now >= end);
+  const visible = { ...value };
+  delete visible.startsAt; delete visible.endsAt;
+  return outside ? { ...visible, enabled: false } : visible;
 }
 
 export function serviceStatus(db, dbPath, now = Date.now) {

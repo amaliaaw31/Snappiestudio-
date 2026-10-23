@@ -10,6 +10,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { runMigrationSchedule } from '../server/discord-scheduler.js';
 import { sendNotification } from '../server/notifications.js';
 import { createAnalytics, reportFilters } from '../server/analytics.js';
+import { trafficAlert } from '../server/traffic-alert.js';
 import { createAudit, readState } from '../server/cms-operations.js';
 import { writePrivateJson } from '../server/admin-account.js';
 import { verifyBackup } from '../server/backup-verifier.js';
@@ -96,7 +97,10 @@ export async function checkMonitor(stateDirectory, env = process.env, fetchImpl 
   } catch { issues.push('website'); }
   try {
     const db = new DatabaseSync(join(stateDirectory, 'visitors.sqlite'), { readOnly: true });
-    try { if (db.prepare('PRAGMA quick_check').get().quick_check !== 'ok') issues.push('database'); } finally { db.close(); }
+    try {
+      if (db.prepare('PRAGMA quick_check').get().quick_check !== 'ok') issues.push('database');
+      try { const alert = trafficAlert(db, now()); if (alert) issues.push(alert); } catch { /* tabel aktivitas belum ada: lewati */ }
+    } finally { db.close(); }
     serviceCheck();
   } catch { issues.push('backend'); }
   const safeRead = async name => {

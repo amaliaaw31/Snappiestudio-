@@ -83,7 +83,7 @@ try {
   await waitFor("document.querySelector('#new-share').textContent==='50%'");
   await check("document.querySelector('#returning-share').textContent==='50%' && document.querySelector('#donut-total').textContent==='2' && document.querySelector('#donut-new').getAttribute('stroke-dasharray')==='50 50'", 'donut matches new and returning browser report');
   await evaluate("document.querySelector('.filter-disclosure').open=false");
-  const panels = ['overview', 'trends', 'regions', 'visits', 'settings'];
+  const panels = ['overview', 'trends', 'regions', 'visits', 'usage', 'settings'];
   for (const width of [320, 390, 768, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width < 720 });
     for (const theme of ['light', 'dark']) {
@@ -109,6 +109,29 @@ try {
   await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', text: '\r', windowsVirtualKeyCode: 13 });
   await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
   await check("!document.querySelector('#overview-panel').hidden && getComputedStyle(document.activeElement).outlineStyle!=='none'", 'keyboard navigation has visible focus');
+  for (const body of [{ event: 'png', theme: 'pastel', filter: 'normal' }, { event: 'support_shown' }, { event: 'support_kofi' }]) {
+    await fetch(base + '/api/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  }
+  await evaluate("Date.now = () => Date.parse('2026-10-23T05:00:00Z'); document.querySelector('[data-view=usage]').click()");
+  await waitFor("document.querySelector('#usage-png').textContent==='1'");
+  await check("document.querySelector('#usage-shown').textContent==='1' && document.querySelector('#usage-clicks').textContent==='1' && document.querySelector('#usage-themes').textContent.includes('pastel: 1') && document.querySelector('#usage-support').textContent.includes('100%') && !document.querySelector('#usage-panel').hidden", 'usage view shows anonymous counts, top theme and support click rate');
+  const openSetting = id => evaluate(`document.querySelector('[data-view=settings]').click();document.querySelector('#settings-menu').value=String([...document.querySelectorAll('#settings-panel > details')].indexOf(document.querySelector('#${id}')));document.querySelector('#settings-menu').dispatchEvent(new Event('change'))`);
+  await openSetting('seasons-settings');
+  await waitFor("document.querySelector('#seasons-status').textContent.includes('sudah dimuat')");
+  await check("document.querySelectorAll('.season-row').length===10 && document.documentElement.scrollWidth<=innerWidth", 'season settings list all ten seasons without overflow');
+  await evaluate("document.querySelector('#season-mode-natal').value='on';document.querySelector('#seasons-form').requestSubmit()");
+  await waitFor("document.querySelector('#seasons-status').textContent.startsWith('Musim tersimpan')");
+  assert.equal((await (await fetch(base + '/api/site-config')).json()).seasons.natal.mode, 'on');
+  console.log('PASS saving seasons updates the public site config');
+  await openSetting('support-settings');
+  await waitFor("document.querySelector('#support-status').textContent.includes('sudah dimuat')");
+  await evaluate("document.querySelector('#support-trakteer-url').value='https://evil.example/x';document.querySelector('#support-form').requestSubmit()");
+  await waitFor("document.querySelector('#support-status').textContent.startsWith('Gagal menyimpan')");
+  await evaluate("document.querySelector('#support-trakteer-url').value='https://trakteer.id/snappiestudio/gift';document.querySelector('#support-form').requestSubmit()");
+  await waitFor("document.querySelector('#support-status').textContent.startsWith('Tautan dukungan tersimpan')");
+  console.log('PASS support links reject other hosts and save valid ones');
+  await openSetting('content-settings');
+  await check("document.querySelector('#notice-starts').type==='datetime-local' && document.querySelector('#notice-ends').type==='datetime-local' && document.documentElement.scrollWidth<=innerWidth", 'announcement form has schedule fields');
   await evaluate("document.querySelector('.filter-disclosure').open=true;document.querySelector('#from').value='2099-01-01';document.querySelector('#to').value='2099-01-02';document.querySelector('#filters').requestSubmit()");
   await waitFor("!document.querySelector('#audience-empty').hidden");
   await check("document.querySelector('#donut-total').textContent==='0' && document.querySelector('#donut-new').getAttribute('stroke-dasharray')==='0 100'", 'empty report has no fabricated donut segments');

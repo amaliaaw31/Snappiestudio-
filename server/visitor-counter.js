@@ -6,7 +6,8 @@ import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { clientIp, createAdminSecurity, createRateLimiter, json, readJson } from './security.js';
 import { createAnalytics, reportFilters, utcTimestamp, csvVisit } from './analytics.js';
-import { createAudit, readState, serviceStatus, saveContent } from './cms-operations.js';
+import { createAudit, readState, serviceStatus, saveContent, publicAnnouncement } from './cms-operations.js';
+import { createSiteConfig, usageRange } from './site-config.js';
 import { migrationSchema, receiveDiscord, effectiveAnnouncement, migrationList, loadBotConfig } from './discord-bot.js';
 import { writePrivateJson } from './admin-account.js';
 import { createReadCommands } from './discord-read-commands.js';
@@ -75,6 +76,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
   const excludeBrowser = db.prepare('INSERT OR IGNORE INTO excluded_browsers (visitor_hash) VALUES (?)');
   const removeBrowser = db.prepare('DELETE FROM visitors WHERE visitor_hash = ?');
   const audit = createAudit(db, now);
+  const siteConfig = createSiteConfig(db, now);
   migrationSchema(db);
   const readCommands = discordReadCommands || createReadCommands({ db, directory: dirname(dbPath), fetchImpl: discordStatusFetch, now });
   const botConfigPath = discordConfigPath || process.env.CMS_DISCORD_BOT_CONFIG || '/etc/snappiestudio/discord-bot.json';
@@ -91,7 +93,20 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
         await receiveDiscord(request, response, { db, directory: dirname(dbPath), configPath: botConfigPath, now, audit, readCommands }); return;
       }
       if (path === '/api/site-content' && request.method === 'GET') {
-        json(response, 200, await effectiveAnnouncement(db, dirname(dbPath))); return;
+        json(response, 200, publicAnnouncement(await effectiveAnnouncement(db, dirname(dbPath)), now())); return;
+      }
+      if (path === '/api/site-config' && request.method === 'GET') {
+        const retry = limit('config:' + clientIp(request, trustProxy), 120, 60 * 1000);
+        if (retry) { response.setHeader('Retry-After', String(retry)); json(response, 429, { error: 'Too many requests' }); return; }
+        json(response, 200, siteConfig.get()); return;
+      }
+      if (path === '/api/events' && request.method === 'POST') {
+        if (request.headers['sec-fetch-site'] === 'cross-site' || (request.headers.origin && !origins.has(request.headers.origin))) {
+          json(response, 403, { error: 'Forbidden origin' }); return;
+        }
+        const retry = limit('events:' + clientIp(request, trustProxy), 60, 60 * 1000) || limit('events-global', 1200, 60 * 1000);
+        if (retry) { response.setHeader('Retry-After', String(retry)); json(response, 429, { error: 'Too many events' }); return; }
+        siteConfig.record(await readJson(request, 512)); json(response, 200, { ok: true }); return;
       }
       if (CMS_FILES.has(path)) {
         if (!['GET', 'HEAD'].includes(request.method)) { response.setHeader('Allow', 'GET, HEAD'); json(response, 405, { error: 'Method not allowed' }); return; }
@@ -125,8 +140,23 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
           json(response, 200, { events: db.prepare('SELECT id, at, event FROM cms_audit WHERE id < ? ORDER BY id DESC LIMIT 50').all(before) }); return;
         }
         if (path === '/api/admin/content') {
-          if (request.method === 'GET') { json(response, 200, await effectiveAnnouncement(db, dirname(dbPath))); return; }
+          if (request.method === 'GET') {
+            const value = await effectiveAnnouncement(db, dirname(dbPath));
+            json(response, 200, { ...value, visibleNow: publicAnnouncement(value, now()).enabled }); return;
+          }
           if (request.method === 'POST') { const value = saveContent(dirname(dbPath), await readJson(request, 2048), now); audit('content_updated'); json(response, 200, value); return; }
+        }
+        if (path === '/api/admin/site-config') {
+          if (request.method === 'GET') { json(response, 200, siteConfig.get()); return; }
+          if (request.method === 'POST') { const value = siteConfig.save(await readJson(request, 8192)); audit('site_config_updated'); json(response, 200, value); return; }
+        }
+        if (path === '/api/admin/usage' && request.method === 'GET') {
+          json(response, 200, siteConfig.report(usageRange(url.searchParams, now()))); return;
+        }
+        if (path === '/api/admin/stats.csv' && request.method === 'GET') {
+          response.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Cache-Control': 'no-store',
+            'Content-Disposition': 'attachment; filename="snappie-statistik.csv"', 'X-Content-Type-Options': 'nosniff' });
+          response.end(siteConfig.csv(usageRange(url.searchParams, now()))); return;
         }
         if (path === '/api/admin/discord' && request.method === 'GET') {
           let configured = false;

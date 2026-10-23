@@ -140,3 +140,15 @@ Pengembangan FASE 2 memakai checkout terpisah. Snapshot produksi dan timer tidak
 `/alert test konfirmasi:True` memerlukan otorisasi Discord yang sama, tujuan webhook tepercaya, dan cooldown tersimpan 15 menit bahkan saat pengiriman belum dikonfirmasi. Pengiriman dibatasi 1,2 detik. Replay serentak digabung, satu pengiriman uji berjalan pada satu waktu, dan hasil lama memakai cache interaction. Pembaca konfigurasi hanya mengambil CMS_DISCORD_WEBHOOK; tidak menjalankan shell atau meneruskan environment lain ke Discord.
 
 Monitor memakai timer tunggal yang sudah ada. Kegagalan backup, jadwal terlewat, verifikasi gagal/belum terkonfirmasi, serta disk backup di bawah 10% menjadi issue terpisah. Notifikasi memiliki deduplikasi keadaan, cooldown 15 menit, dan recovery pertama setelah incident terkirim dapat dikirim segera. Kegagalan pengiriman tersimpan di notificationOk tanpa menghentikan pemeriksaan lain; kondisi tidak dapat dilaporkan melalui Discord yang sedang tidak terjangkau. Backend menampilkan status pengiriman lewat `/backup status`. Jangan menjalankan worker monitor secara paralel di luar timer oneshot yang tersedia.
+
+## Pengaturan situs, statistik penggunaan, dan peringatan kunjungan
+
+`GET /api/site-config` publik, dibatasi 120 permintaan per IP per menit, dan hanya mengembalikan pengaturan musim stiker serta tautan dukungan. `POST /api/admin/site-config` memerlukan sesi, origin, dan CSRF; musim harus dikenal, tanggal valid dan maksimal 200 hari, serta tautan harus `https://trakteer.id/...` atau `https://ko-fi.com/...` tanpa port atau kredensial. Klien memvalidasi ulang respons dan hanya memakai bentuk yang dikenal. Pengaturan disimpan di tabel `cms_settings` sehingga ikut backup database.
+
+`POST /api/events` publik untuk hitungan penggunaan anonim. Body maksimal 512 byte dan hanya berisi nama kejadian dari daftar tetap (`png`, `gif`, `support_shown`, `support_trakteer`, `support_kofi`) serta id tema dan filter berpola `[a-z0-9]{1,24}`. Origin lintas situs ditolak; batasnya 60 per IP per menit dan 1200 global per menit. Server hanya menaikkan penghitung harian di `usage_daily` (hari WIB, maksimal 100 kunci unik per jenis, retensi 400 hari). Tidak ada ID browser, IP, foto, atau teks pengguna yang disimpan; browser dengan flag maintenance tidak mengirim kejadian. Reset kunjungan tidak menghapus tabel ini.
+
+`GET /api/admin/usage` dan `/api/admin/stats.csv` hanya untuk sesi admin. CSV berisi angka harian, memakai `csvCell` (awalan rumus dinetralkan), dan dibatasi 366 hari.
+
+Pengumuman dapat dijadwalkan dengan `startsAt` dan `endsAt` (waktu ISO). Di luar jendela itu `/api/site-content` mengembalikan `enabled:false`; jadwal tidak dikirim ke pengunjung. Jadwal ini terpisah dari jadwal migrasi Discord.
+
+Monitor memeriksa browser aktif kemarin (hari WIB penuh) terhadap rata-rata tujuh hari sebelumnya. `traffic_drop` bila rata-rata minimal 20 dan kemarin di bawah 30% rata-rata; `traffic_spike` bila kemarin minimal 50 dan minimal tiga kali lipat rata-rata (batas bawah 10). Tanpa riwayat delapan hari penuh tidak ada peringatan. Peringatan memakai jalur notifikasi yang sama dan hanya dikirim saat keadaan berubah.

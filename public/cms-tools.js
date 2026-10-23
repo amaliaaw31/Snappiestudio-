@@ -3,6 +3,12 @@ const number = new Intl.NumberFormat('id-ID');
 const date = value => new Date(value).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB';
 const text = (tag, value) => { const node = document.createElement(tag); node.textContent = value; return node; };
 let regions = [];
+const SEASONS = [['halloween', 'Halloween'], ['lebaran', 'Lebaran'], ['natal', 'Natal'], ['newyear', 'Tahun Baru'], ['imlek', 'Imlek'], ['valentine', 'Valentine'],
+  ['ramadan', 'Ramadan'], ['iduladha', 'Idul Adha'], ['paskah', 'Paskah'], ['merdeka', '17 Agustus']];
+const WIB_OFFSET = 7 * 3600000;
+const wibInput = iso => iso ? new Date(Date.parse(iso) + WIB_OFFSET).toISOString().slice(0, 16) : '';
+const wibIso = value => value ? new Date(Date.parse(value + ':00+07:00')).toISOString() : null;
+const wibDay = time => new Date(time + WIB_OFFSET).toISOString().slice(0, 10);
 
 function compareRegions() {
   const first = regions[Number($('region-first').value)], second = regions[Number($('region-second').value)];
@@ -59,7 +65,7 @@ export function initCmsTools({ api }) {
   const printReport = () => { document.querySelector('[data-view="overview"]').click(); window.print(); };
   $('print-report').addEventListener('click', printReport); $('print-overview').addEventListener('click', printReport);
   let auditCursor = null;
-  const eventNames = { login: 'Login berhasil', login_failed: 'Login gagal', logout: 'Keluar', logout_all: 'Keluar semua sesi', password_changed: 'Password diubah', mfa_enabled: '2FA diaktifkan', mfa_disabled: '2FA dinonaktifkan', recovery_regenerated: 'Kode pemulihan diganti', session_revoked: 'Sesi dicabut', visitors_reset: 'Data kunjungan direset', content_updated: 'Pengumuman diubah', discord_notice_published: 'Pengumuman dipasang lewat Discord', discord_notice_hidden: 'Pengumuman disembunyikan lewat Discord', discord_migration_scheduled: 'Jadwal migrasi dibuat', discord_migration_started: 'Jadwal migrasi dimulai', discord_migration_skipped: 'Jadwal migrasi dilewati', discord_migration_done: 'Migrasi ditandai selesai', discord_migration_cancelled: 'Jadwal migrasi dibatalkan' };
+  const eventNames = { login: 'Login berhasil', login_failed: 'Login gagal', logout: 'Keluar', logout_all: 'Keluar semua sesi', password_changed: 'Password diubah', mfa_enabled: '2FA diaktifkan', mfa_disabled: '2FA dinonaktifkan', recovery_regenerated: 'Kode pemulihan diganti', session_revoked: 'Sesi dicabut', visitors_reset: 'Data kunjungan direset', content_updated: 'Pengumuman diubah', site_config_updated: 'Pengaturan musim atau dukungan diubah', discord_notice_published: 'Pengumuman dipasang lewat Discord', discord_notice_hidden: 'Pengumuman disembunyikan lewat Discord', discord_migration_scheduled: 'Jadwal migrasi dibuat', discord_migration_started: 'Jadwal migrasi dimulai', discord_migration_skipped: 'Jadwal migrasi dilewati', discord_migration_done: 'Migrasi ditandai selesai', discord_migration_cancelled: 'Jadwal migrasi dibatalkan' };
   async function audit(append = false) {
     $('audit-status').textContent = 'Memuat riwayat…';
     $('audit-refresh').disabled = true; $('audit-more').disabled = true;
@@ -94,16 +100,95 @@ export function initCmsTools({ api }) {
     if (!$('content-settings').open) return;
     try {
       const content = await api('/api/admin/content'); $('notice-enabled').checked = content.enabled;
-      $('notice-title').value = content.title; $('notice-message').value = content.message; $('content-status').textContent = 'Konten saat ini sudah dimuat.';
+      $('notice-title').value = content.title; $('notice-message').value = content.message;
+      $('notice-starts').value = wibInput(content.startsAt); $('notice-ends').value = wibInput(content.endsAt);
+      $('content-status').textContent = content.visibleNow ? 'Pengumuman sedang tampil di situs.' : content.enabled ? 'Pengumuman aktif, tetapi sedang di luar jadwal tampil.' : 'Pengumuman tidak aktif.';
     } catch (error) { $('content-status').textContent = 'Konten gagal dimuat: ' + error.message; }
   });
   $('content-form').addEventListener('submit', async event => {
     event.preventDefault(); const button = event.submitter || $('content-form').querySelector('button[type=submit]'); button.disabled = true;
     try {
-      await api('/api/admin/content', { method: 'POST', body: JSON.stringify({ enabled: $('notice-enabled').checked, title: $('notice-title').value, message: $('notice-message').value }) });
+      await api('/api/admin/content', { method: 'POST', body: JSON.stringify({ enabled: $('notice-enabled').checked, title: $('notice-title').value, message: $('notice-message').value, startsAt: wibIso($('notice-starts').value), endsAt: wibIso($('notice-ends').value) }) });
       $('content-status').textContent = 'Pengumuman tersimpan. Tab website yang aktif memuat perubahan maksimal sekitar satu menit.';
     } catch (error) { $('content-status').textContent = 'Gagal menyimpan: ' + error.message; }
     finally { button.disabled = false; }
+  });
+
+  function seasonRows() {
+    if ($('seasons-rows').children.length) return;
+    for (const [id, label] of SEASONS) {
+      const row = document.createElement('div'); row.className = 'season-row';
+      const field = (name, input) => { const wrap = document.createElement('label'); wrap.className = 'season-field'; wrap.append(text('span', name), input); return wrap; };
+      const mode = document.createElement('select'); mode.id = 'season-mode-' + id;
+      for (const [value, name] of [['auto', 'Otomatis'], ['on', 'Selalu tampil'], ['off', 'Sembunyikan']]) mode.add(new window.Option(name, value));
+      const from = document.createElement('input'); from.type = 'date'; from.id = 'season-from-' + id;
+      const to = document.createElement('input'); to.type = 'date'; to.id = 'season-to-' + id;
+      row.append(text('strong', label), field('Mode', mode), field('Mulai', from), field('Selesai', to)); $('seasons-rows').append(row);
+    }
+  }
+  async function siteConfig() {
+    seasonRows();
+    try {
+      const config = await api('/api/admin/site-config');
+      for (const [id] of SEASONS) {
+        const rule = config.seasons[id] || {};
+        $('season-mode-' + id).value = rule.mode || 'auto'; $('season-from-' + id).value = rule.from || ''; $('season-to-' + id).value = rule.to || '';
+      }
+      $('support-enabled').checked = config.support.enabled; $('support-trakteer-url').value = config.support.trakteerUrl; $('support-kofi-url').value = config.support.kofiUrl;
+      $('seasons-status').textContent = 'Pengaturan musim sudah dimuat.'; $('support-status').textContent = 'Pengaturan dukungan sudah dimuat.';
+    } catch (error) { $('seasons-status').textContent = $('support-status').textContent = 'Pengaturan gagal dimuat: ' + error.message; }
+  }
+  $('seasons-settings').addEventListener('toggle', () => { if ($('seasons-settings').open) siteConfig(); });
+  $('support-settings').addEventListener('toggle', () => { if ($('support-settings').open) siteConfig(); });
+  async function save(form, status, body, message) {
+    const button = form.querySelector('button[type=submit]'); button.disabled = true;
+    try { await api('/api/admin/site-config', { method: 'POST', body: JSON.stringify(body) }); $(status).textContent = message; }
+    catch (error) { $(status).textContent = 'Gagal menyimpan: ' + error.message; }
+    finally { button.disabled = false; }
+  }
+  $('seasons-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const seasons = Object.fromEntries(SEASONS.map(([id]) => [id, { mode: $('season-mode-' + id).value, from: $('season-from-' + id).value, to: $('season-to-' + id).value }]));
+    save($('seasons-form'), 'seasons-status', { seasons }, 'Musim tersimpan. Pengunjung memuat perubahan saat membuka atau memuat ulang situs.');
+  });
+  $('support-form').addEventListener('submit', event => {
+    event.preventDefault();
+    save($('support-form'), 'support-status', { support: { enabled: $('support-enabled').checked, trakteerUrl: $('support-trakteer-url').value, kofiUrl: $('support-kofi-url').value } },
+      'Tautan dukungan tersimpan. Pengunjung memuat perubahan saat membuka atau memuat ulang situs.');
+  });
+  function usageRange() {
+    const days = Number($('usage-range').value), today = wibDay(Date.now());
+    return `from=${wibDay(Date.now() - (days - 1) * 86400000)}&to=${today}`;
+  }
+  function usageList(id, rows) {
+    const peak = Math.max(1, ...rows.map(row => row.count));
+    $(id).replaceChildren(...rows.map(row => {
+      const item = document.createElement('li'); const bar = document.createElement('div'); bar.className = 'bar'; const fill = document.createElement('i'); fill.style.width = (row.count / peak * 100) + '%'; bar.append(fill);
+      item.append(text('span', `${row.name}: ${number.format(row.count)}`), bar); return item;
+    }));
+    if (!rows.length) $(id).append(text('li', 'Belum ada data pada periode ini.'));
+  }
+  async function usage() {
+    $('usage-status').textContent = 'Memuat penggunaan fitur…';
+    try {
+      const data = await api('/api/admin/usage?' + usageRange()); const t = data.totals; const clicks = t.support_trakteer + t.support_kofi;
+      $('usage-png').textContent = number.format(t.png); $('usage-gif').textContent = number.format(t.gif);
+      $('usage-shown').textContent = number.format(t.support_shown); $('usage-clicks').textContent = number.format(clicks);
+      $('usage-support').textContent = t.support_shown ? `Trakteer ${number.format(t.support_trakteer)}, Ko-fi ${number.format(t.support_kofi)}. ${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(clicks / t.support_shown * 100)}% dari popup yang tampil berujung klik.` : 'Belum ada popup dukungan pada periode ini.';
+      usageList('usage-themes', data.themes); usageList('usage-filters', data.filters);
+      $('usage-days').replaceChildren(...[...data.daily].reverse().map(row => { const tr = document.createElement('tr'); tr.append(text('td', row.date), ...[row.png, row.gif, row.support_shown, row.support_trakteer, row.support_kofi].map(value => { const td = text('td', number.format(value)); td.className = 'num'; return td; })); return tr; }));
+      $('usage-status').textContent = `${data.from} s.d. ${data.to} (WIB). Hitungan anonim per kejadian.`;
+    } catch (error) { $('usage-status').textContent = 'Penggunaan fitur gagal dimuat: ' + error.message; }
+  }
+  document.querySelector('[data-view="usage"]').addEventListener('click', usage); $('usage-range').addEventListener('change', usage);
+  $('usage-export').addEventListener('click', async () => {
+    $('usage-export').disabled = true;
+    try {
+      const response = await api('/api/admin/stats.csv?' + usageRange(), { raw: true }); const url = window.URL.createObjectURL(await response.blob());
+      const link = document.createElement('a'); link.href = url; link.download = 'snappie-statistik.csv'; document.body.append(link); link.click(); link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000); $('usage-status').textContent = 'CSV statistik berhasil diunduh.';
+    } catch (error) { $('usage-status').textContent = 'Unduhan gagal: ' + error.message; }
+    finally { $('usage-export').disabled = false; }
   });
   async function health() {
     $('health-status').textContent = 'Memeriksa layanan…'; $('refresh-health').disabled = true;

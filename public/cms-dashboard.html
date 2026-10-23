@@ -25,6 +25,7 @@
       <button type="button" data-view="trends" aria-controls="trends-panel" aria-pressed="false">Tren dan waktu</button>
       <button type="button" data-view="regions" aria-controls="regions-panel" aria-pressed="false">Wilayah</button>
       <button type="button" data-view="visits" aria-controls="visits-panel" aria-pressed="false">Kunjungan</button>
+      <button type="button" data-view="usage" aria-controls="usage-panel" aria-pressed="false">Penggunaan fitur</button>
       <button type="button" data-view="settings" aria-controls="settings-panel" aria-pressed="false">Pengaturan</button>
     </nav>
     <div class="dashboard-content">
@@ -157,6 +158,25 @@
       <p id="empty" class="empty" hidden>Tidak ada lokasi pengunjung yang sesuai filter.</p>
     </div>
     </section>
+    <section id="usage-panel" aria-label="Penggunaan fitur" hidden>
+      <div class="section-heading"><h2>Penggunaan fitur</h2><button id="usage-export" type="button">Unduh CSV statistik</button></div>
+      <label for="usage-range">Periode</label>
+      <select id="usage-range"><option value="7">7 hari terakhir</option><option value="30" selected>30 hari terakhir</option><option value="90">90 hari terakhir</option></select>
+      <p id="usage-status" class="note" role="status">Buka bagian ini untuk memuat data.</p>
+      <section class="summary" aria-label="Ringkasan penggunaan fitur">
+        <div><strong id="usage-png">…</strong><span>PNG diunduh</span></div>
+        <div><strong id="usage-gif">…</strong><span>GIF diunduh</span></div>
+        <div><strong id="usage-shown">…</strong><span>Popup dukungan tampil</span></div>
+        <div><strong id="usage-clicks">…</strong><span>Klik tautan dukungan</span></div>
+      </section>
+      <p id="usage-support" class="note"></p>
+      <div class="usage-lists">
+        <div><h3>Tema yang paling sering diunduh</h3><ol id="usage-themes" class="usage-list"></ol></div>
+        <div><h3>Efek foto yang paling sering diunduh</h3><ol id="usage-filters" class="usage-list"></ol></div>
+      </div>
+      <details><summary>Angka harian</summary><div class="table-wrap" tabindex="0" role="region" aria-label="Angka penggunaan harian, dapat digulir"><table><thead><tr><th>Tanggal (WIB)</th><th class="num">PNG</th><th class="num">GIF</th><th class="num">Popup tampil</th><th class="num">Trakteer</th><th class="num">Ko-fi</th></tr></thead><tbody id="usage-days"></tbody></table></div></details>
+      <p class="note">Hanya hitungan anonim per hari. Tidak menyimpan foto, ID browser, atau IP. Browser admin (mode maintenance) tidak dihitung. Reset data kunjungan tidak menghapus hitungan ini.</p>
+    </section>
     <div data-report-control>
     <div class="actions">
       <button id="refresh" type="button">Muat ulang</button>
@@ -219,7 +239,17 @@
       <details id="reset-settings"><summary>Reset data kunjungan</summary><p class="note">Hapus seluruh data kunjungan dan aktivitas. Riwayat admin dan pengecualian browser tetap disimpan.</p><button id="reset" type="button">Reset hitungan</button></details>
       <details id="discord-settings"><summary>Bot Discord dan jadwal migrasi</summary><p class="note">Gunakan /pengumuman untuk mengatur pengumuman manual. Gunakan /migrasi jadwalkan untuk pengingat dan pengumuman otomatis dalam WIB. Bot tidak memindahkan data server.</p><p id="discord-bot-status" class="note" role="status"></p><ol id="discord-jobs" class="audit-list"></ol><button id="refresh-discord" type="button">Muat status bot</button></details>
       <details id="content-settings"><summary>Pengumuman situs</summary>
-        <form id="content-form" class="account-form"><label class="auto-refresh"><input id="notice-enabled" type="checkbox"> Tampilkan pengumuman</label><label for="notice-title">Judul</label><input id="notice-title" maxlength="80"><label for="notice-message">Pesan</label><textarea id="notice-message" maxlength="500" rows="4"></textarea><button type="submit">Simpan pengumuman</button></form><p id="content-status" class="note" role="status"></p>
+        <form id="content-form" class="account-form"><label class="auto-refresh"><input id="notice-enabled" type="checkbox"> Tampilkan pengumuman</label><label for="notice-title">Judul</label><input id="notice-title" maxlength="80"><label for="notice-message">Pesan</label><textarea id="notice-message" maxlength="500" rows="4"></textarea><label for="notice-starts">Mulai tampil (WIB, opsional)</label><input id="notice-starts" type="datetime-local"><label for="notice-ends">Selesai tampil (WIB, opsional)</label><input id="notice-ends" type="datetime-local"><p class="note">Kosongkan jadwal untuk menampilkan pengumuman selama kotak di atas dicentang. Pengumuman otomatis berhenti tampil setelah waktu selesai.</p><button type="submit">Simpan pengumuman</button></form><p id="content-status" class="note" role="status"></p>
+      </details>
+      <details id="seasons-settings"><summary>Musim stiker</summary>
+        <p class="note">Atur kapan tiap grup stiker musiman tampil sebagai "Sekarang". Otomatis memakai tanggal bawaan; isi tanggal mulai dan selesai untuk menggantinya tahun ini, misalnya tanggal Lebaran. "Selalu tampil" memaksa aktif dan "Sembunyikan" menghilangkan grup dari menu stiker. Tanggal hanya berlaku pada mode Otomatis.</p>
+        <form id="seasons-form" class="account-form seasons-form"><div id="seasons-rows" class="seasons-rows"></div><button type="submit">Simpan musim</button></form>
+        <p id="seasons-status" class="note" role="status"></p>
+      </details>
+      <details id="support-settings"><summary>Tautan dukungan</summary>
+        <p class="note">Popup dukungan muncul setelah pengunjung mengunduh PNG, sebelum pertanyaan "Mau jepret lagi?". Hanya alamat trakteer.id dan ko-fi.com yang diterima. Kosongkan kolom untuk menyembunyikan tombolnya.</p>
+        <form id="support-form" class="account-form"><label class="auto-refresh"><input id="support-enabled" type="checkbox"> Tampilkan popup dukungan</label><label for="support-trakteer-url">Tautan Trakteer</label><input id="support-trakteer-url" type="url" maxlength="200" placeholder="https://trakteer.id/…"><label for="support-kofi-url">Tautan Ko-fi</label><input id="support-kofi-url" type="url" maxlength="200" placeholder="https://ko-fi.com/…"><button type="submit">Simpan tautan</button></form>
+        <p id="support-status" class="note" role="status"></p>
       </details>
       <details id="audit-settings"><summary>Riwayat aktivitas admin</summary><p class="note">Menyimpan maksimal 10.000 kejadian selama 90 hari. Password, kode autentikator, dan IP tidak dicatat.</p><p id="audit-status" class="note" role="status"></p><ol id="audit-list" class="audit-list"></ol><div class="settings-actions"><button id="audit-refresh" type="button">Muat terbaru</button><button id="audit-more" type="button">Muat lebih lama</button></div></details>
       <details id="reports-settings"><summary>Laporan mingguan dan bulanan</summary><p class="note">Ringkasan periode yang sudah selesai dibuat otomatis tiap hari. Pilih laporan untuk membaca atau mengunduh salinannya. Data sebelum awal pencatatan bisa belum lengkap.</p><label for="saved-report">Laporan tersimpan</label><select id="saved-report"></select><p id="saved-report-summary" class="note" role="status"></p><button id="download-saved-report" type="button" disabled>Unduh laporan JSON</button></details>

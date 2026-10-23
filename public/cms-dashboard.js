@@ -26,7 +26,8 @@ const viewText = {
   trends: ['Tren dan waktu', 'Telusuri perkembangan kunjungan, jam ramai, dan kalender harian.'],
   regions: ['Wilayah kunjungan', 'Lihat persebaran provinsi dan bandingkan lokasi pengunjung.'],
   visits: ['Daftar kunjungan', 'Telusuri pengunjung dan unduh laporan sesuai filter.'],
-  settings: ['Pengaturan CMS', 'Kelola akun, autentikator, dan status pemeliharaan.'],
+  usage: ['Penggunaan fitur', 'Lihat unduhan, tema populer, dan klik tautan dukungan tanpa data pribadi.'],
+  settings: ['Pengaturan CMS', 'Kelola akun, musim stiker, tautan dukungan, dan status pemeliharaan.'],
 };
 for (const button of viewButtons) button.addEventListener('click', () => {
   currentView = button.dataset.view;
@@ -35,7 +36,7 @@ for (const button of viewButtons) button.addEventListener('click', () => {
     item.setAttribute('aria-pressed', String(active));
     $(item.getAttribute('aria-controls')).hidden = !active;
   }
-  for (const element of document.querySelectorAll('[data-report-control], #tracking-note')) element.hidden = currentView === 'settings';
+  for (const element of document.querySelectorAll('[data-report-control], #tracking-note')) element.hidden = currentView === 'settings' || currentView === 'usage';
   for (const element of document.querySelectorAll('[data-overview-control]')) element.hidden = currentView !== 'overview';
   [$('view-heading').textContent, $('view-description').textContent] = viewText[currentView];
   if (currentView === 'trends') drawCharts();

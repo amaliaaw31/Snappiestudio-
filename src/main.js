@@ -1,6 +1,7 @@
 /* Photo Booth — app logic: camera, filters, countdown, capture, result, stickers. */
 
 import { FILTERS, THEMES, CHARS, CHAR_SVG, CHAR_NAMES, dateLine, formatDate, filterCss, fontTracking, fontLineHeight, DATE_COLORS, seasonsFor } from './data.js';
+import { siteConfig, loadSiteConfig, track } from './site-config.js';
 import { OUTPUT_FORMATS, formatOutput } from './output.js';
 import { FAVORITES_KEY, favoriteSettings, readFavorites } from './favorites.js';
 import { movePhoto } from './photo-order.js';
@@ -158,6 +159,7 @@ let historyWorks = true;
 let updateFilterEdges = () => {};
 let updateHomeActions = () => {};
 let refreshEmojiPicker = () => {};
+let refreshSeasons = () => {};
 let demoTheme = 'pastel';
 let demoComparison = 100;
 let pendingDemoFilter = null;
@@ -2597,26 +2599,32 @@ function initStickerPicker() {
   refreshEmojiPicker = renderEmojiPicker;
   renderEmojiPicker();
 
-  seasonsFor().forEach(season => {
-    const group = document.createElement('div');
-    group.className = 'season-group';
-    group.innerHTML = '<h3 class="sticker-section-title"><span data-i18n="season.' + season.id + '">' + tr('season.' + season.id) + '</span>' +
-      (season.now ? ' <span class="season-now" data-i18n="st.now">' + tr('st.now') + '</span>' : '') + '</h3><div class="sticker-grid"></div>';
-    season.chars.forEach(id => {
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'sticker-item';
-      item.title = CHAR_NAMES[id];
-      item.setAttribute('aria-label', CHAR_NAMES[id]);
-      item.innerHTML = '<svg aria-hidden="true"><use href="#ch-' + id + '"/></svg>';
-      item.onclick = () => {
-        addSticker('char', id);
-        closeModal('sticker-modal');
-      };
-      group.lastChild.appendChild(item);
+  refreshSeasons = () => {
+    $('sticker-season-panel').replaceChildren();
+    seasonsFor(new Date(), siteConfig.seasons).forEach(season => {
+      const group = document.createElement('div');
+      group.className = 'season-group';
+      group.innerHTML = '<h3 class="sticker-section-title"><span data-i18n="season.' + season.id + '">' + tr('season.' + season.id) + '</span>' +
+        (season.now ? ' <span class="season-now" data-i18n="st.now">' + tr('st.now') + '</span>' : '') + '</h3><div class="sticker-grid"></div>';
+      season.chars.forEach(id => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'sticker-item';
+        item.title = CHAR_NAMES[id];
+        item.setAttribute('aria-label', CHAR_NAMES[id]);
+        item.innerHTML = '<svg aria-hidden="true"><use href="#ch-' + id + '"/></svg>';
+        item.onclick = () => {
+          addSticker('char', id);
+          closeModal('sticker-modal');
+        };
+        group.lastChild.appendChild(item);
+      });
+      $('sticker-season-panel').appendChild(group);
     });
-    $('sticker-season-panel').appendChild(group);
-  });
+    applyI18n($('sticker-season-panel'));
+  };
+  refreshSeasons();
+  loadSiteConfig().then(loaded => { if (loaded) refreshSeasons(); });
 
   const textInput = $('sticker-text-input');
   const btnAddText = $('btn-add-text');
@@ -3270,7 +3278,17 @@ function offerAnotherSession() {
 }
 /* Setelah PNG diunduh: popup dukungan dulu, baru tawaran sesi baru (lihat closeModal). */
 function offerSupport() {
+  const { enabled, trakteerUrl, kofiUrl } = siteConfig.support;
+  for (const [id, url] of [['support-trakteer', trakteerUrl], ['support-kofi', kofiUrl]]) {
+    if (url) $(id).href = url;
+    $(id).hidden = !url;
+  }
+  if (!enabled || (!trakteerUrl && !kofiUrl)) { offerAnotherSession(); return; }
+  track('support_shown');
   openModal('support-modal');
+}
+for (const [id, event] of [['support-trakteer', 'support_trakteer'], ['support-kofi', 'support_kofi']]) {
+  for (const type of ['click', 'auxclick']) $(id).addEventListener(type, () => track(event));
 }
 const supportModal = $('support-modal');
 if (supportModal) supportModal.onclick = (e) => { if (e.target === supportModal) closeModal('support-modal'); };
@@ -3312,6 +3330,7 @@ $('btn-download').onclick = async () => {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     markPhotosSaved(exportKey);
+    track('png', { theme: state.theme, filter: state.photos[0]?.filter || state.filter });
     offerSupport();
   } catch (e) {
     alert(tr('toast.failPng'));
@@ -3604,6 +3623,7 @@ $('btn-gif').onclick = async () => {
     document.body.appendChild(anchor); anchor.click(); anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
     markPhotosSaved(exportKey);
+    track('gif', { theme: settings.theme });
   } catch { showToast(tr('out.error')); }
   finally { button.disabled = false; button.textContent = tr('out.gif'); }
 };

@@ -103,3 +103,19 @@ test('every season sticker group is active in some part of the year', () => {
   }
   assert.deepEqual([...ids].sort(), SEASONS.map(s => s.id).sort());
 });
+
+test('CMS overrides hide, force or re-date a season', () => {
+  const day = new Date('2026-07-01T12:00');
+  const now = overrides => seasonsFor(day, overrides).filter(s => s.now).map(s => s.id);
+  assert.deepEqual(now({}), []);
+  assert.deepEqual(now({ natal: { mode: 'on' } }), ['natal']);
+  assert.equal(seasonsFor(day, { natal: { mode: 'on' } })[0].id, 'natal');
+  assert.deepEqual(now({ paskah: { mode: 'auto', from: '2026-06-28', to: '2026-07-02' } }), ['paskah']);
+  assert.deepEqual(now({ paskah: { mode: 'auto', from: '2026-07-02', to: '2026-07-09' } }), []);
+  assert.ok(!seasonsFor(new Date('2026-10-23T12:00'), { halloween: { mode: 'off' } }).some(s => s.id === 'halloween'));
+  assert.equal(seasonsFor(new Date('2026-10-23T12:00'), { halloween: { mode: 'off' } }).length, SEASONS.length - 1);
+});
+
+test('theme and filter ids are safe for usage events', () => {
+  for (const item of [...THEMES, ...FILTERS]) assert.match(item.id, /^[a-z0-9]{1,24}$/);
+});

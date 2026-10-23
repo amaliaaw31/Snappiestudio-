@@ -207,9 +207,19 @@ export const SEASONS = [
   { id: 'paskah', chars: ['paskahegg', 'chickegg', 'carrot'], active: d => near(d, PASKAH_DATES, 10, 2) },
   { id: 'merdeka', chars: ['benderaid', 'kerupuk', 'karung'], active: d => monthDay(d) >= 801 && monthDay(d) <= 831 },
 ];
-export function seasonsFor(date = new Date()) {
-  return [...SEASONS].sort((a, b) => b.active(date) - a.active(date))
-    .map(season => ({ id: season.id, chars: season.chars, now: season.active(date) }));
+/* overrides dari CMS: { id: { mode: 'auto' | 'on' | 'off', from?, to? } }. 'off' menyembunyikan musim,
+   'on' memaksa aktif, 'auto' dengan tanggal memakai rentang itu, selain itu aturan bawaan di atas. */
+export function seasonsFor(date = new Date(), overrides = {}) {
+  const day = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+  const isNow = season => {
+    const rule = overrides[season.id];
+    if (rule?.mode === 'on') return true;
+    if (rule?.mode === 'auto' && rule.from && rule.to) return day >= rule.from && day <= rule.to;
+    return season.active(date);
+  };
+  return SEASONS.filter(season => overrides[season.id]?.mode !== 'off')
+    .map(season => ({ id: season.id, chars: season.chars, now: isNow(season) }))
+    .sort((a, b) => b.now - a.now);
 }
 
 export function filterCss(id) {

@@ -14,6 +14,8 @@ let acceptDialogs = true;
 const nativeDialogs = [];
 const fileChoosers = [];
 const pending = new Map(), exceptions = [];
+const apiEvents = [];
+let siteConfigBody = '{"total":0}';
 socket.addEventListener('message', async event => {
   const message = JSON.parse(event.data);
   if (message.id) {
@@ -29,10 +31,12 @@ socket.addEventListener('message', async event => {
   } else if (message.method === 'Runtime.exceptionThrown') {
     exceptions.push(message.params.exceptionDetails.text);
   } else if (message.method === 'Fetch.requestPaused') {
+    const requestUrl = message.params.request.url;
+    if (requestUrl.endsWith('/api/events')) apiEvents.push(message.params.request.postData || '');
     await send('Fetch.fulfillRequest', {
       requestId: message.params.requestId, responseCode: 200,
       responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
-      body: Buffer.from('{"total":0}').toString('base64'),
+      body: Buffer.from(requestUrl.endsWith('/api/site-config') ? siteConfigBody : '{"total":0}').toString('base64'),
     });
   }
 });
@@ -114,6 +118,10 @@ async function checkExport(label) {
   assert.ok(png.width > 0 && png.height > 0 && png.type === 'image/png', label);
   await check("document.querySelector('#support-modal').classList.contains('open') && !document.querySelector('#again-modal').classList.contains('open')", `${label}: PNG download opens the support popup first`);
   await check(`(() => { const links = [...document.querySelectorAll('#support-modal .support-links a')]; return links.length === 2 && links[0].href === 'https://trakteer.id/snappiestudio/gift' && links[1].href === 'https://ko-fi.com/snappiestudio' && links.every(a => a.target === '_blank' && a.rel.includes('noopener') && a.rel.includes('noreferrer') && a.getBoundingClientRect().height >= 44 && a.getBoundingClientRect().right <= innerWidth + 1); })()`, `${label}: support links are correct, tappable and not clipped`);
+  for (let attempt = 0; attempt < 40 && !apiEvents.some(body => body.includes('"png"')); attempt++) await new Promise(resolve => setTimeout(resolve, 50));
+  assert.ok(apiEvents.some(body => { const value = JSON.parse(body); return value.event === 'png' && /^[a-z0-9]{1,24}$/.test(value.theme) && /^[a-z0-9]{1,24}$/.test(value.filter); }), `${label}: PNG download sends an anonymous event with theme and filter`);
+  assert.ok(apiEvents.every(body => Object.keys(JSON.parse(body)).every(key => ['event', 'theme', 'filter'].includes(key))), `${label}: usage events carry no photo, text or browser identifiers`);
+  console.log(`PASS ${label}: usage events are anonymous`);
   await click('#btn-support-next');
   await check("document.querySelector('#again-modal').classList.contains('open') && !document.querySelector('#support-modal').classList.contains('open')", `${label}: support popup continues to the next-session dialog`);
   await click('#btn-close-again');
@@ -158,7 +166,7 @@ async function checkPhotoLayout(holder, count) {
 try {
   await send('Runtime.enable');
   await send('Page.enable');
-  await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/visitors' }] });
+  await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/visitors' }, { urlPattern: '*/api/site-config' }, { urlPattern: '*/api/events' }] });
   await send('Page.addScriptToEvaluateOnNewDocument', { source: "localStorage.setItem('snappie-lang', 'id'); localStorage.removeItem('snappie-prefs-v1');" });
   await send('Page.navigate', { url });
   await waitFor("document.querySelector('#btn-start')?.onclick != null");
@@ -701,6 +709,14 @@ try {
   await waitFor("!window.beforeVerificationReload && document.querySelector('#btn-start')?.onclick != null && document.querySelector('#favorite-list')?.value === 'Reload test'");
   await check("document.querySelector('#favorite-list').value === 'Reload test' && document.querySelector('#scr-start').classList.contains('active') && document.querySelectorAll('#preview-holder .slot').length === 0", 'favorites survive reload without restoring private photos');
   await evaluate("document.querySelector('#favorite-delete').click()");
+  siteConfigBody = JSON.stringify({ seasons: { natal: { mode: 'on' }, halloween: { mode: 'off' } }, support: { enabled: false, trakteerUrl: '', kofiUrl: '' } });
+  await evaluate('window.beforeConfigReload = true');
+  await send('Page.reload');
+  await waitFor("!window.beforeConfigReload && document.querySelector('#btn-start')?.onclick != null");
+  await evaluate("document.querySelector('#btn-add-sticker').click()");
+  await waitFor("document.querySelectorAll('#sticker-season-panel .season-group').length === 9");
+  await check("document.querySelector('#sticker-season-panel .season-group h3').textContent.includes('Natal') && !!document.querySelector('#sticker-season-panel .season-now') && ![...document.querySelectorAll('#sticker-season-panel h3')].some(heading => heading.textContent.includes('Halloween'))", 'CMS season settings reorder and hide sticker groups');
+  await click('#btn-close-sticker');
   assert.ok(nativeDialogs.every(dialog => ['confirm', 'beforeunload'].includes(dialog.type)), 'no unexpected alert dialogs');
   assert.deepEqual(exceptions, [], 'no uncaught browser exceptions');
   console.log('PASS no uncaught browser exceptions');
