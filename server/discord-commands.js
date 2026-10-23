@@ -3,6 +3,13 @@ const string = (name, description, required = true, max_length = 500) => ({ type
 const sub = (name, description, options = []) => ({ type: 1, name, description, options });
 export const discordCommands = [
   { name: 'status', description: 'Periksa website dan API Snappie Studio', type: 1, default_member_permissions: '0' },
+  ...[
+    ['website', 'Periksa HTTP dan waktu respons website'],
+    ['server', 'Ringkasan CPU, RAM, dan disk VPS'],
+    ['ssl', 'Periksa masa berlaku sertifikat website'],
+    ['logs', 'Ringkasan aman catatan error yang diizinkan'],
+    ['uptime', 'Lama host dan layanan aktif'],
+  ].map(([name, description]) => ({ name, description, type: 1, default_member_permissions: '0' })),
   { name: 'pengumuman', description: 'Kelola pengumuman di website Snappie Studio', type: 1, default_member_permissions: '0', options: [
     sub('pasang', 'Tampilkan pengumuman pada website', [string('pesan', 'Isi pengumuman untuk pengunjung'), string('judul', 'Judul pengumuman', false, 80)]),
     sub('hapus', 'Sembunyikan pengumuman website'), sub('status', 'Lihat pengumuman yang sedang aktif'),

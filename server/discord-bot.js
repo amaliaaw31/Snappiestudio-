@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { contentResponse, saveContent, validateContent } from './cms-operations.js';
 import { json } from './security.js';
-import { websiteStatus } from './discord-status.js';
+import { createReadCommands } from './discord-read-commands.js';
 
 const snowflake = value => typeof value === 'string' && /^\d{15,22}$/.test(value);
 const DAY = 86400000;
@@ -112,7 +112,7 @@ function command(db, directory, interaction, now, audit) {
   throw bad('Perintah tidak dikenal. Gunakan /status, /pengumuman, atau /migrasi.');
 }
 
-export async function receiveDiscord(request, response, { db, directory, configPath, now = Date.now, audit = () => {}, statusFetch = fetch }) {
+export async function receiveDiscord(request, response, { db, directory, configPath, now = Date.now, audit = () => {}, readCommands }) {
   if (request.method !== 'POST') { response.setHeader('Allow', 'POST'); json(response, 405, { error: 'Method not allowed' }); return; }
   let config;
   try { config = loadBotConfig(configPath); } catch { json(response, 503, { error: 'Bot unavailable' }); return; }
@@ -142,7 +142,13 @@ export async function receiveDiscord(request, response, { db, directory, configP
   }
   const cached = db.prepare('SELECT response FROM discord_interactions WHERE id=?').get(interaction.id);
   if (cached) { json(response, 200, JSON.parse(cached.response)); return; }
-  const status = interaction.data?.name === 'status' ? reply(await websiteStatus(statusFetch)) : null;
+  const checks = readCommands || createReadCommands({ db, directory, now });
+  const name = interaction.data?.name;
+  let status = null;
+  if (Object.hasOwn(checks, name)) {
+    try { status = reply(await checks[name]()); }
+    catch { status = reply('Pemeriksaan: UNKNOWN. Data tidak dapat diperiksa; tidak ada tindakan layanan yang dijalankan.'); }
+  }
   db.exec('BEGIN IMMEDIATE');
   try {
     const previous = db.prepare('SELECT response FROM discord_interactions WHERE id=?').get(interaction.id);

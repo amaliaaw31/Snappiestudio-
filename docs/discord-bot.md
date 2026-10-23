@@ -104,3 +104,19 @@ Backup mencakup jadwal, cache interaction, audit, serta konfigurasi bot bila ter
 Referensi: [HTTP interactions dan tanda tangan Discord](https://docs.discord.com/developers/interactions/overview), [application commands](https://docs.discord.com/developers/interactions/application-commands).
 
 Perubahan visibilitas balasan berlaku pada command baru setelah backend memuat kode terbaru. Tidak perlu mendaftarkan ulang command untuk perubahan ini karena nama dan opsi command tetap sama. Mention tetap dinonaktifkan pada balasan.
+
+## Fase 1: pemeriksaan read-only
+
+Command tambahan: `/website`, `/server`, `/ssl`, `/logs`, dan `/uptime`. `/status` tetap tersedia dan menambahkan status handler bot. Semua command memakai verifikasi signature, aplikasi, guild, kanal, dan user yang sama. Respons berupa pesan channel biasa; jangan menganggap isi channel privat bagi pemanggil saja.
+
+- `/status` memeriksa website dan dua API publik. Bot UP berarti handler menerima command terautentikasi tersebut, bukan bukti koneksi Gateway atau kesehatan semua fungsi bot.
+- `/website` hanya memeriksa HTTP halaman utama dan waktu respons. Keduanya memakai tujuan tetap, menolak redirect, dan membatasi jaringan 1,5 detik, termasuk pembacaan body API.
+- UP berarti respons valid; durasi mulai 1.000 ms menjadi DEGRADED. Respons HTTP selain 200 atau payload tidak valid menjadi DEGRADED. Kegagalan jaringan pertama menjadi UNKNOWN. Dua kegagalan jaringan/HTTP 5xx berturut-turut dalam lima menit dapat menjadi DOWN untuk endpoint tersebut. Keberhasilan mereset penghitung. Riwayat kecil ini hanya dalam memori proses; bukan riwayat uptime dan tidak menyimpulkan seluruh VPS mati.
+- `/server` mengambil selisih waktu CPU dalam sampel 150 ms, persentase RAM terpakai termasuk cache OS, serta disk tempat data aplikasi berada. Nilai 90% atau lebih menandakan DEGRADED; metrik yang tidak tersedia dilaporkan UNKNOWN. Tidak menampilkan hostname, IP, nama proses, atau path server.
+- `/ssl` membuka koneksi TLS terverifikasi hanya ke `snappiestudio.com:443`, dengan batas waktu total 1,2 detik. Hasil menampilkan tanggal kedaluwarsa UTC dan sisa hari. Masa berlaku di bawah 14 hari menjadi DEGRADED. Verifikasi atau koneksi gagal menghasilkan UNKNOWN; tidak mencetak isi sertifikat atau error mentah.
+- `/logs` menghitung login CMS gagal selama 24 jam dan membaca status terakhir monitor, backup, serta scheduler. Ini ringkasan sumber yang diizinkan, bukan seluruh error aplikasi. Tidak membaca journal sistem atau mengembalikan log mentah. Waktu catatan disertakan; status lama bukan hasil probe baru.
+- `/uptime` menampilkan uptime host dan lama dua layanan aktif. Satu-satunya proses eksternal adalah `systemctl show` untuk layanan backend Snappie dan Caddy yang namanya tetap, dengan timeout 700 ms dan output terbatas. Tidak tersedia aksi restart, deploy, shell, atau layanan dari input pengguna. DOWN di sini dapat berarti layanan secara eksplisit inactive/failed, bukan kesimpulan dari satu timeout HTTP.
+
+Command baru perlu didaftarkan pada aplikasi dan guild lama saat rilis disetujui. Tidak ada registrasi, notifikasi percobaan, restart, perubahan Caddy, atau deployment produksi dalam tahap pengembangan lokal ini. Skrip registrasi saat ini masih memperbarui seluruh definisi; seleksi hanya definisi yang berubah perlu diselesaikan sebelum registrasi rilis. Jangan menjalankan setup hanya untuk menguji kode lokal.
+
+Rencana aktivasi: review hasil lint/tes/build dan diff berkas bot, siapkan revisi kode sebelumnya, lalu muat kode backend serta daftarkan command baru hanya setelah persetujuan rilis. Perubahan ini tidak menambah tabel atau mengubah data statistik. Rollback mengembalikan berkas backend ke revisi sebelumnya; tidak menghapus tabel, jadwal, atau backup. Command baru yang terlanjur terdaftar harus dikelola secara terarah setelah persetujuan, tanpa bulk overwrite yang menghapus command lama. Aktivasi/rollback proses backend mengakhiri sesi CMS aktif.

@@ -13,7 +13,7 @@ import { saveContent } from '../server/cms-operations.js';
 import { registerDiscordCommands } from '../server/discord-commands.js';
 
 const webhook = 'https://discord.com/api/webhooks/123456789012345678/abcdefghijklmnopqrstuvwxyz0123456789';
-async function app(t, discordStatusFetch) {
+async function app(t, discordStatusFetch, discordReadCommands) {
   const directory = await mkdtemp(join(tmpdir(), 'snappie-discord-'));
   const { publicKey, privateKey } = generateKeyPairSync('ed25519');
   const config = { applicationId: '100000000000000001', guildId: '100000000000000002', channelId: '100000000000000003', allowedUserIds: ['100000000000000004'], publicKey: publicKey.export({ format: 'der', type: 'spki' }).subarray(-32).toString('hex') };
@@ -21,7 +21,7 @@ async function app(t, discordStatusFetch) {
   const dbPath = join(directory, 'visitors.sqlite'); let time = Date.parse('2026-10-22T12:00:00Z');
   let server, base; let nonce = 100000000000000100n;
   async function start() {
-    server = createVisitorServer({ dbPath, discordConfigPath: configPath, discordStatusFetch, now: () => time });
+    server = createVisitorServer({ dbPath, discordConfigPath: configPath, discordStatusFetch, discordReadCommands, now: () => time });
     server.listen(0, '127.0.0.1'); await once(server, 'listening'); base = 'http://127.0.0.1:' + server.address().port;
   }
   await start();
@@ -133,7 +133,7 @@ test('command registration upserts named commands without deleting existing comm
     assert.equal(body.default_member_permissions, '0'); assert.ok(!options.body.includes('test-bot-token'));
     return Response.json({ id: '100000000000000010', application_id: api.config.applicationId, name: body.name });
   });
-  assert.deepEqual(commands.map(command => command.name), ['status', 'pengumuman', 'migrasi']);
+  assert.deepEqual(commands.map(command => command.name), ['status', 'website', 'server', 'ssl', 'logs', 'uptime', 'pengumuman', 'migrasi']);
 });
 
 
@@ -173,7 +173,7 @@ test('/status authenticates before probing, replies publicly, and reuses cached 
   const result = await (await api.send(interaction)).json();
   assert.equal(result.type, 4); assert.equal(result.data.flags, 0);
   assert.deepEqual(result.data.allowed_mentions, { parse: [] });
-  for (const name of ['Website', 'API pengunjung', 'API pengumuman']) assert.ok(result.data.content.includes(name + ': OK'));
+  for (const name of ['Website', 'API pengunjung', 'API pengumuman']) assert.ok(result.data.content.includes(name + ': UP'));
   assert.deepEqual(calls, [
     { url: 'https://snappiestudio.com/', method: 'HEAD' },
     { url: 'https://snappiestudio.com/api/visitors', method: 'GET' },
@@ -184,4 +184,31 @@ test('/status authenticates before probing, replies publicly, and reuses cached 
   assert.equal((await (await api.request('/api/visitors')).json()).total, 0);
   assert.equal((await (await api.request('/api/site-content')).json()).enabled, false);
   assert.deepEqual(api.rows(), []);
+});
+
+test('every phase-one command authenticates before executing, keeps public safe replies and caches replay', async t => {
+  const calls = [];
+  const commands = Object.fromEntries(['status', 'website', 'server', 'ssl', 'logs', 'uptime'].map(name => [name, async () => { calls.push(name); return name + ': UP'; }]));
+  const api = await app(t, undefined, commands);
+  for (const name of Object.keys(commands)) {
+    const command = api.payload(name); command.data = { name, type: 1 };
+    assert.equal((await api.send(command, { tamper: true })).status, 401);
+    const before = calls.length;
+    for (const override of [{ application_id: '100000000000000099' }, { guild_id: '100000000000000099' }, { channel_id: '100000000000000099' }, { member: { user: { id: '100000000000000099' } } }, { member: null }]) {
+      assert.match((await (await api.send({ ...command, ...override })).json()).data.content, /tidak diizinkan/);
+    }
+    assert.equal(calls.length, before);
+    const result = await (await api.send(command)).json(); assert.equal(result.data.content, name + ': UP');
+    assert.deepEqual(await (await api.send(command)).json(), result);
+    assert.equal(calls.length, before + 1);
+  }
+  assert.equal((await (await api.request('/api/visitors')).json()).total, 0);
+  assert.deepEqual(api.rows(), []);
+});
+
+test('unexpected read-only checker errors return a safe public UNKNOWN result', async t => {
+  const api = await app(t, undefined, { server: async () => { throw Error('private-env-token'); } });
+  const command = api.payload('server'); command.data = { name: 'server', type: 1 };
+  const result = await (await api.send(command)).json();
+  assert.match(result.data.content, /UNKNOWN/); assert.doesNotMatch(result.data.content, /private-env-token/);
 });

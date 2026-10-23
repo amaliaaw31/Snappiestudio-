@@ -11,9 +11,9 @@ test('status reports HTTP failures and invalid payloads without leaking response
     if (url.endsWith('/api/visitors')) return Response.json({ total: 'secret-password' });
     throw new Error('sensitive-token-and-environment');
   });
-  assert.match(result, /Website: GANGGUAN \(HTTP 503\)/);
-  assert.match(result, /API pengunjung: tidak dapat diverifikasi/);
-  assert.match(result, /API pengumuman: tidak dapat diverifikasi/);
+  assert.match(result, /Website: DEGRADED \(HTTP 503\)/);
+  assert.match(result, /API pengunjung: DEGRADED/);
+  assert.match(result, /API pengumuman: UNKNOWN/);
   assert.doesNotMatch(result, /secret|sensitive|password|token/);
 });
 
@@ -26,7 +26,7 @@ test('status rejects redirects, wrong content types, oversized and malformed res
     () => Response.json({ enabled: 'yes', message: 'invalid' }),
   ]) {
     const result = await websiteStatus(async () => response());
-    assert.doesNotMatch(result, /: OK/);
+    assert.doesNotMatch(result, /: UP/);
   }
 });
 
@@ -39,8 +39,8 @@ test('parallel probes time out even when the API body stalls, within the Discord
   t.after(() => { server.closeAllConnections(); server.close(); });
   const started = performance.now();
   const result = await websiteStatus((url, options) => fetch(`http://127.0.0.1:${server.address().port}${new URL(url).pathname}`, options));
-  assert.match(result, /Website: OK/);
-  assert.match(result, /API pengunjung: tidak dapat diverifikasi/);
-  assert.match(result, /API pengumuman: tidak dapat diverifikasi/);
+  assert.match(result, /Website: UP/);
+  assert.match(result, /API pengunjung: DEGRADED/);
+  assert.match(result, /API pengumuman: DEGRADED/);
   assert.ok(performance.now() - started < 2500, 'parallel probes finish before three-second interaction deadline');
 });

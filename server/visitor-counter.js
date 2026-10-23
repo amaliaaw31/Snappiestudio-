@@ -9,6 +9,7 @@ import { createAnalytics, reportFilters, utcTimestamp, csvVisit } from './analyt
 import { createAudit, readState, serviceStatus, saveContent } from './cms-operations.js';
 import { migrationSchema, receiveDiscord, effectiveAnnouncement, migrationList, loadBotConfig } from './discord-bot.js';
 import { writePrivateJson } from './admin-account.js';
+import { createReadCommands } from './discord-read-commands.js';
 
 const CMS_FILES = new Map([
   ['/cms', 'cms.html'], ['/cms/', 'cms.html'], ['/cms.html', 'cms.html'],
@@ -45,7 +46,7 @@ const LOCATION_COLUMNS = [
 ];
 
 export function createVisitorServer({ dbPath, locate = () => null, admin = {}, trustProxy = false,
-  discordConfigPath, discordStatusFetch = fetch, publicDirectory = new URL('../dist/', import.meta.url), now = Date.now }) {
+  discordConfigPath, discordStatusFetch = fetch, discordReadCommands, publicDirectory = new URL('../dist/', import.meta.url), now = Date.now }) {
   if (!dbPath) throw new TypeError('dbPath is required');
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new DatabaseSync(dbPath);
@@ -75,6 +76,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
   const removeBrowser = db.prepare('DELETE FROM visitors WHERE visitor_hash = ?');
   const audit = createAudit(db, now);
   migrationSchema(db);
+  const readCommands = discordReadCommands || createReadCommands({ db, directory: dirname(dbPath), fetchImpl: discordStatusFetch, now });
   const botConfigPath = discordConfigPath || process.env.CMS_DISCORD_BOT_CONFIG || '/etc/snappiestudio/discord-bot.json';
   const security = createAdminSecurity({ audit, accountPath: join(dirname(dbPath), 'cms-account.json'), ...admin, trustProxy, now });
   const limit = createRateLimiter({ now });
@@ -86,7 +88,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
       if (path === '/api/discord/interactions') {
         const retry = limit('discord:' + clientIp(request, trustProxy), 60, 60000);
         if (retry) { response.setHeader('Retry-After', String(retry)); json(response, 429, { error: 'Too many requests' }); return; }
-        await receiveDiscord(request, response, { db, directory: dirname(dbPath), configPath: botConfigPath, now, audit, statusFetch: discordStatusFetch }); return;
+        await receiveDiscord(request, response, { db, directory: dirname(dbPath), configPath: botConfigPath, now, audit, readCommands }); return;
       }
       if (path === '/api/site-content' && request.method === 'GET') {
         json(response, 200, await effectiveAnnouncement(db, dirname(dbPath))); return;
