@@ -13,6 +13,7 @@ import { createAnalytics, reportFilters } from '../server/analytics.js';
 import { createAudit, readState } from '../server/cms-operations.js';
 import { writePrivateJson } from '../server/admin-account.js';
 import { verifyBackup } from '../server/backup-verifier.js';
+import { backupIsLate } from '../server/backup-health.js';
 const run = promisify(execFile);
 
 export async function encryptArchive(source, target, key) {
@@ -87,7 +88,7 @@ export function generateReports(dbPath, now = Date.now) {
   } finally { db.close(); }
 }
 
-export async function checkMonitor(stateDirectory, env = process.env, fetchImpl = fetch, now = Date.now, serviceCheck = () => execFileSync('systemctl', ['is-active', '--quiet', 'snappiestudio-counter'], { stdio: 'ignore' })) {
+export async function checkMonitor(stateDirectory, env = process.env, fetchImpl = fetch, now = Date.now, serviceCheck = () => execFileSync('systemctl', ['is-active', '--quiet', 'snappiestudio-counter'], { stdio: 'ignore' }), { diskCheck = statfsSync, backupDirectory = env.CMS_BACKUP_DIRECTORY || '/var/lib/snappiestudio-backups' } = {}) {
   const issues = [];
   try {
     const response = await fetchImpl('https://snappiestudio.com/', { redirect: 'error', signal: AbortSignal.timeout(10000) });
@@ -98,18 +99,43 @@ export async function checkMonitor(stateDirectory, env = process.env, fetchImpl 
     try { if (db.prepare('PRAGMA quick_check').get().quick_check !== 'ok') issues.push('database'); } finally { db.close(); }
     serviceCheck();
   } catch { issues.push('backend'); }
-  const disk = statfsSync(stateDirectory);
-  if (Number(disk.bavail) / Number(disk.blocks) < .1) issues.push('storage');
-  for (const [name, maximum] of [['backup', 48 * 3600000], ['geoip', 45 * 86400000]]) {
-    const value = await readState(stateDirectory, name + '-status.json');
-    if (!value?.lastSuccess || value.ok === false || !Number.isFinite(Date.parse(value.lastSuccess)) || now() - Date.parse(value.lastSuccess) > maximum) issues.push(name);
-  }
-  const offsite = await readState(stateDirectory, 'offsite-status.json');
-  if (offsite?.configured && offsite.ok === false) issues.push('offsite');
-  const previous = await readState(stateDirectory, 'monitor-status.json', {});
-  const state = { checkedAt: new Date(now()).toISOString(), ok: !issues.length, issues, notificationsConfigured: !!(env.CMS_DISCORD_WEBHOOK || env.CMS_ALERT_WEBHOOK), notificationChannel: env.CMS_DISCORD_WEBHOOK || /^https:\/\/discord\.com\//.test(env.CMS_ALERT_WEBHOOK || '') ? 'discord' : env.CMS_ALERT_WEBHOOK ? 'webhook' : null, notifiedState: previous.notifiedState ?? null, notificationOk: previous.notificationOk ?? null };
+  const safeRead = async name => {
+    try {
+      const value = await readState(stateDirectory, name, {});
+      return value && typeof value === 'object' && !Array.isArray(value) ? value : { ok: false, invalid: true };
+    } catch { return { ok: false, invalid: true }; }
+  };
+  try {
+    const disk = diskCheck(stateDirectory);
+    if (Number(disk.bavail) / Number(disk.blocks) < .1) issues.push('storage');
+  } catch { issues.push('storage'); }
+  try {
+    let disk;
+    try { disk = diskCheck(backupDirectory); } catch (error) { if (error.code !== 'ENOENT') throw error; disk = diskCheck(dirname(backupDirectory)); }
+    if (!(Number(disk.blocks) > 0) || Number(disk.bavail) / Number(disk.blocks) < .1) issues.push('backup_storage');
+  } catch { issues.push('backup_storage'); }
+  const backup = await safeRead('backup-status.json');
+  const success = Date.parse(backup.lastSuccess);
+  const verified = Date.parse(backup.restoreVerifiedAt);
+  if (backup.ok === false) issues.push('backup_failed');
+  if (backupIsLate(backup.lastSuccess, now())) issues.push('backup_late');
+  const verification = await safeRead('backup-verification-status.json');
+  if (backup.invalid || (Number.isFinite(success) && (!Number.isFinite(verified) || verified < success))
+    || verification.invalid || verification.state === 'DEGRADED' || verification.failedSnapshots?.length) issues.push('backup_integrity');
+  const geoip = await safeRead('geoip-status.json');
+  if (!geoip.lastSuccess || geoip.ok === false || !Number.isFinite(Date.parse(geoip.lastSuccess)) || now() - Date.parse(geoip.lastSuccess) > 45 * 86400000) issues.push('geoip');
+  const offsite = await safeRead('offsite-status.json');
+  if (offsite.configured && offsite.ok === false) issues.push('offsite');
+  const previous = await safeRead('monitor-status.json');
+  const state = { checkedAt: new Date(now()).toISOString(), ok: !issues.length, issues, notificationsConfigured: !!(env.CMS_DISCORD_WEBHOOK || env.CMS_ALERT_WEBHOOK), notificationChannel: env.CMS_DISCORD_WEBHOOK || /^https:\/\/discord\.com\//.test(env.CMS_ALERT_WEBHOOK || '') ? 'discord' : env.CMS_ALERT_WEBHOOK ? 'webhook' : null, notifiedState: previous.notifiedState ?? null, notificationOk: previous.notificationOk ?? null,
+    lastNotificationAttemptAt: previous.lastNotificationAttemptAt ?? null, lastAttemptState: previous.lastAttemptState ?? null };
   const signature = issues.join(',') || 'recovered';
-  if (state.notificationsConfigured && signature !== state.notifiedState && (issues.length || previous.notifiedState)) {
+  const elapsed = now() - Date.parse(state.lastNotificationAttemptAt);
+  const cooledDown = !Number.isFinite(elapsed) || elapsed >= 15 * 60000;
+  const firstRecovery = !issues.length && previous.notifiedState && previous.notifiedState !== 'recovered' && previous.lastAttemptState !== 'recovered';
+  if (state.notificationsConfigured && signature !== state.notifiedState && (issues.length || previous.notifiedState) && (cooledDown || firstRecovery)) {
+    state.lastNotificationAttemptAt = state.checkedAt; state.lastAttemptState = signature;
+    writePrivateJson(join(stateDirectory, 'monitor-status.json'), state);
     try {
       await sendNotification(env, issues, state.checkedAt, fetchImpl);
       state.notifiedState = signature; state.notificationOk = true;

@@ -146,7 +146,7 @@ export async function receiveDiscord(request, response, { db, directory, configP
   const name = interaction.data?.name;
   let status = null;
   if (Object.hasOwn(checks, name)) {
-    try { status = reply(await checks[name]()); }
+    try { status = reply(await checks[name](interaction)); }
     catch { status = reply('Pemeriksaan: UNKNOWN. Data tidak dapat diperiksa; tidak ada tindakan layanan yang dijalankan.'); }
   }
   db.exec('BEGIN IMMEDIATE');

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { discordCommands, phaseOneCommands, registerDiscordCommands } from '../server/discord-commands.js';
+import { discordCommands, phaseOneCommands, phaseTwoCommands, registerDiscordCommands } from '../server/discord-commands.js';
 
 const config = { applicationId: '100000000000000001', guildId: '100000000000000002', channelId: '100000000000000003', allowedUserIds: ['100000000000000004'], publicKey: 'a'.repeat(64) };
 const token = 'fixture-bot-token-not-a-real-secret';
@@ -74,4 +74,16 @@ test('registration rejects unconfirmed responses and never deletes commands afte
     return Response.json({ ...remote(body), description: 'unexpected' });
   }, { names: ['website', 'server'] }), /not confirmed/);
   assert.deepEqual(methods, ['GET', 'POST']);
+});
+
+
+test('phase-two registration only adds backup and alert and leaves phase-one and migration commands untouched', async () => {
+  const api = fixture(discordCommands.filter(command => !phaseTwoCommands.includes(command.name)));
+  const old = structuredClone(api.state);
+  const plan = await registerDiscordCommands(config, token, api.request, { names: phaseTwoCommands, dryRun: true });
+  assert.deepEqual(plan.created, ['backup', 'alert']); assert.deepEqual(api.state, old);
+  api.calls.length = 0;
+  await registerDiscordCommands(config, token, api.request, { names: phaseTwoCommands });
+  assert.deepEqual(api.calls.filter(call => call.method === 'POST').map(call => call.name), ['backup', 'alert']);
+  assert.deepEqual(api.state.slice(0, old.length), old);
 });

@@ -54,11 +54,11 @@ export async function backupSite({ stateDirectory, backupDirectory, configuratio
     cpSync(staging, restore, { recursive: true });
     verifyBackup(restore);
     const target = join(backupDirectory, 'backup-' + suffix);
+    if (existsSync(target)) throw new Error('Backup destination already exists');
     renameSync(staging, target);
     const snapshots = readdirSync(backupDirectory).filter(name => /^backup-\d{8}T\d{6}Z-[a-f0-9]{8}$/.test(name)).sort().reverse();
-    for (const name of snapshots.slice(14)) rmSync(join(backupDirectory, name), { recursive: true });
     status(stateDirectory, 'backup-status.json', { ok: true, lastAttempt: manifest.createdAt, lastSuccess: manifest.createdAt,
-      copies: Math.min(14, snapshots.length), retention: 14, restoreVerifiedAt: manifest.createdAt });
+      copies: snapshots.length, retention: null, automaticDeletion: false, restoreVerifiedAt: manifest.createdAt });
     return target;
   } catch (error) {
     status(stateDirectory, 'backup-status.json', { ok: false, lastAttempt: new Date(now()).toISOString() });

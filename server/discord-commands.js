@@ -10,6 +10,13 @@ export const discordCommands = [
     ['logs', 'Ringkasan aman catatan error yang diizinkan'],
     ['uptime', 'Lama host dan layanan aktif'],
   ].map(([name, description]) => ({ name, description, type: 1, default_member_permissions: '0' })),
+  { name: 'backup', description: 'Periksa snapshot backup lokal tanpa restore', type: 1, default_member_permissions: '0', options: [
+    sub('status', 'Lihat hasil dan waktu backup terakhir'), sub('history', 'Lihat sepuluh snapshot terbaru'),
+    sub('verify', 'Periksa integritas snapshot tanpa mengubah sumber', [string('snapshot', 'ID dari backup history; bawaan snapshot terbaru', false, 32)]),
+  ] },
+  { name: 'alert', description: 'Uji tujuan notifikasi yang dikonfigurasi', type: 1, default_member_permissions: '0', options: [
+    sub('test', 'Kirim satu pesan uji setelah konfirmasi', [{ type: 5, name: 'konfirmasi', description: 'Setujui pengiriman satu pesan uji', required: true }]),
+  ] },
   { name: 'pengumuman', description: 'Kelola pengumuman di website Snappie Studio', type: 1, default_member_permissions: '0', options: [
     sub('pasang', 'Tampilkan pengumuman pada website', [string('pesan', 'Isi pengumuman untuk pengunjung'), string('judul', 'Judul pengumuman', false, 80)]),
     sub('hapus', 'Sembunyikan pengumuman website'), sub('status', 'Lihat pengumuman yang sedang aktif'),
@@ -41,6 +48,7 @@ const definition = command => JSON.stringify({ type: command.type || 1, name: co
   description: command.description, default_member_permissions: command.default_member_permissions ?? null,
   options: (command.options || []).map(optionDefinition) });
 export const phaseOneCommands = ['status', 'website', 'server', 'ssl', 'logs', 'uptime'];
+export const phaseTwoCommands = ['backup', 'alert'];
 
 export async function registerDiscordCommands(configuration, token, fetchImpl = fetch, { names = discordCommands.map(command => command.name), dryRun = false } = {}) {
   const config = validateBotConfig(configuration);
