@@ -4030,6 +4030,28 @@ const galleryMessages = {
 for (const [code, messages] of Object.entries(galleryMessages)) {
   galleryKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
 }
+const howKeys = ["home.howTo", "home.step1", "home.step2", "home.step3"];
+const howMessages = {
+  "id": ["Cara pakai", "Ambil foto", "Pilih bingkai", "Unduh"],
+  "en": ["How it works", "Take photos", "Pick a frame", "Download"],
+  "ms": ["Cara guna", "Ambil foto", "Pilih bingkai", "Muat turun"],
+  "ar": ["طريقة الاستخدام", "التقط الصور", "اختر إطارًا", "نزّل"],
+  "es": ["Cómo funciona", "Toma fotos", "Elige un marco", "Descarga"],
+  "fr": ["Comment ça marche", "Prends des photos", "Choisis un cadre", "Télécharge"],
+  "de": ["So geht's", "Fotos machen", "Rahmen wählen", "Herunterladen"],
+  "pt": ["Como funciona", "Tire fotos", "Escolha a moldura", "Baixe"],
+  "ru": ["Как это работает", "Сделай фото", "Выбери рамку", "Скачай"],
+  "ja": ["使い方", "写真を撮る", "フレームを選ぶ", "ダウンロード"],
+  "ko": ["사용 방법", "사진 찍기", "프레임 고르기", "다운로드"],
+  "zh": ["使用方法", "拍照", "选择相框", "下载"],
+  "hi": ["कैसे काम करता है", "फ़ोटो लें", "फ़्रेम चुनें", "डाउनलोड करें"],
+  "vi": ["Cách dùng", "Chụp ảnh", "Chọn khung", "Tải xuống"],
+  "th": ["วิธีใช้", "ถ่ายรูป", "เลือกกรอบ", "ดาวน์โหลด"],
+  "tr": ["Nasıl çalışır", "Fotoğraf çek", "Çerçeve seç", "İndir"]
+};
+for (const [code, messages] of Object.entries(howMessages)) {
+  howKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
+}
 
 let lang = 'id';
 try {

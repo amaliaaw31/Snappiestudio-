@@ -1441,3 +1441,14 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
 body.on-start .btn.ghost, body.on-start .demo-filter-label .filter-select { border-color: var(--home-border); }
 
 body.on-start .btn { transition: transform 140ms ease; }
+
+.how-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; list-style: none; margin: 16px 0 0; padding: 0; }
+.how-steps li { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--home-border); border-radius: 999px; background: var(--ui-surface); color: var(--ui-text); font-size: 13px; font-weight: 700; }
+.how-steps .ms { font-size: 18px; color: var(--ui-accent); }
+/* Demo alur berjalan dua kali lalu berhenti, tidak berulang terus. */
+@media (prefers-reduced-motion: no-preference) {
+  .how-steps li { animation: how-step 1.8s ease-in-out 2 both; }
+  .how-steps li:nth-child(2) { animation-delay: .6s; }
+  .how-steps li:nth-child(3) { animation-delay: 1.2s; }
+}
+@keyframes how-step { 0%, 60%, 100% { transform: none; border-color: var(--home-border); } 25% { transform: translateY(-3px); border-color: var(--ui-accent); } }
