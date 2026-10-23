@@ -288,23 +288,19 @@ video { width: 100%; height: 100%; display: block; transform: scaleX(-1); object
 .date-toggle-label { font-size: 13px; font-weight: 800; color: #8a5b7e; letter-spacing: .5px; }
 .toggle-row { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
 .toggle-row .date-toggle { margin: 10px 0 2px; }
-/* Empat tombol pojok atas (bahasa, pasang aplikasi, FAQ, mode terang/gelap) memakai satu gaya:
-   target 44px, ikon 28px berwarna sama, tanpa bingkai. Hanya posisi dan isi yang berbeda. */
-:is(.lang-fab, .theme-fab, .faq-fab, .install-fab) { --fab-ink: #d63384; position: fixed; top: 11px; z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  min-width: 44px; min-height: 44px; padding: 0 8px; border: none; border-radius: 22px; background: none; color: var(--fab-ink);
-  font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-body.dark-mode :is(.lang-fab, .theme-fab, .faq-fab, .install-fab) { --fab-ink: #ff8fc0; }
-:is(.lang-fab, .theme-fab, .faq-fab, .install-fab):hover { background: rgba(214, 51, 132, .1); }
-body.dark-mode :is(.lang-fab, .theme-fab, .faq-fab, .install-fab):hover { background: rgba(255, 143, 192, .16); }
-:is(.lang-fab, .theme-fab, .faq-fab, .install-fab):active { transform: scale(.92); }
-:is(.lang-fab, .theme-fab, .faq-fab, .install-fab) .ms { margin: 0; color: var(--fab-ink); font-size: 28px; filter: drop-shadow(0 1px 2px rgba(35,35,58,.2)); }
-body.dark-mode :is(.lang-fab, .theme-fab, .faq-fab, .install-fab) .ms { filter: drop-shadow(0 0 6px rgba(255,143,192,.4)); }
-.lang-fab { left: 11px; }
-.theme-fab { right: 11px; }
-.faq-fab { right: 59px; }
-.install-fab { right: 107px; padding: 0 14px 0 10px; }
-.install-fab[hidden] { display: none; }
-.install-fab .install-narrow { display: none; }
+.lang-fab, .theme-fab { position: fixed; top: 14px; background: none; border: none; padding: 4px;
+  font-size: 28px; line-height: 1; cursor: pointer; z-index: 5;
+  -webkit-tap-highlight-color: transparent; }
+.lang-fab { left: 14px; }
+.theme-fab { right: 14px; }
+.lang-fab:active, .theme-fab:active { transform: scale(.9); }
+/* ikon bahasa: biru */
+.lang-fab .ms { color: #2f7de1; font-size: 30px; }
+/* ikon mode = mode saat ini: siang = matahari kuning, malam = bulan biru keperakan */
+.theme-fab .ms { color: #ffb703; font-size: 30px;
+  filter: drop-shadow(0 1px 2px rgba(35,35,58,.25)); }
+body.dark-mode .theme-fab .ms { color: #9aa6e6;
+  filter: drop-shadow(0 0 6px rgba(120,140,220,.55)); }
 .custom-text-input { width: 100%; max-width: 360px; margin-top: 10px; padding: 11px 18px; border-radius: 10px;
   border: 2px solid #d9b8d0; background: #fff; color: #6a4a6a; font-family: inherit; font-size: 14px;
   text-align: center; outline: none; }
@@ -1467,13 +1463,27 @@ body.dark-mode .season-now { background: #ff8fc0; color: #14121d; }
 #support-modal .modal-body > .btn { align-self: center; }
 .dark-mode #support-modal .again-text { color: #d8c8e8; }
 
-/* Layar sempit: tombol pasang hanya ikon (teksnya tetap ada untuk pembaca layar). */
+/* Tombol pasang tetap di pojok kanan atas, di kiri ikon FAQ. Bentuk ikonnya sama dengan ikon FAQ
+   (30px, merah muda, tanpa bingkai); di layar sempit hanya ikonnya yang tampil. */
+#btn-install-top { position: fixed; top: 11px; right: 108px; z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 4px 8px;
+  background: none; border: none; color: #d63384; font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+body.dark-mode #btn-install-top { color: #ff8fc0; }
+#btn-install-top .ms { margin: 0; color: inherit; font-size: 30px; filter: drop-shadow(0 1px 2px rgba(35,35,58,.2)); }
+body.dark-mode #btn-install-top .ms { filter: drop-shadow(0 0 6px rgba(255,143,192,.4)); }
+#btn-install-top .install-narrow { display: none; }
+#btn-install-top:active { transform: scale(.9); }
+#btn-install-top[hidden] { display: none; }
 @media (max-width: 719px) {
-  .install-fab { padding: 0 8px; }
-  .install-fab .install-wide { display: none; }
-  .install-fab .install-narrow { display: inline-block; }
-  .install-fab > span:not(.ms) { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  #btn-install-top .install-wide { display: none; }
+  #btn-install-top .install-narrow { display: inline-block; }
+  #btn-install-top > span:not(.ms) { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
+/* Ikon FAQ di kiri tombol mode gelap; isinya tampil sebagai popup. */
+.faq-fab { position: fixed; top: 11px; right: 56px; z-index: 5; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; padding: 4px; background: none; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.faq-fab:active { transform: scale(.9); }
+.faq-fab .ms { color: #d63384; font-size: 30px; filter: drop-shadow(0 1px 2px rgba(35,35,58,.2)); }
+body.dark-mode .faq-fab .ms { color: #ff8fc0; filter: drop-shadow(0 0 6px rgba(255,143,192,.4)); }
 .faq-card { max-width: 480px; }
 .faq-list { display: grid; gap: 8px; }
 .faq-list details { border: 1px solid var(--ui-border); border-radius: 10px; background: var(--ui-surface); }

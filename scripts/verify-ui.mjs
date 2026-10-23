@@ -298,12 +298,10 @@ try {
       const wide = ${width >= 720};
       return !document.querySelector('#btn-install') && getComputedStyle(button).position === 'fixed' && box.width >= 44 && box.height >= 44 && box.right <= faq.left && box.left > lang.right && Math.abs((box.top + box.height / 2) - (faq.top + faq.height / 2)) < 6
         && icons.length === 1 && icons[0].textContent === (wide ? 'install_desktop' : 'install_mobile') && (wide ? label.width > 40 : label.width <= 1) && button.textContent.includes(button.querySelector('[data-i18n]').textContent); })()`, `install button is fixed beside the FAQ icon with ${width >= 720 ? 'icon and label' : 'icon only'} at ${width}px`);
-    await check(`(() => { const buttons = ['#btn-lang', '#btn-install-top', '#btn-faq', '#toggle-dark'].map(selector => document.querySelector(selector));
-      const icons = buttons.map(button => [...button.querySelectorAll('.ms')].find(node => getComputedStyle(node).display !== 'none'));
-      const style = (node, name) => getComputedStyle(node)[name]; const box = button => button.getBoundingClientRect();
-      return buttons.every(button => style(button, 'position') === 'fixed' && style(button, 'borderTopStyle') === 'none' && style(button, 'backgroundColor') === 'rgba(0, 0, 0, 0)' && box(button).height === 44 && Math.round(box(button).top) === 11 && box(button).width >= 44)
-        && new Set(icons.map(icon => style(icon, 'fontSize'))).size === 1 && style(icons[0], 'fontSize') === '28px' && new Set(icons.map(icon => style(icon, 'color'))).size === 1
-        && new Set(icons.map(icon => style(icon, 'fontVariationSettings'))).size === 1; })()`, `corner icons share size, colour, style and alignment at ${width}px`);
+    await check(`(() => { const install = document.querySelector('#btn-install-top'), faq = document.querySelector('#btn-faq'), style = (node, name) => getComputedStyle(node)[name];
+      const icon = [...install.querySelectorAll('.ms')].find(node => style(node, 'display') !== 'none'), faqIcon = faq.querySelector('.ms');
+      return style(install, 'borderTopStyle') === 'none' && style(install, 'backgroundColor') === 'rgba(0, 0, 0, 0)' && style(icon, 'fontSize') === style(faqIcon, 'fontSize') && style(icon, 'color') === style(faqIcon, 'color')
+        && style(icon, 'fontVariationSettings') === style(faqIcon, 'fontVariationSettings') && install.getBoundingClientRect().height === faq.getBoundingClientRect().height && Math.round(install.getBoundingClientRect().top) === Math.round(faq.getBoundingClientRect().top); })()`, `install icon has the same form as the FAQ icon at ${width}px`);
     await evaluate("document.getElementById('btn-install-top').hidden = window.installHidden");
     await click('#btn-faq');
     await check("(() => { const modal = document.querySelector('#faq-modal'); const card = modal.querySelector('.modal-card').getBoundingClientRect(); const items = [...modal.querySelectorAll('details')]; return modal.classList.contains('open') && items.length === 5 && card.right <= innerWidth + 1 && card.left >= -1 && items.every(item => item.querySelector('summary').getBoundingClientRect().height >= 44); })()", `FAQ popup opens with five tappable questions at ${width}px`);
