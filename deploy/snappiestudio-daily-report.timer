@@ -1,0 +1,12 @@
+[Unit]
+Description=Snappie daily PDF report schedule (00:10 WIB with retries at 00:40 and 01:40)
+
+[Timer]
+OnCalendar=*-*-* 17:10:00 UTC
+OnCalendar=*-*-* 17:40:00 UTC
+OnCalendar=*-*-* 18:40:00 UTC
+Persistent=true
+Unit=snappiestudio-daily-report.service
+
+[Install]
+WantedBy=timers.target

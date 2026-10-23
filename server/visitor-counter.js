@@ -164,7 +164,7 @@ export function createVisitorServer({ dbPath, locate = () => null, admin = {}, t
           json(response, 200, { configured, scheduler: await readState(dirname(dbPath), 'discord-scheduler-status.json'), jobs: migrationList(db) }); return;
         }
         if (path === '/api/admin/health' && request.method === 'GET') {
-          json(response, 200, { ...serviceStatus(db, dbPath, now), monitor: await readState(dirname(dbPath), 'monitor-status.json'), offsite: await readState(dirname(dbPath), 'offsite-status.json') }); return;
+          json(response, 200, { ...serviceStatus(db, dbPath, now), monitor: await readState(dirname(dbPath), 'monitor-status.json'), offsite: await readState(dirname(dbPath), 'offsite-status.json'), dailyReport: await readState(dirname(dbPath), 'daily-report-status.json') }); return;
         }
         if (path === '/api/admin/reports' && request.method === 'GET') {
           json(response, 200, { reports: db.prepare('SELECT period, generated_at, data FROM cms_reports ORDER BY period DESC LIMIT 24').all().map(row => ({ period: row.period, generatedAt: row.generated_at, ...JSON.parse(row.data) })) }); return;

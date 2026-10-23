@@ -32,9 +32,12 @@ export async function sendNotification(env, issues, at, fetchImpl = fetch) {
   await deliver(destination, payload, fetchImpl);
 }
 
-async function deliver(destination, payload, fetchImpl) {
-  const response = await fetchImpl(destination.url, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(10000),
-    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+async function deliver(destination, payload, fetchImpl, timeout = 10000) {
+  await post(destination, { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }, fetchImpl, timeout);
+}
+
+async function post(destination, init, fetchImpl, timeout) {
+  const response = await fetchImpl(destination.url, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(timeout), ...init });
   if (!response.ok) { await response.body?.cancel(); throw new Error('Notification rejected'); }
   if (destination.channel === 'discord') {
     const result = await response.json();
@@ -45,4 +48,15 @@ async function deliver(destination, payload, fetchImpl) {
 export async function sendDiscordText(webhook, content, fetchImpl = fetch) {
   if (typeof content !== 'string' || !content || content.length > 2000) throw new Error('Invalid Discord message');
   await deliver({ channel: 'discord', url: discordWebhook(webhook) }, { content, allowed_mentions: { parse: [] } }, fetchImpl);
+}
+
+// Lampiran lewat webhook yang sama (multipart); tidak memerlukan token bot.
+export async function sendDiscordFile(webhook, { content, filename, data, type = 'application/pdf' }, fetchImpl = fetch) {
+  if (typeof content !== 'string' || !content || content.length > 2000 || !/^[\w.-]{1,100}$/.test(filename) || !data?.length || data.length > 8 * 1024 * 1024) {
+    throw new Error('Invalid Discord attachment');
+  }
+  const form = new globalThis.FormData();
+  form.append('payload_json', JSON.stringify({ content, allowed_mentions: { parse: [] }, attachments: [{ id: 0, filename }] }));
+  form.append('files[0]', new globalThis.Blob([data], { type }), filename);
+  await post({ channel: 'discord', url: discordWebhook(webhook) }, { body: form }, fetchImpl, 30000);
 }

@@ -31,6 +31,7 @@ Selalu jalankan `npm run lint`, `npm test`, dan `npm run build` setelah mengubah
 - Produksi menjalankan `snappiestudio-counter.service`; database tinggal di `/var/lib/snappiestudio-counter`.
 - Setiap browser mengirim UUID acak sekali-sekali; server hanya menyimpan SHA-256-nya. Foto tidak ikut dikirim.
 - CMS juga mengelola musim stiker (`SEASON_IDS` di `server/site-config.js` harus sama dengan `SEASONS` di `src/data.js`), tautan dukungan (hanya `trakteer.id` dan `ko-fi.com`), jadwal pengumuman, statistik penggunaan (`usage_daily`), dan peringatan lonjakan/penurunan kunjungan di monitor (`server/traffic-alert.js`).
+- Laporan PDF harian ke Discord: `snappiestudio-daily-report.timer` (00.10 WIB, ulang 00.40 dan 01.40) menjalankan `scripts/cms-jobs.mjs daily-report [--force]`; pembuatnya `server/daily-report.js` dan `server/pdf-document.js` (tanpa dependensi). Memakai `CMS_DISCORD_WEBHOOK`, bukan token bot. Unit baru dipasang dengan `sudo -n bash deploy/install-maintenance.sh`.
 - Perubahan backend memerlukan `sudo -n systemctl restart snappiestudio-counter` setelah deploy; sesi admin yang ada berakhir.
 - Saat mengubah autentikasi, routing server, atau CSP, baca `SECURITY.md` dan jalankan tes keamanan. Pertahankan jalur CMS melalui backend; CSP produksi dibuat otomatis saat build.
 

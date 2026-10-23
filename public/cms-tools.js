@@ -190,11 +190,15 @@ export function initCmsTools({ api }) {
     } catch (error) { $('usage-status').textContent = 'Unduhan gagal: ' + error.message; }
     finally { $('usage-export').disabled = false; }
   });
+  const dailyReportText = state => !state ? 'Belum pernah dijalankan (jadwal 00.10 WIB)'
+    : state.error === 'not_configured' ? 'Webhook Discord belum dikonfigurasi'
+      : state.error === 'send_failed' ? `Pengiriman ${state.day} gagal, dicoba lagi pada jadwal berikutnya`
+        : `Terkirim untuk ${state.sentDay} (${date(state.sentAt)})`;
   async function health() {
     $('health-status').textContent = 'Memeriksa layanan…'; $('refresh-health').disabled = true;
     try {
       const value = await api('/api/admin/health'); const gib = bytes => (bytes / 1073741824).toFixed(2) + ' GiB';
-      const rows = [['Backend', `Aktif, berjalan ${Math.floor(value.uptimeSeconds / 60)} menit`], ['Database', value.databaseOk ? 'Integritas baik' : 'Pemeriksaan gagal'], ['Ukuran database utama', gib(value.databaseBytes)], ['Penyimpanan tersedia', `${gib(value.storageFreeBytes)} dari ${gib(value.storageTotalBytes)}`], ['Pemantauan terakhir', value.monitor ? date(value.monitor.checkedAt) : 'Belum berjalan'], ['Notifikasi', value.monitor?.notificationsConfigured ? (value.monitor.notificationChannel === 'discord' ? 'Discord: ' : '') + ( value.monitor.notificationOk === false ? 'Pengiriman terakhir gagal' : 'Tujuan terkonfigurasi') : 'Belum dikonfigurasi'], ['Backup luar server', value.offsite?.configured ? value.offsite.ok ? 'Berhasil terakhir: ' + date(value.offsite.lastSuccess) : 'Pengiriman terakhir gagal' : 'Belum dikonfigurasi']];
+      const rows = [['Backend', `Aktif, berjalan ${Math.floor(value.uptimeSeconds / 60)} menit`], ['Database', value.databaseOk ? 'Integritas baik' : 'Pemeriksaan gagal'], ['Ukuran database utama', gib(value.databaseBytes)], ['Penyimpanan tersedia', `${gib(value.storageFreeBytes)} dari ${gib(value.storageTotalBytes)}`], ['Laporan harian Discord', dailyReportText(value.dailyReport)], ['Pemantauan terakhir', value.monitor ? date(value.monitor.checkedAt) : 'Belum berjalan'], ['Notifikasi', value.monitor?.notificationsConfigured ? (value.monitor.notificationChannel === 'discord' ? 'Discord: ' : '') + ( value.monitor.notificationOk === false ? 'Pengiriman terakhir gagal' : 'Tujuan terkonfigurasi') : 'Belum dikonfigurasi'], ['Backup luar server', value.offsite?.configured ? value.offsite.ok ? 'Berhasil terakhir: ' + date(value.offsite.lastSuccess) : 'Pengiriman terakhir gagal' : 'Belum dikonfigurasi']];
       $('health-data').replaceChildren(...rows.map(([label, content]) => { const row = document.createElement('div'); row.append(text('dt', label), text('dd', content)); return row; }));
       $('health-status').textContent = value.monitor?.issues?.length ? 'Perlu diperiksa: ' + value.monitor.issues.join(', ') : 'Status diperiksa ' + date(value.checkedAt) + '. Pemantauan berjalan setiap 5 menit.';
     } catch (error) { $('health-status').textContent = 'Status gagal dimuat: ' + error.message; }

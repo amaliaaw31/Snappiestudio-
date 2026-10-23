@@ -8,7 +8,8 @@ import { pipeline } from 'node:stream/promises';
 import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { runMigrationSchedule } from '../server/discord-scheduler.js';
-import { sendNotification } from '../server/notifications.js';
+import { sendNotification, sendDiscordFile, notificationDestination } from '../server/notifications.js';
+import { dailyReportData, renderDailyReport, longDay } from '../server/daily-report.js';
 import { createAnalytics, reportFilters } from '../server/analytics.js';
 import { trafficAlert } from '../server/traffic-alert.js';
 import { createAudit, readState } from '../server/cms-operations.js';
@@ -89,6 +90,31 @@ export function generateReports(dbPath, now = Date.now) {
   } finally { db.close(); }
 }
 
+// Laporan PDF hari WIB yang baru berakhir, dikirim ke Discord. Idempoten per hari: sukses tidak dikirim ulang,
+// gagal dicoba lagi pada jadwal berikutnya (00.10, 00.40, dan 01.40 WIB).
+export async function sendDailyReport(dbPath, env = process.env, fetchImpl = fetch, now = Date.now, { force = false } = {}) {
+  const directory = dirname(dbPath);
+  const previous = await readState(directory, 'daily-report-status.json', {});
+  const db = new DatabaseSync(dbPath);
+  let data;
+  try { db.exec('PRAGMA busy_timeout=5000'); data = dailyReportData(db, now()); } finally { db.close(); }
+  if (!force && previous.sentDay === data.day) return { ...previous, skipped: true };
+  const state = { ...previous, day: data.day, ok: false, lastAttemptAt: new Date(now()).toISOString(), error: null };
+  let destination = null;
+  try { destination = notificationDestination(env); } catch { /* webhook tidak valid dianggap belum dikonfigurasi */ }
+  if (destination?.channel !== 'discord') state.error = 'not_configured';
+  else {
+    try {
+      const change = data.percent === null ? '' : ` (${data.percent > 0 ? '+' : ''}${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(data.percent)}% dari hari sebelumnya)`;
+      await sendDiscordFile(destination.url.href, { content: `Laporan harian Snappie Studio, ${longDay(data.day)}\nBrowser unik: ${data.visitors}${change}`,
+        filename: `snappie-laporan-harian-${data.day}.pdf`, data: renderDailyReport(data) }, fetchImpl);
+      state.ok = true; state.sentDay = data.day; state.sentAt = state.lastAttemptAt;
+    } catch { state.error = 'send_failed'; }
+  }
+  writePrivateJson(join(directory, 'daily-report-status.json'), state);
+  return state;
+}
+
 export async function checkMonitor(stateDirectory, env = process.env, fetchImpl = fetch, now = Date.now, serviceCheck = () => execFileSync('systemctl', ['is-active', '--quiet', 'snappiestudio-counter'], { stdio: 'ignore' }), { diskCheck = statfsSync, backupDirectory = env.CMS_BACKUP_DIRECTORY || '/var/lib/snappiestudio-backups' } = {}) {
   const issues = [];
   try {
@@ -154,9 +180,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     if (process.argv[2] === 'reports') { generateReports(dbPath); console.log('Weekly and monthly reports generated.'); }
     else if (process.argv[2] === 'migrations') { const state = await runMigrationSchedule({ dbPath }); console.log(state.ok ? 'Discord migration schedule checked.' : 'Discord migration schedule checked; some reminders need retry.'); }
+    else if (process.argv[2] === 'daily-report') { const state = await sendDailyReport(dbPath, process.env, fetch, Date.now, { force: process.argv[3] === '--force' }); console.log(state.skipped ? 'Daily report already sent for ' + state.sentDay + '.' : state.ok ? 'Daily report sent for ' + state.day + '.' : 'Daily report not sent: ' + state.error); if (!state.ok && !state.skipped) process.exitCode = 1; }
     else if (process.argv[2] === 'monitor') { const state = await checkMonitor(dirname(dbPath)); console.log(state.ok ? 'All monitored services healthy.' : 'Issues detected: ' + state.issues.join(', ')); }
     else if (process.argv[2] === 'offsite' && process.argv[3]) await uploadOffsite(process.argv[3], dirname(dbPath));
     else if (process.argv[2] === 'decrypt' && process.argv[3] && process.argv[4]) await decryptArchive(process.argv[3], process.argv[4], readFileSync(process.env.CMS_BACKUP_KEY_FILE));
-    else throw new Error('Usage: cms-jobs.mjs reports | monitor | migrations | offsite SNAPSHOT | decrypt SOURCE OUTPUT_TAR');
+    else throw new Error('Usage: cms-jobs.mjs reports | daily-report [--force] | monitor | migrations | offsite SNAPSHOT | decrypt SOURCE OUTPUT_TAR');
   } catch (error) { console.error('CMS job failed:', error.code || error.name); process.exitCode = 1; }
 }
