@@ -89,6 +89,7 @@
 <!-- START -->
 <div class="screen active" id="scr-start">
   <button id="btn-lang" class="lang-fab" type="button" data-i18n-aria="start.lang" aria-label="Language" data-i18n-title="start.lang" title="Language"><span class="ms" aria-hidden="true">translate</span></button>
+  <button id="btn-faq" class="faq-fab" type="button" aria-haspopup="dialog" aria-controls="faq-modal" data-i18n-aria="faq.title" aria-label="Pertanyaan umum" data-i18n-title="faq.title" title="Pertanyaan umum"><span class="ms" aria-hidden="true">help</span></button>
   <button id="toggle-dark" class="theme-fab" type="button" data-i18n-aria="start.dark" aria-label="Dark mode" data-i18n-title="start.dark" title="Dark mode"><span class="ms" id="dark-ico">dark_mode</span></button>
   <div class="start-intro">
   <h1>Snappie Studio</h1>
@@ -131,14 +132,6 @@
     </div>
   </figure>
   <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
-  <section class="faq" aria-labelledby="faq-title">
-    <h2 id="faq-title" data-i18n="faq.title">Pertanyaan umum</h2>
-    <details><summary data-i18n="faq.q1">Apakah foto saya diunggah ke server?</summary><p data-i18n="faq.a1">Tidak. Foto diproses di perangkatmu dan tidak pernah dikirim ke server. Server hanya menghitung jumlah pengunjung dan penggunaan fitur secara anonim.</p></details>
-    <details><summary data-i18n="faq.q2">Apakah Snappie gratis?</summary><p data-i18n="faq.a2">Ya, gratis dan tanpa daftar. Kalau suka, kamu bisa mendukung kami lewat Trakteer atau Ko-fi setelah mengunduh hasil.</p></details>
-    <details><summary data-i18n="faq.q3">Kameranya tidak menyala, bagaimana?</summary><p data-i18n="faq.a3">Izinkan akses kamera di browser, buka lewat HTTPS, dan tutup aplikasi lain yang sedang memakai kamera. Kamu juga bisa memilih foto dari galeri.</p></details>
-    <details><summary data-i18n="faq.q4">Bagaimana menyimpan atau mencetak hasilnya?</summary><p data-i18n="faq.a4">Unduh sebagai PNG atau GIF, lalu cetak dari galeri HP atau kirim ke toko foto. Format Story dan Postingan juga tersedia untuk media sosial.</p></details>
-    <details><summary data-i18n="faq.q5">Bagaimana memasang Snappie di layar utama?</summary><p data-i18n="faq.a5">Di Chrome atau Edge, tekan tombol Pasang aplikasi atau pilih Instal dari menu. Di iPhone, buka lewat Safari lalu pilih Bagikan, Tambah ke Layar Utama. Setelah dipakai sekali, Snappie bisa dibuka tanpa internet.</p></details>
-  </section>
   <div id="home-actions" class="home-actions" role="group" data-i18n-aria="home.actions" aria-label="Mulai sesi foto" hidden>
     <button type="button" id="home-camera" class="btn" aria-describedby="start-cam-status"><span class="ms" aria-hidden="true">photo_camera</span><span id="home-camera-label" data-i18n="start.open">Buka Kamera</span></button>
     <button type="button" id="home-gallery" class="btn ghost"><span class="ms" aria-hidden="true">image</span><span data-i18n="home.gallery">Galeri</span></button>
@@ -633,6 +626,22 @@
 </div>
 
 <!-- AGAIN MODAL -->
+<div id="faq-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="faq-title">
+  <div class="modal-card faq-card">
+    <div class="modal-header">
+      <h2 id="faq-title"><span class="ms" aria-hidden="true">help</span><span data-i18n="faq.title">Pertanyaan umum</span></h2>
+      <button id="btn-close-faq" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body faq-list">
+      <details><summary data-i18n="faq.q1">Apakah foto saya diunggah ke server?</summary><p data-i18n="faq.a1">Tidak. Foto diproses di perangkatmu dan tidak pernah dikirim ke server. Server hanya menghitung jumlah pengunjung dan penggunaan fitur secara anonim.</p></details>
+      <details><summary data-i18n="faq.q2">Apakah Snappie gratis?</summary><p data-i18n="faq.a2">Ya, gratis dan tanpa daftar. Kalau suka, kamu bisa mendukung kami lewat Trakteer atau Ko-fi setelah mengunduh hasil.</p></details>
+      <details><summary data-i18n="faq.q3">Kameranya tidak menyala, bagaimana?</summary><p data-i18n="faq.a3">Izinkan akses kamera di browser, buka lewat HTTPS, dan tutup aplikasi lain yang sedang memakai kamera. Kamu juga bisa memilih foto dari galeri.</p></details>
+      <details><summary data-i18n="faq.q4">Bagaimana menyimpan atau mencetak hasilnya?</summary><p data-i18n="faq.a4">Unduh sebagai PNG atau GIF, lalu cetak dari galeri HP atau kirim ke toko foto. Format Story dan Postingan juga tersedia untuk media sosial.</p></details>
+      <details><summary data-i18n="faq.q5">Bagaimana memasang Snappie di layar utama?</summary><p data-i18n="faq.a5">Di Chrome atau Edge, tekan tombol Pasang aplikasi atau pilih Instal dari menu. Di iPhone, buka lewat Safari lalu pilih Bagikan, Tambah ke Layar Utama. Setelah dipakai sekali, Snappie bisa dibuka tanpa internet.</p></details>
+    </div>
+  </div>
+</div>
+
 <div id="support-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="support-title">
   <div class="modal-card again-card">
     <div class="modal-header">

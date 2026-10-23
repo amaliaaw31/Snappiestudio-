@@ -33,7 +33,7 @@ try {
   await check("(async () => { const cache = await caches.open((await caches.keys())[0]); const urls = (await cache.keys()).map(request => new URL(request.url).pathname); return ['/', '/manifest.webmanifest', '/site-notice.js'].every(path => urls.includes(path)) && urls.every(path => !/^\\/(api|cms)/.test(path)); })()", 'core files are cached and nothing from API or CMS');
   await send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
   await reload();
-  await check("document.title.includes('Snappie') && !!document.querySelector('#btn-start') && !!document.querySelector('.faq') && document.fonts.status === 'loaded'", 'app opens offline from the cache with its content and fonts');
+  await check("document.title.includes('Snappie') && !!document.querySelector('#btn-start') && !!document.querySelector('#faq-modal details') && document.fonts.status === 'loaded'", 'app opens offline from the cache with its content and fonts');
   await check("fetch('/api/visitors').then(() => false, () => true)", 'API requests are not served from the cache while offline');
   await check("fetch('/cms').then(() => false, () => true)", 'CMS pages are not served from the cache while offline');
   await send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });

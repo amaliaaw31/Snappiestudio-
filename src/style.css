@@ -1478,12 +1478,17 @@ body.dark-mode .season-now { background: #ff8fc0; color: #14121d; }
 
 #btn-install { margin-top: 12px; }
 #btn-install[hidden] { display: none; }
-.faq { width: 100%; max-width: 720px; justify-self: center; display: grid; gap: 8px; margin: 8px 0 16px; }
-.faq h2 { margin: 0 0 4px; color: var(--ui-text); font-size: 18px; text-align: center; }
-.faq details { border: 1px solid var(--home-border); border-radius: 10px; background: var(--ui-surface); }
-.faq summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 10px 14px; color: var(--ui-text); font-size: 14px; font-weight: 700; cursor: pointer; list-style: none; }
-.faq summary::-webkit-details-marker { display: none; }
-.faq summary::after { content: 'expand_more'; flex-shrink: 0; font-family: 'Material Symbols Rounded'; font-size: 22px; font-weight: normal; line-height: 1; color: var(--ui-muted); }
-.faq details[open] summary::after { transform: rotate(180deg); }
-.faq p { margin: 0; padding: 0 14px 14px; color: var(--ui-muted); font-size: 14px; line-height: 1.6; }
-@media (min-width: 720px) { #scr-start > .faq { grid-column: 1 / -1; } }
+/* Ikon FAQ di kiri tombol mode gelap; isinya tampil sebagai popup. */
+.faq-fab { position: fixed; top: 11px; right: 56px; z-index: 5; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; padding: 4px; background: none; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.faq-fab:active { transform: scale(.9); }
+.faq-fab .ms { color: #d63384; font-size: 30px; filter: drop-shadow(0 1px 2px rgba(35,35,58,.2)); }
+body.dark-mode .faq-fab .ms { color: #ff8fc0; filter: drop-shadow(0 0 6px rgba(255,143,192,.4)); }
+.faq-card { max-width: 480px; }
+.faq-list { display: grid; gap: 8px; }
+.faq-list details { border: 1px solid var(--ui-border); border-radius: 10px; background: var(--ui-surface); }
+.faq-list summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 10px 14px; color: var(--ui-text); font-size: 14px; font-weight: 700; cursor: pointer; list-style: none; }
+.faq-list summary::-webkit-details-marker { display: none; }
+.faq-list summary::after { content: 'expand_more'; flex-shrink: 0; font-family: 'Material Symbols Rounded'; font-size: 22px; font-weight: normal; line-height: 1; color: var(--ui-muted); }
+.faq-list details[open] summary::after { transform: rotate(180deg); }
+.faq-list p { margin: 0; padding: 0 14px 14px; color: var(--ui-muted); font-size: 14px; line-height: 1.6; }

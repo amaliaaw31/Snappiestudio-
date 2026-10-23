@@ -770,6 +770,9 @@ function buildLangPicker() {
 buildLangPicker();
 
 if ($('btn-lang')) $('btn-lang').onclick = () => openModal('lang-modal');
+$('btn-faq').onclick = () => openModal('faq-modal');
+$('btn-close-faq').onclick = () => closeModal('faq-modal');
+$('faq-modal').onclick = event => { if (event.target === $('faq-modal')) closeModal('faq-modal'); };
 if ($('btn-close-lang')) $('btn-close-lang').onclick = () => closeModal('lang-modal');
 const langModal = $('lang-modal');
 if (langModal) langModal.onclick = (e) => { if (e.target === langModal) closeModal('lang-modal'); };
