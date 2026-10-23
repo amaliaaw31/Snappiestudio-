@@ -156,6 +156,7 @@ document.body.classList.add('on-start');
 let currentScreen = 'scr-start';
 let historyWorks = true;
 let updateFilterEdges = () => {};
+let updateHomeActions = () => {};
 let refreshEmojiPicker = () => {};
 let demoTheme = 'pastel';
 let demoComparison = 100;
@@ -171,6 +172,7 @@ function activateScreen(id) {
   currentScreen = id;
   syncWorkflow();
   document.body.classList.toggle('on-start', id === 'scr-start');
+  updateHomeActions();
   if (id === 'scr-start') renderDemo();
   if (id === 'scr-start' && state.stream) stopStream();
   if (id === 'scr-cam') {
@@ -219,6 +221,7 @@ function syncModalInteraction() {
   document.querySelectorAll('.screen, .modal-overlay').forEach(el => {
     el.inert = el.classList.contains('modal-overlay') ? el !== top : Boolean(top);
   });
+  updateHomeActions();
 }
 
 function openModal(id) {
@@ -265,7 +268,7 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     closeModal(modal.id);
   } else if (e.key === 'Tab') {
-    const controls = [...modal.querySelectorAll('button, a[href], input, select, textarea, [tabindex]')]
+    const controls = [...modal.querySelectorAll('button, a[href], input, select, textarea, summary, [tabindex]')]
       .filter(el => !el.disabled && el.tabIndex >= 0 && !el.closest('[hidden], [inert]') && el.getClientRects().length);
     const first = controls[0], last = controls.at(-1);
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -297,7 +300,7 @@ function syncFilterPicker() {
 }
 
 /* Strip horizontal: bisa digeser kiri-kanan (drag dengan mouse, swipe dengan layar sentuh). */
-function makeDraggableScroll(el) {
+function makeDraggableScroll(el, captureWheel = true) {
   let down = false, startX = 0, startLeft = 0, moved = 0;
   el.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'mouse') return;           // sentuh: pakai scroll native
@@ -319,11 +322,12 @@ function makeDraggableScroll(el) {
   el.addEventListener('pointerleave', up);
   // Cegah filter ikut terpilih saat pengguna selesai menggeser.
   el.addEventListener('click', (e) => {
-    if (moved > 6) { e.preventDefault(); e.stopPropagation(); }
+    if (moved > 6 && e.detail > 0) { e.preventDefault(); e.stopPropagation(); }
+    moved = 0;
   }, true);
   // roda mouse: ubah gulir vertikal jadi horizontal
   el.addEventListener('wheel', (e) => {
-    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    if (!captureWheel || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
     el.scrollLeft += e.deltaY;
     e.preventDefault();
   }, { passive: false });
@@ -331,7 +335,7 @@ function makeDraggableScroll(el) {
 function chooseFilter(id) {
   state.filter = id;
   const i = state.selectedPhotoIndex;
-  if (currentScreen === 'scr-start') { demoComparison = 100; renderDemo(); }
+  if (currentScreen === 'scr-start') { demoComparison = 100; renderDemo(); printDemo(); }
   else if (i != null && state.photos[i]) {
     state.photos[i].filter = id;
     renderThumbs();
@@ -446,17 +450,54 @@ function renderDemo() {
   $('demo-compare-hint').textContent = tr($('demo-compare-hint').dataset.i18n);
   updateDemoComparison();
   document.querySelectorAll('[data-demo-theme]').forEach(button => {
-    button.setAttribute('aria-pressed', String(button.dataset.demoTheme === demoTheme));
+    button.setAttribute('aria-pressed', String(button.dataset.demoTheme === demoTheme && button.dataset.demoFilter === state.filter));
   });
+  const cards = [...document.querySelectorAll('[data-demo-theme]')];
+  const index = cards.findIndex(button => button.dataset.demoTheme === demoTheme);
+  $('demo-prev').disabled = index <= 0;
+  $('demo-next').disabled = index >= cards.length - 1;
 }
 document.querySelectorAll('[data-demo-theme]').forEach(button => {
   const thumbnail = document.createElement('span');
   thumbnail.className = 'demo-theme-preview';
   thumbnail.setAttribute('aria-hidden', 'true');
   thumbnail.innerHTML = themeThumbHTML({ id: button.dataset.demoTheme });
+  thumbnail.querySelectorAll('img').forEach(image => { image.draggable = false; image.style.filter = filterCss(button.dataset.demoFilter); });
   button.prepend(thumbnail);
-  button.onclick = () => { demoTheme = button.dataset.demoTheme; renderDemo(); };
+  button.onclick = () => { demoTheme = button.dataset.demoTheme; chooseFilter(button.dataset.demoFilter); };
+  button.onkeydown = event => {
+    const direction = document.documentElement.dir === 'rtl' ? -1 : 1;
+    const step = { ArrowLeft: -direction, ArrowRight: direction }[event.key];
+    const cards = [...document.querySelectorAll('[data-demo-theme]')];
+    const index = cards.indexOf(button);
+    const target = event.key === 'Home' ? 0 : event.key === 'End' ? cards.length - 1 : step === undefined ? null : index + step;
+    if (target === null) return;
+    event.preventDefault(); event.stopPropagation();
+    selectDemoCard(Math.max(0, Math.min(cards.length - 1, target)));
+  };
 });
+function selectDemoCard(index) {
+  const button = document.querySelectorAll('[data-demo-theme]')[index];
+  if (!button) return;
+  button.focus({ preventScroll: true });
+  button.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
+  button.click();
+}
+function stepDemoCard(step) {
+  const cards = [...document.querySelectorAll('[data-demo-theme]')];
+  const index = cards.findIndex(button => button.dataset.demoTheme === demoTheme);
+  selectDemoCard(Math.max(0, Math.min(cards.length - 1, index + step)));
+}
+$('demo-prev').onclick = () => stepDemoCard(-1);
+$('demo-next').onclick = () => stepDemoCard(1);
+makeDraggableScroll(document.querySelector('.demo-themes'), false);
+function printDemo() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  $('demo-frame').querySelector('.frame-outer')?.animate([
+    { clipPath: 'inset(0 0 100% 0)', opacity: .65 },
+    { clipPath: 'inset(0 0 0% 0)', opacity: 1 },
+  ], { duration: 300, easing: 'cubic-bezier(.2,.7,.3,1)' });
+}
 function updateDemoComparison() {
   const value = state.filter === 'normal' ? 100 : demoComparison;
   $('demo-frame').style.setProperty('--demo-reveal', value + '%');
@@ -3479,6 +3520,8 @@ $('favorite-use').onclick = () => {
   state.filter = entry.settings.filter;
   applySnapshot({ ...snapshotState(), ...entry.settings, photos: state.photos.map(photo => ({ ...photo, filter: entry.settings.filter })) });
   commitHistory();
+  closeModal('customframe-modal');
+  closeModal('theme-modal');
 };
 $('favorite-delete').onclick = () => writeFavorites(getFavorites().filter(entry => entry.name !== $('favorite-list').value));
 renderFavorites();
@@ -3534,3 +3577,51 @@ $('btn-gif').onclick = async () => {
   } catch { showToast(tr('out.error')); }
   finally { button.disabled = false; button.textContent = tr('out.gif'); }
 };
+
+
+const homeActions = $('home-actions');
+const homeMobile = window.matchMedia('(max-width: 719px)');
+const visibleHomeButtons = new Set(['btn-start', 'btn-gallery-start']);
+const syncHomeActionVisibility = () => {
+  const visible = homeMobile.matches && currentScreen === 'scr-start' && window.scrollY > 0 && !visibleHomeButtons.size && !modalStack.length;
+  if (homeActions.hidden === visible) homeActions.hidden = !visible;
+};
+window.addEventListener('scroll', syncHomeActionVisibility, { passive: true });
+updateHomeActions = () => {
+  const source = $('btn-start');
+  const label = $('home-camera-label');
+  const key = source.dataset.i18n || 'start.open';
+  label.dataset.i18n = key;
+  label.textContent = tr(key);
+  $('home-camera').disabled = source.disabled;
+  $('home-camera').setAttribute('aria-busy', String(source.getAttribute('aria-busy') === 'true'));
+  const status = $('start-cam-status');
+  const message = status.style.display === 'none' ? '' : status.textContent;
+  $('home-camera-status').textContent = message;
+  $('home-camera-status').hidden = !message;
+  document.documentElement.classList.toggle('home-view', homeMobile.matches && currentScreen === 'scr-start');
+  syncHomeActionVisibility();
+};
+const homeActionObserver = new window.IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) visibleHomeButtons.add(entry.target.id);
+    else visibleHomeButtons.delete(entry.target.id);
+  });
+  updateHomeActions();
+});
+['btn-start', 'btn-gallery-start'].forEach(id => homeActionObserver.observe($(id)));
+homeMobile.addEventListener('change', updateHomeActions);
+const homeButtonObserver = new window.MutationObserver(updateHomeActions);
+homeButtonObserver.observe($('btn-start'), { attributes: true, childList: true, subtree: true, attributeFilter: ['disabled', 'aria-busy', 'data-i18n'] });
+homeButtonObserver.observe($('start-cam-status'), { attributes: true, childList: true, subtree: true, attributeFilter: ['style', 'data-i18n'] });
+const homeSizeObserver = new window.ResizeObserver(entries => {
+  const height = entries[0]?.borderBoxSize?.[0]?.blockSize;
+  if (height > 0) document.documentElement.style.setProperty('--home-action-height', height + 'px');
+});
+homeSizeObserver.observe(homeActions);
+window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', event => {
+  if (event.matches) $('demo-frame').querySelector('.frame-outer')?.getAnimations().forEach(animation => animation.cancel());
+});
+$('home-camera').onclick = () => $('btn-start').click();
+$('home-gallery').onclick = () => $('btn-gallery-start').click();
+updateHomeActions();

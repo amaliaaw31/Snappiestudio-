@@ -178,12 +178,14 @@ body { --page-bg: #fdf3ff; --ui-surface: #fff; --ui-text: #493c55; --ui-muted: #
 body.dark-mode { --page-bg: #14121d; --ui-surface: #221f33; --ui-text: #eee6f5; --ui-muted: #c3b5d4; --ui-border: #87759c; --ui-accent: #ff8fc0; }
 /* Latar CSS mengikuti mode tanpa memproses gambar di Canvas. */
 body.on-start {
-  background-color: #fdf3ff;
-  background-image: linear-gradient(180deg, #fdf3ff 0%, #f6e9ff 55%, #ffe9f4 100%);
+  --page-bg: #fff9fc; --home-border: #947298;
+  background-color: var(--page-bg);
+  background-image: none;
 }
 body.dark-mode.on-start {
-  background-color: #14121d;
-  background-image: linear-gradient(180deg, #14121d 0%, #1b1630 55%, #241a2e 100%);
+  --page-bg: #14121d; --home-border: #8f80a6;
+  background-color: var(--page-bg);
+  background-image: none;
 }
 .screen { display: none; position: relative; z-index: 1; width: 100%; max-width: 560px; padding: 20px 16px 32px;
   flex-direction: column; align-items: center; }
@@ -194,11 +196,12 @@ body.dark-mode.on-start {
 #scr-start h1 { font-size: clamp(44px, 6vw, 80px); }
 .start-demo { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 0; min-width: 0; width: 100%; }
 .start-demo figcaption { color: var(--ui-muted); font-size: 13px; text-align: center; }
-.demo-themes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; max-width: 360px; gap: 8px; }
-.demo-themes button { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 2px solid var(--ui-border); border-radius: 8px; background: var(--ui-surface); color: var(--ui-text); padding: 8px 4px; min-height: 44px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.demo-themes { display: flex; width: 100%; gap: 12px; overflow-x: auto; padding: 6px 6px 10px; scroll-snap-type: x proximity; scroll-padding-inline: 6px; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: var(--ui-muted) transparent; }
+.demo-themes.dragging { scroll-snap-type: none; }
+.demo-themes button { position: relative; display: flex; flex: 0 0 44%; min-width: 120px; max-width: 156px; flex-direction: column; align-items: center; gap: 4px; border: 2px solid var(--home-border); border-radius: 8px; background: var(--ui-surface); color: var(--ui-text); padding: 8px; min-height: 44px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; scroll-snap-align: start; user-select: none; overflow-wrap: anywhere; }
 .demo-themes button[aria-pressed="true"] { border-color: var(--ui-accent); color: var(--ui-accent); }
-.demo-theme-preview { display: flex; align-items: center; justify-content: center; height: 100px; }
-.demo-themes .demo-theme-preview .theme-thumb { display: block; width: 40px; padding: 0; box-shadow: none; }
+.demo-theme-preview { display: flex; align-items: center; justify-content: center; height: 124px; pointer-events: none; }
+.demo-themes .demo-theme-preview .theme-thumb { display: block; width: 52px; padding: 0; box-shadow: none; }
 .demo-themes .demo-theme-preview .frame { display: block; padding: 3px; }
 .demo-theme-preview .thumb-slots { gap: 2px; }
 .demo-theme-preview .thumb-stamp { height: 2px; margin-top: 3px; }
@@ -206,10 +209,10 @@ body.dark-mode.on-start {
 .demo-filter-label .filter-select { width: auto; max-width: 220px; min-height: 44px; text-align: left; }
 body.on-start::before {
   content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-color: #d63384; opacity: .045;
+  background-color: #d63384; opacity: .018;
   mask: url('./assets/start-lines.png') center / cover no-repeat;
 }
-body.dark-mode.on-start::before { background-color: #ff7ab8; opacity: .06; }
+body.dark-mode.on-start::before { background-color: #ff7ab8; opacity: .025; }
 #scr-start > .visitor-count { justify-self: center; margin: 0 0 12px; }
 h1 { font-family: 'The Magic Cookie', 'Fredoka', cursive; font-size: clamp(48px, 10vw, 88px); font-weight: 400; color: #d63384; margin: 18px 0 6px; text-align: center; }
 /* header rata kiri di halaman selain awal (klik = ke tampilan awal) */
@@ -1103,6 +1106,11 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .theme-select-btn::after { content: '▾'; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #8a5b7e; }
 
 .theme-modal-card { max-width: 520px; }
+.frame-favorites { width: 100%; min-width: 0; padding-bottom: 12px; border-bottom: 1px solid var(--ui-border); }
+.frame-favorites summary { min-height: 44px; padding: 12px 0; cursor: pointer; color: var(--ui-text); font-size: 14px; font-weight: 700; }
+.frame-favorites > .filter-select { width: 100%; min-width: 0; }
+.frame-favorites .favorite-row .btn { min-height: 44px; padding: 10px 16px; font-size: 14px; }
+.frame-favorites .custom-text-input { width: 100%; margin: 0; }
 .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .theme-grid > [hidden] { display: none; }
 .theme-option { display: flex; flex-direction: column; gap: 6px; align-items: center; background: none;
@@ -1380,14 +1388,11 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
 #date-controls[hidden] { display: none; }
 @media (prefers-reduced-motion: no-preference) {
   .start-intro { animation: home-arrive 320ms ease-out both; }
-  #demo-frame .frame-outer { animation: home-develop 200ms ease-out both; }
-  .demo-themes button { transition: border-color 140ms ease, background-color 140ms ease; }
   .demo-play-actions .btn { transition: transform 140ms ease; }
   .demo-themes button:hover { border-color: var(--ui-accent); }
   .demo-play-actions .btn:hover { transform: translateY(-2px); }
 }
 @keyframes home-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes home-develop { from { opacity: .35; } to { opacity: 1; } }
 
 .photo-order { width: 100%; margin-block: 14px; padding: 14px; border: 1px solid var(--ui-border); border-radius: 12px; background: var(--ui-surface); color: var(--ui-text); }
 .photo-order[hidden] { display: none; }
@@ -1410,3 +1415,29 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
 .order-status:empty { margin: 0; }
 
 [dir="rtl"] .photo-order-actions .ms { transform: scaleX(-1); }
+
+.demo-gallery { width: 100%; max-width: 360px; min-width: 0; }
+.demo-gallery-heading { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.demo-gallery-heading h2 { color: var(--ui-text); font-size: 14px; margin: 0; }
+.demo-gallery-nav { display: flex; gap: 8px; }
+.demo-gallery-nav .btn { min-width: 44px; min-height: 44px; padding: 8px; border-color: var(--home-border); }
+.demo-gallery-nav .ms { margin: 0; }
+.demo-themes button > [data-i18n^="theme."] { min-height: 2.4em; line-height: 1.2; }
+.demo-preset-effect { font-weight: 400; color: var(--ui-muted); }
+.demo-selected { position: absolute; top: 6px; inset-inline-end: 6px; color: var(--ui-accent); font-size: 18px; visibility: hidden; }
+.demo-themes button[aria-pressed="true"] .demo-selected { visibility: visible; }
+[dir="rtl"] .demo-gallery-nav .ms { transform: scaleX(-1); }
+.home-actions[hidden] { display: none; }
+.home-actions { position: fixed; z-index: 60; inset: auto 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 10px 12px max(10px, env(safe-area-inset-bottom)); border-top: 1px solid var(--home-border); background: var(--page-bg); }
+.home-actions .btn { min-width: 0; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 10px; font-size: 14px; overflow-wrap: anywhere; }
+.home-actions .ms { flex-shrink: 0; font-size: 20px; margin: 0; }
+.home-actions .btn.ghost { border-color: var(--home-border); }
+.home-camera-status { grid-column: 1 / -1; color: var(--ui-text); font-size: 13px; text-align: start; }
+@media (max-width: 719px) {
+  body.on-start #scr-start { padding-bottom: calc(var(--home-action-height, 80px) + 24px); }
+  html.home-view { scroll-padding-bottom: calc(var(--home-action-height, 80px) + 16px); }
+}
+
+body.on-start .btn.ghost, body.on-start .demo-filter-label .filter-select { border-color: var(--home-border); }
+
+body.on-start .btn { transition: transform 140ms ease; }

@@ -103,10 +103,13 @@
     <div class="demo-filter-label"><span id="demo-filter-label" data-i18n="start.tryFilter">Coba efek foto</span>
       <button type="button" id="demo-filter" class="filter-select" aria-haspopup="dialog" aria-controls="filter-modal" aria-labelledby="demo-filter-label demo-filter"></button>
     </div>
-    <div class="demo-themes" role="group" data-i18n-aria="start.tryTheme" aria-label="Coba tema bingkai">
-      <button type="button" data-demo-theme="pastel" aria-pressed="true"><span data-i18n="theme.pastel">Princess Pastel</span></button>
-      <button type="button" data-demo-theme="film" aria-pressed="false"><span data-i18n="theme.film">35mm Film</span></button>
-      <button type="button" data-demo-theme="minimal" aria-pressed="false"><span data-i18n="theme.minimal">Seoul Minimal</span></button>
+    <div class="demo-gallery">
+      <div class="demo-gallery-heading"><h2 id="demo-gallery-title" data-i18n="home.styles">Gaya foto</h2><div class="demo-gallery-nav"><button type="button" id="demo-prev" class="btn ghost small" data-i18n-aria="home.previousStyle" aria-label="Gaya sebelumnya"><span class="ms" aria-hidden="true">arrow_back</span></button><button type="button" id="demo-next" class="btn ghost small" data-i18n-aria="home.nextStyle" aria-label="Gaya berikutnya"><span class="ms" aria-hidden="true">arrow_forward</span></button></div></div>
+    <div class="demo-themes" role="group" aria-labelledby="demo-gallery-title">
+      <button type="button" data-demo-theme="pastel" data-demo-filter="normal" aria-pressed="true"><span data-i18n="theme.pastel">Princess Pastel</span><span class="demo-preset-effect" data-i18n="filter.normal"></span><span class="ms demo-selected" aria-hidden="true">check</span></button>
+      <button type="button" data-demo-theme="film" data-demo-filter="vintage" aria-pressed="false"><span data-i18n="theme.film">35mm Film</span><span class="demo-preset-effect" data-i18n="filter.vintage"></span><span class="ms demo-selected" aria-hidden="true">check</span></button>
+      <button type="button" data-demo-theme="minimal" data-demo-filter="bw" aria-pressed="false"><span data-i18n="theme.minimal">Seoul Minimal</span><span class="demo-preset-effect" data-i18n="filter.bw"></span><span class="ms demo-selected" aria-hidden="true">check</span></button>
+    </div>
     </div>
     <div class="demo-play-actions">
       <button type="button" id="demo-shuffle" class="btn ghost"><span class="ms" aria-hidden="true">shuffle</span><span data-i18n="home.shuffle">Acak gaya</span></button>
@@ -121,6 +124,11 @@
     </div>
   </figure>
   <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
+  <div id="home-actions" class="home-actions" role="group" data-i18n-aria="home.actions" aria-label="Mulai sesi foto" hidden>
+    <button type="button" id="home-camera" class="btn" aria-describedby="start-cam-status"><span class="ms" aria-hidden="true">photo_camera</span><span id="home-camera-label" data-i18n="start.open">Buka Kamera</span></button>
+    <button type="button" id="home-gallery" class="btn ghost"><span class="ms" aria-hidden="true">image</span><span data-i18n="home.gallery">Galeri</span></button>
+    <p id="home-camera-status" class="home-camera-status" aria-hidden="true" hidden></p>
+  </div>
 </div>
 
 <!-- CAMERA -->
@@ -231,11 +239,6 @@
   <div class="theme-pick-row">
     <button type="button" id="themepick2" class="theme-select-btn" aria-haspopup="dialog" aria-controls="theme-modal"></button>
   </div>
-  <label class="label" for="favorite-name" data-i18n="fav.title">Favorit tersimpan</label>
-  <div class="favorite-row"><input id="favorite-name" class="custom-text-input" maxlength="32" data-i18n-ph="fav.name" data-i18n-aria="fav.name" placeholder="Nama favorit"><button type="button" class="btn ghost" id="favorite-save" data-i18n="fav.save">Simpan</button></div>
-  <select id="favorite-list" class="filter-select" data-i18n-aria="fav.title"></select>
-  <div class="favorite-row"><button type="button" class="btn ghost" id="favorite-use" data-i18n="fav.use">Gunakan</button><button type="button" class="btn ghost" id="favorite-delete" data-i18n="fav.delete">Hapus</button></div>
-  <p class="tool-note" data-i18n="fav.note">Hanya pengaturan disimpan di browser ini, tanpa foto atau teks pribadi.</p>
   </details>
   <details class="editor-group" id="text-tools">
   <summary data-i18n="edit.text">Teks &amp; Tanggal</summary>
@@ -446,6 +449,13 @@
       <button id="btn-close-customframe" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
     </div>
     <div class="modal-body">
+      <details id="frame-favorites" class="frame-favorites">
+        <summary data-i18n="fav.title">Favorit tersimpan</summary>
+        <div class="favorite-row"><input id="favorite-name" class="custom-text-input" maxlength="32" data-i18n-ph="fav.name" data-i18n-aria="fav.name" placeholder="Nama favorit"><button type="button" class="btn ghost" id="favorite-save" data-i18n="fav.save">Simpan</button></div>
+        <select id="favorite-list" class="filter-select" data-i18n-aria="fav.title"></select>
+        <div class="favorite-row"><button type="button" class="btn ghost" id="favorite-use" data-i18n="fav.use">Gunakan</button><button type="button" class="btn ghost" id="favorite-delete" data-i18n="fav.delete">Hapus</button></div>
+        <p class="tool-note" data-i18n="fav.note">Hanya pengaturan disimpan di browser ini, tanpa foto atau teks pribadi.</p>
+      </details>
       <div class="cf-subtitle" data-i18n="cf.style">Gaya Bingkai</div>
       <div class="cf-styles" id="cf-styles"></div>
       <div class="cf-subtitle" data-i18n="cf.colors">Warna</div>

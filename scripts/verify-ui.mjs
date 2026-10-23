@@ -12,6 +12,7 @@ await new Promise(resolve => socket.addEventListener('open', resolve, { once: tr
 let nextId = 0;
 let acceptDialogs = true;
 const nativeDialogs = [];
+const fileChoosers = [];
 const pending = new Map(), exceptions = [];
 socket.addEventListener('message', async event => {
   const message = JSON.parse(event.data);
@@ -20,6 +21,8 @@ socket.addEventListener('message', async event => {
     pending.delete(message.id);
     if (message.error) task.reject(new Error(message.error.message));
     else task.resolve(message.result);
+  } else if (message.method === 'Page.fileChooserOpened') {
+    fileChoosers.push(message.params);
   } else if (message.method === 'Page.javascriptDialogOpening') {
     nativeDialogs.push(message.params);
     await send('Page.handleJavaScriptDialog', { accept: acceptDialogs });
@@ -212,12 +215,21 @@ try {
   await check("document.querySelector('#demo-compare').disabled", 'comparison explains that an effect must be selected first');
   await evaluate("window.initialDemoTheme = document.querySelector('[data-demo-theme][aria-pressed=true]').dataset.demoTheme");
   await click('#demo-shuffle');
-  await check("!document.querySelector('#demo-compare').disabled && document.querySelector('#demo-compare').value === '65' && document.querySelector('[data-demo-theme][aria-pressed=true]').dataset.demoTheme !== window.initialDemoTheme && document.querySelector('#demo-style').textContent.includes(document.querySelector('#demo-filter').textContent)", 'shuffle changes theme and effect and exposes comparison');
+  await check("!document.querySelector('#demo-compare').disabled && document.querySelector('#demo-compare').value === '65' && !document.querySelector('#demo-frame .frame-outer').classList.contains('th-' + window.initialDemoTheme) && document.querySelector('#demo-style').textContent.includes(document.querySelector('#demo-filter').textContent)", 'shuffle changes theme and effect and exposes comparison');
   await click('#demo-filter');
   await click('#filter-grid [data-id=normal]');
   await click('#btn-apply-filter');
   await click('[data-demo-theme=film]');
   await check("document.querySelector('#demo-frame .frame-outer').classList.contains('th-film') && document.querySelector('[data-demo-theme=film]').getAttribute('aria-pressed') === 'true'", 'demo switches real frame styles and selected state');
+  await check("document.querySelector('#demo-filter').textContent === document.querySelector('[data-demo-theme=film] .demo-preset-effect').textContent && [...document.querySelectorAll('[data-demo-theme=film] .demo-theme-preview img')].every(image => image.style.filter === document.querySelector('#demo-frame .demo-effect').style.filter)", 'style card applies its real theme and effect combination');
+  await key('ArrowRight');
+  await check("document.querySelector('[data-demo-theme=minimal]').getAttribute('aria-pressed') === 'true' && getComputedStyle(document.querySelector('[data-demo-theme=minimal] .demo-selected')).visibility === 'visible'", 'gallery keyboard selects a style with a visible check mark');
+  await key('ArrowLeft');
+  await check("(() => { const card = document.activeElement, gallery = document.querySelector('.demo-themes').getBoundingClientRect(), box = card.getBoundingClientRect(), style = getComputedStyle(card); return card.matches(':focus-visible') && parseFloat(style.outlineWidth) >= 2 && box.left - 5 >= gallery.left - 1 && box.right + 5 <= gallery.right + 1; })()", 'gallery focus ring stays visible inside scroll container');
+  await check("(() => { document.querySelector('[data-demo-theme=film]').click(); return document.querySelector('#demo-frame .frame-outer').getAnimations().some(animation => animation.effect.getKeyframes().some(frame => frame.clipPath)); })()", 'style selection triggers one print reveal');
+  await click('#demo-filter');
+  await click('#filter-grid [data-id=normal]');
+  await click('#btn-apply-filter');
   await check("document.querySelector('.start-demo figcaption').textContent.includes('foto')", 'example is labelled as photo example');
   await waitFor("[...document.querySelectorAll('#demo-frame img, #theme-grid img')].every(img => img.complete && img.naturalWidth > 0)");
   await check("[...document.querySelectorAll('#demo-frame img, #theme-grid img')].every(img => img.naturalWidth === 588 && img.naturalHeight === 393)", 'frame examples use the supplied group photo');
@@ -267,10 +279,10 @@ try {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
     await check("document.querySelector('.demo-themes').getBoundingClientRect().bottom <= document.querySelector('#demo-frame').getBoundingClientRect().top && document.querySelector('#demo-filter').getBoundingClientRect().bottom <= document.querySelector('#demo-frame').getBoundingClientRect().top", `homepage controls appear above frame at ${width}px`);
     await check("document.querySelectorAll('.demo-theme-preview img').length === 9 && [...document.querySelectorAll('.demo-theme-preview img')].every(img => img.getBoundingClientRect().width >= 20)", 'each homepage theme has a visible photo thumbnail');
-    await evaluate("window.themeButtonBounds = [...document.querySelectorAll('[data-demo-theme]')].map(button => { const box = button.getBoundingClientRect(); return [box.x, box.y, box.width, box.height]; })");
+    await evaluate("window.themeButtonBounds = [...document.querySelectorAll('[data-demo-theme]')].map(button => { const box = button.getBoundingClientRect(); return [box.width, box.height]; })");
     for (const theme of ['pastel', 'minimal', 'film']) {
       await click(`[data-demo-theme=${theme}]`);
-      await check("JSON.stringify(window.themeButtonBounds) === JSON.stringify([...document.querySelectorAll('[data-demo-theme]')].map(button => { const box = button.getBoundingClientRect(); return [box.x, box.y, box.width, box.height]; }))", `theme buttons remain stable when selecting ${theme} at ${width}px`);
+      await check("JSON.stringify(window.themeButtonBounds) === JSON.stringify([...document.querySelectorAll('[data-demo-theme]')].map(button => { const box = button.getBoundingClientRect(); return [box.width, box.height]; }))", `gallery card sizes stay stable when selecting ${theme} at ${width}px`);
       await evaluate(`window.demoDimensions['${width}-${theme}'] = window.frameDimensions(document.querySelector('#demo-frame'))`);
       await check(`(() => { const frame = document.querySelector('#demo-frame .frame'); const bounds = frame.getBoundingClientRect(); return getComputedStyle(frame).display === 'block' && frame.querySelectorAll('.slot').length === 3 && [...frame.querySelectorAll('.slot')].every(slot => { const box = slot.getBoundingClientRect(); return box.width > 0 && box.left >= bounds.left && box.right <= bounds.right + 1 && box.top >= bounds.top && box.bottom <= bounds.bottom + 1; }); })()`, `homepage ${theme} frame contains photos at ${width}px`);
     }
@@ -295,19 +307,45 @@ try {
   await send('Emulation.setTouchEmulationEnabled', { enabled: false });
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
+  await evaluate('window.scrollTo(0, 0)');
+  await waitFor("document.querySelector('#home-actions').hidden");
+  await evaluate("window.scrollTo(0, document.scrollingElement.scrollHeight)");
+  await waitFor("!document.querySelector('#home-actions').hidden");
+  await check("(() => { const bar = document.querySelector('#home-actions').getBoundingClientRect(); return bar.bottom <= innerHeight && bar.height <= 110 && [...document.querySelectorAll('#home-actions button')].every(button => { const box = button.getBoundingClientRect(); return box.width >= 44 && box.height >= 44; }) && document.querySelector('.visitor-count').getBoundingClientRect().bottom <= bar.top; })()", 'mobile start actions stay compact and do not cover final content');
+  await send('Emulation.setDeviceMetricsOverride', { width: 640, height: 900, deviceScaleFactor: 1, mobile: true });
+  await evaluate("document.documentElement.style.zoom = '2'; window.dispatchEvent(new Event('resize')); window.scrollTo(0, document.scrollingElement.scrollHeight)");
+  await waitFor("!document.querySelector('#home-actions').hidden");
+  await check("(() => { const bar = document.querySelector('#home-actions').getBoundingClientRect(); return document.body.getBoundingClientRect().width <= innerWidth + 1 && bar.right <= innerWidth + 1 && document.querySelector('.visitor-count').getBoundingClientRect().bottom <= bar.top + 1; })()", '200 percent zoom preserves content and mobile actions');
+  await evaluate("document.documentElement.style.zoom = ''; window.dispatchEvent(new Event('resize'))");
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
+  await waitFor("!document.querySelector('#home-actions').hidden");
+  await send('Page.setInterceptFileChooserDialog', { enabled: true });
+  await send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  const chooserCount = fileChoosers.length;
+  await tap('#home-gallery');
+  for (let attempt = 0; attempt < 100 && fileChoosers.length === chooserCount; attempt++) await new Promise(resolve => setTimeout(resolve, 50));
+  assert.equal(fileChoosers.length, chooserCount + 1, 'mobile gallery action opens actual image picker');
+  await send('Page.setInterceptFileChooserDialog', { enabled: false });
+  await send('Emulation.setTouchEmulationEnabled', { enabled: false });
   await evaluate("navigator.mediaDevices.getUserMedia = () => new Promise((resolve, reject) => { window.rejectCamera = reject; })");
-  await click('#btn-start');
+  await click('#home-camera');
+  await waitFor("document.querySelector('#home-camera').disabled");
+  await check("document.querySelector('#home-camera').disabled && document.querySelector('#home-camera').getAttribute('aria-busy') === 'true'", 'mobile camera action shares busy state and prevents duplicate requests');
   await check("document.querySelector('#btn-start').disabled && document.querySelector('#start-cam-status').textContent.includes('Menunggu')", 'pending camera request has visible status and prevents duplicate requests');
   await evaluate("window.rejectCamera(new DOMException('Denied for test', 'NotAllowedError'))");
   await waitFor("!document.querySelector('#btn-start').disabled");
   await check("document.querySelector('#scr-start').classList.contains('active') && document.querySelector('#start-cam-status').getClientRects().length > 0 && document.querySelector('#start-cam-status').textContent.includes('ditolak') && document.querySelector('#btn-start').textContent.includes('Lagi')", 'denied camera shows visible recovery on start screen');
+  await check("!document.querySelector('#home-camera').disabled && document.querySelector('#home-camera-label').textContent === document.querySelector('#btn-start').textContent && !document.querySelector('#home-camera-status').hidden && document.querySelector('#home-camera-status').textContent.includes('ditolak')", 'mobile action exposes permission error and retry');
   await evaluate(`navigator.mediaDevices.getUserMedia = async () => {
     const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480;
     window.testCameraCanvas = canvas;
     return canvas.captureStream(10);
   }`);
-  await click('#btn-start');
+  await click('#home-camera');
   await waitFor("document.querySelector('#scr-cam').classList.contains('active')");
+  await check("document.querySelector('#home-actions').hidden", 'home action bar stays confined to homepage');
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await check("getComputedStyle(document.body, '::before').content === 'none' && getComputedStyle(document.body, '::before').maskImage === 'none'", 'restored background appears only on homepage');
   await check("document.querySelector('#video').srcObject.active && [...document.querySelectorAll('[data-camera-status]')].every(el => el.style.display === 'none') && !document.querySelector('#btn-start').disabled", 'retry succeeds and clears camera status');
   await click('#layoutseg [data-layout="8"]');
@@ -340,7 +378,9 @@ try {
         const desc = [...document.querySelectorAll('#scr-start .desc')];
         const input = document.querySelector('#custom-text');
         return desc.every(el => ratio(getComputedStyle(el).color, background) >= 4.5)
-          && ratio(getComputedStyle(input, '::placeholder').color, getComputedStyle(input).backgroundColor) >= 4.5;
+          && ratio(getComputedStyle(input, '::placeholder').color, getComputedStyle(input).backgroundColor) >= 4.5
+          && [...document.querySelectorAll('.demo-themes button')].every(button => ratio(getComputedStyle(button).color, getComputedStyle(button).backgroundColor) >= 4.5)
+          && [...document.querySelectorAll('.demo-preset-effect')].every(label => ratio(getComputedStyle(label).color, getComputedStyle(label.closest('button')).backgroundColor) >= 4.5);
       })()`, `description and placeholder contrast pass in ${dark ? 'dark' : 'light'} mode at ${width}px`);
       await click('#btn-lang');
       await check(`(() => {
@@ -418,7 +458,7 @@ try {
   await check("!document.querySelector('#scr-result .sticker-hint').hidden && getComputedStyle(document.querySelector('.screen.active .user-sticker')).animationName === 'none'", 'sticker hint appears and selection has no looping animation');
   await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
   await check("getComputedStyle(document.querySelector('#btn-add-sticker')).transitionDuration.split(',').every(value => parseFloat(value) <= .001)", 'reduced motion disables decorative transitions');
-  await check("getComputedStyle(document.querySelector('.start-intro')).animationName === 'none' && getComputedStyle(document.querySelector('#demo-frame .frame-outer')).animationName === 'none'", 'homepage motion respects reduced motion');
+  await check("getComputedStyle(document.querySelector('.start-intro')).animationName === 'none' && getComputedStyle(document.querySelector('#demo-frame .frame-outer')).animationName === 'none' && document.querySelector('#demo-frame .frame-outer').getAnimations().length === 0", 'homepage motion respects reduced motion');
   await send('Emulation.setEmulatedMedia', { features: [] });
   await click('#btn-add-sticker');
   await click('#btn-close-sticker');
@@ -547,12 +587,35 @@ try {
       await evaluate('window.exportLayoutSpec = null');
     }
   }
-  await evaluate("localStorage.removeItem('snappie-favorites-v1'); document.querySelector('#favorite-name').value = 'Browser test'; document.querySelector('#favorite-save').click()");
+  await click('#themepick2');
+  await check("document.querySelector('#theme-modal #frame-favorites') === null && document.querySelector('#scr-result #favorite-name') === null", 'favorites stay out of theme picker and result panel');
+  await click('#theme-grid [data-id=custom]');
+  await click('#frame-favorites summary');
+  await evaluate("localStorage.removeItem('snappie-favorites-v1'); document.querySelector('#favorite-name').value = 'Browser test'");
+  await click('#favorite-save');
   await check("JSON.parse(localStorage.getItem('snappie-favorites-v1'))[0].name === 'Browser test' && !/photos|stickers|customText|customDate/.test(localStorage.getItem('snappie-favorites-v1'))", 'favorites persist settings without personal content');
+  await click('#cf-done');
   await click('#themepick2');
   await click('#theme-grid [data-id=pastel]');
+  await click('#themepick2');
+  await click('#theme-grid [data-id=custom]');
   await click('#favorite-use');
+  await check("!document.querySelector('#theme-modal').classList.contains('open')", 'applying favorite closes theme modal to show result');
   await check("(() => { const saved = JSON.parse(localStorage.getItem('snappie-favorites-v1'))[0].settings; return document.querySelector('#result-holder .frame-outer').classList.contains(saved.frame ? 'th-' + saved.theme : 'noframe'); })()", 'saved favorite restores theme and frame visibility');
+  await click('#themepick2');
+  await click('#theme-grid [data-id=custom]');
+  await check("document.querySelector('#customframe-modal #frame-favorites') !== null && document.querySelectorAll('#favorite-name').length === 1", 'favorites live inside custom frame modal without duplicate IDs');
+  for (const width of [320, 390, 1440]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
+    await check("(() => { const panel = document.querySelector('#frame-favorites').getBoundingClientRect(); return panel.width > 0 && panel.left >= 0 && panel.right <= innerWidth && document.querySelector('#favorite-save').getBoundingClientRect().width >= 44 && document.documentElement.scrollWidth <= innerWidth; })()", `custom frame favorites fit ${width}px`);
+  }
+  await evaluate("document.querySelector('#favorite-name').value='Custom test'");
+  await click('#favorite-save');
+  await check("JSON.parse(localStorage.getItem('snappie-favorites-v1')).find(entry=>entry.name==='Custom test').settings.theme==='custom'", 'custom frame favorite saves current custom settings');
+  await click('#favorite-delete');
+  await evaluate("document.querySelector('#favorite-list').value='Browser test'");
+  await click('#favorite-use');
+  await check("!document.querySelector('#customframe-modal').classList.contains('open')", 'applying favorite closes custom frame modal');
   for (const [format, width, height] of [['story', 1080, 1920], ['post', 1080, 1350]]) {
     await evaluate(`document.querySelector('#output-format').value = '${format}'; document.querySelector('#output-format').dispatchEvent(new Event('change'))`);
     await check(`(() => { const holder = document.querySelector('#result-holder').getBoundingClientRect(); return Math.abs(holder.width / holder.height - ${width / height}) < .01; })()`, `${format}: preview matches output ratio`);
@@ -611,8 +674,11 @@ try {
   assert.deepEqual([storyGif.width, storyGif.height, storyGif.count], [405, 720, 8], 'GIF respects selected Story format');
   console.log('PASS GIF Story format is 405 × 720 with eight frames');
   await check("window.dispatchEvent(new Event('beforeunload', { cancelable: true }))", 'GIF download clears exit warning');
+  await click('#themepick2');
+  await click('#theme-grid [data-id=custom]');
   await click('#favorite-delete');
   await check("JSON.parse(localStorage.getItem('snappie-favorites-v1')).length === 0 && document.querySelector('#favorite-use').disabled", 'favorite deletion updates storage and controls');
+  await click('#cf-done');
   await click('#scr-result .workflow [data-screen=scr-cam]');
   await waitFor("[...document.querySelectorAll('.filter-sample')].every(el => el.style.backgroundImage.startsWith('url(\"blob:'))");
   await check("document.querySelector('.filter-sample').style.backgroundImage.includes('blob:')", 'filter thumbnails use user photo locally');
@@ -620,6 +686,8 @@ try {
   await check("document.querySelector('#scr-preview').classList.contains('active')", 'workflow returns from camera to photo review');
   await check('document.documentElement.scrollWidth <= innerWidth', 'result editor has no horizontal overflow');
   await click('#btn-preview-fix');
+  await click('#themepick2');
+  await click('#theme-grid [data-id=custom]');
   await evaluate("document.querySelector('#favorite-name').value = 'Reload test'; document.querySelector('#favorite-save').click()");
   await evaluate('window.beforeVerificationReload = true');
   await send('Page.reload');
