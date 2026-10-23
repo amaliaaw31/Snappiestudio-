@@ -127,9 +127,9 @@ window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault(); installPrompt = event; setInstallVisible(true);
 });
 window.addEventListener('appinstalled', () => { installPrompt = null; setInstallVisible(false); });
-/* Dua tombol: di ponsel di bawah intro, di tablet/PC di samping ikon FAQ (CSS memilih yang tampil). */
-const setInstallVisible = visible => { for (const id of ['btn-install', 'btn-install-top']) $(id).hidden = !visible; };
-for (const id of ['btn-install', 'btn-install-top']) $(id).onclick = async () => {
+/* Satu tombol tetap (fixed) di samping ikon FAQ pada semua lebar layar. */
+const setInstallVisible = visible => { $('btn-install-top').hidden = !visible; };
+$('btn-install-top').onclick = async () => {
   if (!installPrompt) return;
   installPrompt.prompt();
   await installPrompt.userChoice;
