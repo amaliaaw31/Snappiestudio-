@@ -1468,11 +1468,10 @@ body.dark-mode .season-now { background: #ff8fc0; color: #14121d; }
   #demo-frame { order: -1; }
 }
 
-.support { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 4px 0 12px; text-align: center; }
-.support-text { color: var(--ui-muted); font-size: 13px; margin: 0; }
-.support-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.support-links { display: flex; align-self: center; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .support-links .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; text-decoration: none; }
 .support-links .btn .ms { margin-right: .35em; font-size: 18px; }
 [dir="rtl"] .support-links .btn .ms { margin-right: 0; margin-left: .35em; }
-#scr-start > .support { justify-self: center; }
-@media (min-width: 720px) { #scr-start > .support { grid-column: 1 / -1; } }
+#support-modal .modal-body { display: flex; flex-direction: column; gap: 14px; }
+#support-modal .modal-body > .btn { align-self: center; }
+.dark-mode #support-modal .again-text { color: #d8c8e8; }

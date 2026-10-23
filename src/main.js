@@ -260,6 +260,7 @@ function closeModal(id) {
     if (trigger?.isConnected && !trigger.closest('[inert]') && trigger.getClientRects().length) trigger.focus();
     else modalStack.at(-1)?.modal.querySelector('.modal-close')?.focus();
   }
+  if (id === 'support-modal') offerAnotherSession();
 }
 document.addEventListener('keydown', (e) => {
   const modal = modalStack.at(-1)?.modal;
@@ -3267,6 +3268,14 @@ initShareButtons();
 function offerAnotherSession() {
   openModal('again-modal');
 }
+/* Setelah PNG diunduh: popup dukungan dulu, baru tawaran sesi baru (lihat closeModal). */
+function offerSupport() {
+  openModal('support-modal');
+}
+const supportModal = $('support-modal');
+if (supportModal) supportModal.onclick = (e) => { if (e.target === supportModal) closeModal('support-modal'); };
+if ($('btn-close-support')) $('btn-close-support').onclick = () => closeModal('support-modal');
+if ($('btn-support-next')) $('btn-support-next').onclick = () => closeModal('support-modal');
 const againModal = $('again-modal');
 if (againModal) againModal.onclick = (e) => { if (e.target === againModal) closeModal('again-modal'); };
 if ($('btn-close-again')) $('btn-close-again').onclick = () => closeModal('again-modal');
@@ -3303,7 +3312,7 @@ $('btn-download').onclick = async () => {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     markPhotosSaved(exportKey);
-    offerAnotherSession();
+    offerSupport();
   } catch (e) {
     alert(tr('toast.failPng'));
   }

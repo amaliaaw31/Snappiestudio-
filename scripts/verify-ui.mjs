@@ -112,7 +112,10 @@ async function checkExport(label) {
   await evaluate("document.querySelector('#btn-download').onclick()");
   const png = await evaluate('window.lastDownload');
   assert.ok(png.width > 0 && png.height > 0 && png.type === 'image/png', label);
-  await check("document.querySelector('#again-modal').classList.contains('open')", `${label}: PNG ready with next-session dialog`);
+  await check("document.querySelector('#support-modal').classList.contains('open') && !document.querySelector('#again-modal').classList.contains('open')", `${label}: PNG download opens the support popup first`);
+  await check(`(() => { const links = [...document.querySelectorAll('#support-modal .support-links a')]; return links.length === 2 && links[0].href === 'https://trakteer.id/snappiestudio/gift' && links[1].href === 'https://ko-fi.com/snappiestudio' && links.every(a => a.target === '_blank' && a.rel.includes('noopener') && a.rel.includes('noreferrer') && a.getBoundingClientRect().height >= 44 && a.getBoundingClientRect().right <= innerWidth + 1); })()`, `${label}: support links are correct, tappable and not clipped`);
+  await click('#btn-support-next');
+  await check("document.querySelector('#again-modal').classList.contains('open') && !document.querySelector('#support-modal').classList.contains('open')", `${label}: support popup continues to the next-session dialog`);
   await click('#btn-close-again');
   await check("window.dispatchEvent(new Event('beforeunload', { cancelable: true }))", `${label}: downloaded output no longer triggers exit warning`);
   return png;
@@ -213,7 +216,6 @@ try {
   await check("[...document.querySelectorAll('.modal-overlay')].every(m => m.inert)", 'closed dialogs cannot receive focus');
   await check("[...document.querySelectorAll('.tagline, .mh-tag')].length === 4 && [...document.querySelectorAll('.tagline, .mh-tag')].every(el => el.textContent === 'your little photo moment' && el.lang === 'en')", 'all four main screens use the exact English brand slogan');
   await check("document.querySelector('#demo-compare').disabled", 'comparison explains that an effect must be selected first');
-  await check(`(() => { const links = [...document.querySelectorAll('#scr-start .support-links a')]; return links.length === 2 && links[0].href === 'https://trakteer.id/snappiestudio/gift' && links[1].href === 'https://ko-fi.com/snappiestudio' && links.every(a => a.target === '_blank' && a.rel.includes('noopener') && a.rel.includes('noreferrer') && a.getBoundingClientRect().height >= 44 && a.getBoundingClientRect().right <= innerWidth + 1); })()`, 'support links on home screen are correct, tappable and not clipped');
   await evaluate("window.initialDemoTheme = document.querySelector('[data-demo-theme][aria-pressed=true]').dataset.demoTheme");
   await click('#demo-shuffle');
   await check("!document.querySelector('#demo-compare').disabled && document.querySelector('#demo-compare').value === '65' && !document.querySelector('#demo-frame .frame-outer').classList.contains('th-' + window.initialDemoTheme) && document.querySelector('#demo-style').textContent.includes(document.querySelector('#demo-filter').textContent)", 'shuffle changes theme and effect and exposes comparison');
@@ -506,7 +508,6 @@ try {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 720 });
     await new Promise(resolve => setTimeout(resolve, 50));
     await check('document.documentElement.scrollWidth <= innerWidth', `result editor fits ${width}px`);
-    await check(`(() => { const links = [...document.querySelectorAll('#scr-result .support-links a')]; return links.length === 2 && links[0].href === 'https://trakteer.id/snappiestudio/gift' && links[1].href === 'https://ko-fi.com/snappiestudio' && links.every(a => a.target === '_blank' && a.rel.includes('noopener') && a.rel.includes('noreferrer') && a.getBoundingClientRect().height >= 44 && a.getBoundingClientRect().right <= innerWidth + 1); })()`, `support links on result screen are correct and not clipped at ${width}px`);
     await checkHeader();
     await check("[...document.querySelectorAll('.result-actions button')].filter(el => el.getClientRects().length).every(el => el.getBoundingClientRect().width >= 40)", 'save and share controls retain usable touch width');
     await check("(() => { const download = document.querySelector('#btn-download-menu').getBoundingClientRect(), share = document.querySelector('#btn-share').getBoundingClientRect(); return Math.abs(download.top - share.top) < 2 && document.querySelector('.result-actions').getBoundingClientRect().height <= 76; })()", 'download footer is compact and inline');

@@ -129,13 +129,6 @@
     </div>
   </figure>
   <p class="visitor-count" aria-live="polite"><span class="ms" aria-hidden="true">groups</span><span data-i18n="visitors.label">Pengunjung</span><strong data-visitor-count>—</strong></p>
-  <div class="support">
-    <p class="support-text" data-i18n="support.text">Suka Snappie? Dukung kami supaya tetap gratis.</p>
-    <div class="support-links">
-      <a class="btn ghost small" href="https://trakteer.id/snappiestudio/gift" target="_blank" rel="noopener noreferrer"><span class="ms" aria-hidden="true">coffee</span><span>Trakteer</span><span class="sr-only" data-i18n="support.newTab">(buka di tab baru)</span></a>
-      <a class="btn ghost small" href="https://ko-fi.com/snappiestudio" target="_blank" rel="noopener noreferrer"><span class="ms" aria-hidden="true">favorite</span><span>Ko-fi</span><span class="sr-only" data-i18n="support.newTab">(buka di tab baru)</span></a>
-    </div>
-  </div>
   <div id="home-actions" class="home-actions" role="group" data-i18n-aria="home.actions" aria-label="Mulai sesi foto" hidden>
     <button type="button" id="home-camera" class="btn" aria-describedby="start-cam-status"><span class="ms" aria-hidden="true">photo_camera</span><span id="home-camera-label" data-i18n="start.open">Buka Kamera</span></button>
     <button type="button" id="home-gallery" class="btn ghost"><span class="ms" aria-hidden="true">image</span><span data-i18n="home.gallery">Galeri</span></button>
@@ -337,13 +330,6 @@
   <p class="tool-note" data-i18n="edit.stickerNote">Pilih emoji atau tulis teks, lalu atur langsung di fotomu.</p>
   </details>
   </div>
-  </div>
-  <div class="support">
-    <p class="support-text" data-i18n="support.text">Suka Snappie? Dukung kami supaya tetap gratis.</p>
-    <div class="support-links">
-      <a class="btn ghost small" href="https://trakteer.id/snappiestudio/gift" target="_blank" rel="noopener noreferrer"><span class="ms" aria-hidden="true">coffee</span><span>Trakteer</span><span class="sr-only" data-i18n="support.newTab">(buka di tab baru)</span></a>
-      <a class="btn ghost small" href="https://ko-fi.com/snappiestudio" target="_blank" rel="noopener noreferrer"><span class="ms" aria-hidden="true">favorite</span><span>Ko-fi</span><span class="sr-only" data-i18n="support.newTab">(buka di tab baru)</span></a>
-    </div>
   </div>
   <div class="result-actions">
   <div class="btnrow">
@@ -637,6 +623,23 @@
 </div>
 
 <!-- AGAIN MODAL -->
+<div id="support-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="support-title">
+  <div class="modal-card again-card">
+    <div class="modal-header">
+      <h2 id="support-title"><span class="ms">favorite</span><span data-i18n="support.title">Terima kasih!</span></h2>
+      <button id="btn-close-support" class="modal-close" data-i18n-aria="ui.close" aria-label="Tutup">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="again-text" data-i18n="support.text">Suka Snappie? Dukung kami supaya tetap gratis.</p>
+      <div class="support-links">
+        <a class="btn ghost small" href="https://trakteer.id/snappiestudio/gift" target="_blank" rel="noopener noreferrer"><span class="ms" aria-hidden="true">coffee</span><span>Trakteer</span><span class="sr-only" data-i18n="support.newTab">(buka di tab baru)</span></a>
+        <a class="btn ghost small" href="https://ko-fi.com/snappiestudio" target="_blank" rel="noopener noreferrer"><span class="ms" aria-hidden="true">favorite</span><span>Ko-fi</span><span class="sr-only" data-i18n="support.newTab">(buka di tab baru)</span></a>
+      </div>
+      <button type="button" class="btn" id="btn-support-next" data-i18n="support.next">Lanjut</button>
+    </div>
+  </div>
+</div>
+
 <div id="again-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="again-title">
   <div class="modal-card again-card">
     <div class="modal-header">

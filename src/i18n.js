@@ -4075,24 +4075,24 @@ for (const [code, messages] of Object.entries(seasonMessages)) {
   seasonKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
 }
 
-const supportKeys = ["support.text", "support.newTab"];
+const supportKeys = ["support.text", "support.newTab", "support.title", "support.next"];
 const supportMessages = {
-  "id": ["Suka Snappie? Dukung kami supaya tetap gratis.", "(buka di tab baru)"],
-  "en": ["Enjoying Snappie? Support us to keep it free.", "(opens in a new tab)"],
-  "ms": ["Suka Snappie? Sokong kami supaya kekal percuma.", "(dibuka di tab baharu)"],
-  "ar": ["هل أعجبك Snappie؟ ادعمنا ليبقى مجانيًا.", "(يفتح في علامة تبويب جديدة)"],
-  "es": ["¿Te gusta Snappie? Apóyanos para que siga siendo gratis.", "(se abre en una pestaña nueva)"],
-  "fr": ["Snappie te plaît ? Soutiens-nous pour qu'il reste gratuit.", "(s'ouvre dans un nouvel onglet)"],
-  "de": ["Gefällt dir Snappie? Unterstütze uns, damit es kostenlos bleibt.", "(öffnet in neuem Tab)"],
-  "pt": ["Gostou do Snappie? Apoie-nos para continuar grátis.", "(abre em nova aba)"],
-  "ru": ["Нравится Snappie? Поддержите нас, чтобы он оставался бесплатным.", "(откроется в новой вкладке)"],
-  "ja": ["Snappieを気に入ったら、無料で続けられるよう応援してください。", "（新しいタブで開きます）"],
-  "ko": ["Snappie가 마음에 드셨나요? 무료로 유지할 수 있도록 응원해 주세요.", "(새 탭에서 열림)"],
-  "zh": ["喜欢 Snappie 吗？支持我们，让它保持免费。", "（在新标签页中打开）"],
-  "hi": ["Snappie पसंद आया? इसे मुफ़्त रखने में हमारा साथ दें।", "(नए टैब में खुलता है)"],
-  "vi": ["Bạn thích Snappie? Hãy ủng hộ để ứng dụng luôn miễn phí.", "(mở trong tab mới)"],
-  "th": ["ชอบ Snappie ไหม? ช่วยสนับสนุนให้ใช้ฟรีต่อไป", "(เปิดในแท็บใหม่)"],
-  "tr": ["Snappie'yi sevdin mi? Ücretsiz kalması için bize destek ol.", "(yeni sekmede açılır)"]
+  "id": ["Suka Snappie? Dukung kami supaya tetap gratis.", "(buka di tab baru)", "Terima kasih!", "Lanjut"],
+  "en": ["Enjoying Snappie? Support us to keep it free.", "(opens in a new tab)", "Thank you!", "Continue"],
+  "ms": ["Suka Snappie? Sokong kami supaya kekal percuma.", "(dibuka di tab baharu)", "Terima kasih!", "Teruskan"],
+  "ar": ["هل أعجبك Snappie؟ ادعمنا ليبقى مجانيًا.", "(يفتح في علامة تبويب جديدة)", "شكرًا لك!", "متابعة"],
+  "es": ["¿Te gusta Snappie? Apóyanos para que siga siendo gratis.", "(se abre en una pestaña nueva)", "¡Gracias!", "Continuar"],
+  "fr": ["Snappie te plaît ? Soutiens-nous pour qu'il reste gratuit.", "(s'ouvre dans un nouvel onglet)", "Merci !", "Continuer"],
+  "de": ["Gefällt dir Snappie? Unterstütze uns, damit es kostenlos bleibt.", "(öffnet in neuem Tab)", "Danke!", "Weiter"],
+  "pt": ["Gostou do Snappie? Apoie-nos para continuar grátis.", "(abre em nova aba)", "Obrigado!", "Continuar"],
+  "ru": ["Нравится Snappie? Поддержите нас, чтобы он оставался бесплатным.", "(откроется в новой вкладке)", "Спасибо!", "Продолжить"],
+  "ja": ["Snappieを気に入ったら、無料で続けられるよう応援してください。", "（新しいタブで開きます）", "ありがとうございます！", "続ける"],
+  "ko": ["Snappie가 마음에 드셨나요? 무료로 유지할 수 있도록 응원해 주세요.", "(새 탭에서 열림)", "감사합니다!", "계속"],
+  "zh": ["喜欢 Snappie 吗？支持我们，让它保持免费。", "（在新标签页中打开）", "谢谢！", "继续"],
+  "hi": ["Snappie पसंद आया? इसे मुफ़्त रखने में हमारा साथ दें।", "(नए टैब में खुलता है)", "धन्यवाद!", "आगे बढ़ें"],
+  "vi": ["Bạn thích Snappie? Hãy ủng hộ để ứng dụng luôn miễn phí.", "(mở trong tab mới)", "Cảm ơn bạn!", "Tiếp tục"],
+  "th": ["ชอบ Snappie ไหม? ช่วยสนับสนุนให้ใช้ฟรีต่อไป", "(เปิดในแท็บใหม่)", "ขอบคุณ!", "ต่อไป"],
+  "tr": ["Snappie'yi sevdin mi? Ücretsiz kalması için bize destek ol.", "(yeni sekmede açılır)", "Teşekkürler!", "Devam"]
 };
 for (const [code, messages] of Object.entries(supportMessages)) {
   supportKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
