@@ -20,7 +20,10 @@ export function sanitizeConfig(value) {
   return { seasons, support };
 }
 
-export async function loadSiteConfig() {
+let loading;
+export function loadSiteConfig() { return loading ||= fetchSiteConfig(); }
+
+async function fetchSiteConfig() {
   try {
     const response = await window.fetch('/api/site-config', { cache: 'no-store', credentials: 'omit', signal: window.AbortSignal.timeout(5000) });
     if (!response.ok) return false;

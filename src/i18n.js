@@ -4089,6 +4089,29 @@ for (const [code, messages] of Object.entries(faqMessages)) {
   faqKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
 }
 
+const menuKeys = ["menu.open", "menu.support"];
+const menuMessages = {
+  "id": ["Menu", "Dukung kami"],
+  "en": ["Menu", "Support us"],
+  "ms": ["Menu", "Sokong kami"],
+  "ar": ["القائمة", "ادعمنا"],
+  "es": ["Menú", "Apóyanos"],
+  "fr": ["Menu", "Soutenez-nous"],
+  "de": ["Menü", "Unterstütze uns"],
+  "pt": ["Menu", "Apoie-nos"],
+  "ru": ["Меню", "Поддержать нас"],
+  "ja": ["メニュー", "応援する"],
+  "ko": ["메뉴", "후원하기"],
+  "zh": ["菜单", "支持我们"],
+  "hi": ["मेनू", "हमारा साथ दें"],
+  "vi": ["Menu", "Ủng hộ chúng tôi"],
+  "th": ["เมนู", "สนับสนุนเรา"],
+  "tr": ["Menü", "Bize destek ol"]
+};
+for (const [code, messages] of Object.entries(menuMessages)) {
+  menuKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
+}
+
 let lang = 'id';
 try {
   const saved = localStorage.getItem('snappie-lang');

@@ -127,14 +127,9 @@ window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault(); installPrompt = event; setInstallVisible(true);
 });
 window.addEventListener('appinstalled', () => { installPrompt = null; setInstallVisible(false); });
-/* Satu tombol tetap (fixed) di samping ikon FAQ pada semua lebar layar. */
-const setInstallVisible = visible => { $('btn-install-top').hidden = !visible; };
-$('btn-install-top').onclick = async () => {
-  if (!installPrompt) return;
-  installPrompt.prompt();
-  await installPrompt.userChoice;
-  installPrompt = null; setInstallVisible(false);
-};
+/* Tombol pasang ada di menu pojok kanan atas dan hanya tampil bila browser menawarkan pemasangan. */
+const setInstallVisible = visible => { $('menu-install').hidden = !visible; };
+loadSiteConfig().then(() => { $('menu-support').hidden = !supportAvailable(); });
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(async () => {
@@ -187,6 +182,7 @@ let updateFilterEdges = () => {};
 let updateHomeActions = () => {};
 let refreshEmojiPicker = () => {};
 let refreshSeasons = () => {};
+let supportAfterDownload = false;
 let demoTheme = 'pastel';
 let demoComparison = 100;
 let pendingDemoFilter = null;
@@ -297,7 +293,7 @@ function closeModal(id) {
     if (trigger?.isConnected && !trigger.closest('[inert]') && trigger.getClientRects().length) trigger.focus();
     else modalStack.at(-1)?.modal.querySelector('.modal-close')?.focus();
   }
-  if (id === 'support-modal') offerAnotherSession();
+  if (id === 'support-modal' && supportAfterDownload) { supportAfterDownload = false; offerAnotherSession(); }
 }
 document.addEventListener('keydown', (e) => {
   const modal = modalStack.at(-1)?.modal;
@@ -743,7 +739,17 @@ function buildLangPicker() {
 buildLangPicker();
 
 if ($('btn-lang')) $('btn-lang').onclick = () => openModal('lang-modal');
-$('btn-faq').onclick = () => openModal('faq-modal');
+const topMenu = $('top-menu');
+const closeTopMenu = () => { if (topMenu.matches(':popover-open')) topMenu.hidePopover(); $('btn-menu').focus(); };
+$('menu-faq').onclick = () => { closeTopMenu(); openModal('faq-modal'); };
+$('menu-support').onclick = () => { closeTopMenu(); showSupport(false); };
+$('menu-install').onclick = async () => {
+  closeTopMenu();
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null; setInstallVisible(false);
+};
 $('btn-close-faq').onclick = () => closeModal('faq-modal');
 $('faq-modal').onclick = event => { if (event.target === $('faq-modal')) closeModal('faq-modal'); };
 if ($('btn-close-lang')) $('btn-close-lang').onclick = () => closeModal('lang-modal');
@@ -3277,16 +3283,27 @@ initShareButtons();
 function offerAnotherSession() {
   openModal('again-modal');
 }
-/* Setelah PNG diunduh: popup dukungan dulu, baru tawaran sesi baru (lihat closeModal). */
-function offerSupport() {
+/* Popup dukungan: setelah PNG diunduh (lalu disusul "Mau jepret lagi?", lihat closeModal) atau dari menu "Dukung kami". */
+function supportAvailable() {
   const { enabled, trakteerUrl, kofiUrl } = siteConfig.support;
+  return enabled && !!(trakteerUrl || kofiUrl);
+}
+function showSupport(afterDownload) {
+  const { trakteerUrl, kofiUrl } = siteConfig.support;
   for (const [id, url] of [['support-trakteer', trakteerUrl], ['support-kofi', kofiUrl]]) {
     if (url) $(id).href = url;
     $(id).hidden = !url;
   }
-  if (!enabled || (!trakteerUrl && !kofiUrl)) { offerAnotherSession(); return; }
+  supportAfterDownload = afterDownload;
+  const next = $('btn-support-next');
+  next.dataset.i18n = afterDownload ? 'support.next' : 'ui.close';
+  next.textContent = tr(next.dataset.i18n);
   track('support_shown');
   openModal('support-modal');
+}
+function offerSupport() {
+  if (supportAvailable()) showSupport(true);
+  else offerAnotherSession();
 }
 for (const [id, event] of [['support-trakteer', 'support_trakteer'], ['support-kofi', 'support_kofi']]) {
   for (const type of ['click', 'auxclick']) $(id).addEventListener(type, () => track(event));

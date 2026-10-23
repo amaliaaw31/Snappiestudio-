@@ -294,7 +294,7 @@ video { width: 100%; height: 100%; display: block; transform: scaleX(-1); object
   font-size: 28px; line-height: 1; cursor: pointer; z-index: 5;
   -webkit-tap-highlight-color: transparent; }
 .lang-fab { left: 14px; }
-.theme-fab { right: 14px; }
+.theme-fab { right: 58px; }
 .lang-fab:active, .theme-fab:active { transform: scale(.9); }
 /* ikon bahasa: biru */
 .lang-fab .ms { color: #2f7de1; font-size: 30px; }
@@ -1463,27 +1463,24 @@ body.dark-mode .season-now { background: #ff8fc0; color: #14121d; }
 @media (max-width: 719px) {
   .top-visitors .top-visitors-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
-/* Tombol pasang tetap di pojok kanan atas, di kiri ikon FAQ. Bentuk ikonnya sama dengan ikon FAQ
-   (30px, merah muda, tanpa bingkai); di layar sempit hanya ikonnya yang tampil. */
-#btn-install-top { position: fixed; top: 11px; right: 108px; z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 4px 8px;
-  background: none; border: none; color: #d63384; font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-body.dark-mode #btn-install-top { color: #ff8fc0; }
-#btn-install-top .ms { margin: 0; color: inherit; font-size: 30px; filter: drop-shadow(0 1px 2px rgba(35,35,58,.2)); }
-body.dark-mode #btn-install-top .ms { filter: drop-shadow(0 0 6px rgba(255,143,192,.4)); }
-#btn-install-top .install-narrow { display: none; }
-#btn-install-top:active { transform: scale(.9); }
-#btn-install-top[hidden] { display: none; }
-@media (max-width: 719px) {
-  #btn-install-top .install-wide { display: none; }
-  #btn-install-top .install-narrow { display: inline-block; }
-  #btn-install-top > span:not(.ms) { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-}
-/* Ikon FAQ di kiri tombol mode gelap; isinya tampil sebagai popup. */
-.faq-fab { position: fixed; top: 11px; right: 56px; z-index: 5; display: inline-flex; align-items: center; justify-content: center;
+/* Menu pojok kanan atas (FAQ, pasang aplikasi, dukung kami), di kanan tombol mode gelap. */
+.menu-fab { position: fixed; top: 11px; right: 11px; z-index: 5; display: inline-flex; align-items: center; justify-content: center;
   min-width: 44px; min-height: 44px; padding: 4px; background: none; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.faq-fab:active { transform: scale(.9); }
-.faq-fab .ms { color: #d63384; font-size: 30px; filter: drop-shadow(0 1px 2px rgba(35,35,58,.2)); }
-body.dark-mode .faq-fab .ms { color: #ff8fc0; filter: drop-shadow(0 0 6px rgba(255,143,192,.4)); }
+.menu-fab:active { transform: scale(.9); }
+.menu-fab .ms { color: #d63384; font-size: 30px; filter: drop-shadow(0 1px 2px rgba(35,35,58,.2)); }
+body.dark-mode .menu-fab .ms { color: #ff8fc0; filter: drop-shadow(0 0 6px rgba(255,143,192,.4)); }
+.top-menu { position: fixed; inset: 58px 11px auto auto; margin: 0; width: max-content; min-width: 220px; max-width: calc(100vw - 22px); padding: 6px;
+  border: 1px solid var(--home-border, #d9b8d0); border-radius: 14px; background: var(--ui-surface, #fff); color: var(--ui-text, #493c55); box-shadow: 0 10px 28px rgba(35,35,58,.22); }
+.top-menu button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 8px 12px; border: none; border-radius: 10px; background: none;
+  color: inherit; font: inherit; font-size: 14px; font-weight: 700; text-align: start; cursor: pointer; }
+.top-menu button:hover { background: var(--page-bg, #fdf3ff); }
+.top-menu button[hidden] { display: none; }
+.top-menu .ms { margin: 0; flex-shrink: 0; color: var(--ui-accent, #b1266b); font-size: 22px; }
+.top-menu .install-narrow { display: none; }
+@media (max-width: 719px) {
+  .top-menu .install-wide { display: none; }
+  .top-menu .install-narrow { display: inline-block; }
+}
 .faq-card { max-width: 480px; }
 .faq-list { display: grid; gap: 8px; }
 .faq-list details { border: 1px solid var(--ui-border); border-radius: 10px; background: var(--ui-surface); }

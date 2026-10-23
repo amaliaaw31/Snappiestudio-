@@ -298,28 +298,34 @@ try {
       const wide = ${width >= 720};
       return frame.bottom <= compare.top && compare.bottom <= filter.top && compare.bottom <= style.top && Math.min(filter.bottom, style.bottom) <= actions.top && filter.height >= 44 && style.height >= 44
         && (wide ? style.left >= filter.right - 1 && Math.abs(style.top - filter.top) < 12 : style.top >= filter.bottom - 1) && style.right <= innerWidth + 1 && filter.left >= -1; })()`, `homepage order is frame, comparison, then effect and style (${width >= 720 ? 'side by side' : 'stacked'}) at ${width}px`);
-    await check("(() => { const button = document.querySelector('#btn-faq').getBoundingClientRect(), theme = document.querySelector('#toggle-dark').getBoundingClientRect(), lang = document.querySelector('#btn-lang').getBoundingClientRect(); return button.width >= 44 && button.height >= 44 && button.right <= theme.left && button.left >= lang.right && Math.abs((button.top + button.height / 2) - (theme.top + theme.height / 2)) < 6; })()", `FAQ icon sits beside the theme toggle and is tappable at ${width}px`);
-    await evaluate("window.installHidden = document.getElementById('btn-install-top').hidden; document.getElementById('btn-install-top').hidden = false");
-    await check(`(() => { const button = document.querySelector('#btn-install-top'), faq = document.querySelector('#btn-faq').getBoundingClientRect(), lang = document.querySelector('#btn-lang').getBoundingClientRect(), box = button.getBoundingClientRect();
-      const label = [...button.children].find(node => node.matches('[data-i18n]')).getBoundingClientRect(); const icons = [...button.querySelectorAll('.ms')].filter(node => getComputedStyle(node).display !== 'none');
-      const wide = ${width >= 720};
-      return !document.querySelector('#btn-install') && getComputedStyle(button).position === 'fixed' && box.width >= 44 && box.height >= 44 && box.right <= faq.left && box.left > lang.right && Math.abs((box.top + box.height / 2) - (faq.top + faq.height / 2)) < 6
-        && icons.length === 1 && icons[0].textContent === (wide ? 'install_desktop' : 'install_mobile') && (wide ? label.width > 40 : label.width <= 1) && button.textContent.includes(button.querySelector('[data-i18n]').textContent); })()`, `install button is in the fixed top bar beside the FAQ icon with ${width >= 720 ? 'icon and label' : 'icon only'} at ${width}px`);
-    await check(`(() => { const install = document.querySelector('#btn-install-top'), faq = document.querySelector('#btn-faq'), style = (node, name) => getComputedStyle(node)[name];
-      const icon = [...install.querySelectorAll('.ms')].find(node => style(node, 'display') !== 'none'), faqIcon = faq.querySelector('.ms');
-      return style(install, 'borderTopStyle') === 'none' && style(install, 'backgroundColor') === 'rgba(0, 0, 0, 0)' && style(icon, 'fontSize') === style(faqIcon, 'fontSize') && style(icon, 'color') === style(faqIcon, 'color')
-        && style(icon, 'fontVariationSettings') === style(faqIcon, 'fontVariationSettings') && install.getBoundingClientRect().height === faq.getBoundingClientRect().height && Math.round(install.getBoundingClientRect().top) === Math.round(faq.getBoundingClientRect().top); })()`, `install icon has the same form as the FAQ icon at ${width}px`);
-    await check(`(() => { const visitors = document.querySelector('.top-visitors'), install = document.querySelector('#btn-install-top').getBoundingClientRect(), faq = document.querySelector('#btn-faq').getBoundingClientRect(), lang = document.querySelector('#btn-lang').getBoundingClientRect(), box = visitors.getBoundingClientRect();
+    await check(`(() => { const rect = selector => document.querySelector(selector).getBoundingClientRect(); const menu = rect('#btn-menu'), theme = rect('#toggle-dark'), lang = rect('#btn-lang'), visitors = rect('.top-visitors');
+      return !document.querySelector('#btn-faq, #btn-install-top') && menu.width >= 44 && menu.height >= 44 && menu.right <= innerWidth && theme.right <= menu.left && visitors.right <= theme.left && visitors.left > lang.right
+        && Math.abs((menu.top + menu.height / 2) - (theme.top + theme.height / 2)) < 6 && getComputedStyle(document.querySelector('#btn-menu')).position === 'fixed'; })()`, `menu button sits right of the theme toggle at ${width}px`);
+    await check(`(() => { const visitors = document.querySelector('.top-visitors'), theme = document.querySelector('#toggle-dark').getBoundingClientRect(), lang = document.querySelector('#btn-lang').getBoundingClientRect(), box = visitors.getBoundingClientRect();
       const label = visitors.querySelector('.top-visitors-label').getBoundingClientRect(), wide = ${width >= 720};
-      return !document.querySelector('#scr-start > .visitor-count:not(.top-visitors)') && getComputedStyle(visitors).position === 'fixed' && box.left >= lang.right && box.left - lang.right < 16 && box.right <= install.left && box.right <= faq.left && box.height >= 44
+      return !document.querySelector('#scr-start > .visitor-count:not(.top-visitors)') && getComputedStyle(visitors).position === 'fixed' && box.left >= lang.right && box.left - lang.right < 16 && box.right <= theme.left && box.height >= 44
         && Math.abs((box.top + box.height / 2) - (lang.top + lang.height / 2)) < 6 && (wide ? label.width > 30 : label.width <= 1) && visitors.querySelector('[data-visitor-count]').getBoundingClientRect().width > 4; })()`, `visitor count sits beside the language icon ${width >= 720 ? 'with its label' : 'as icon and number'} at ${width}px`);
-    await evaluate("document.getElementById('btn-install-top').hidden = window.installHidden");
-    await click('#btn-faq');
+    await evaluate("window.installHidden = document.getElementById('menu-install').hidden; document.getElementById('menu-install').hidden = false");
+    await click('#btn-menu');
+    await check(`(() => { const menu = document.querySelector('#top-menu'), box = menu.getBoundingClientRect(), button = document.querySelector('#btn-menu').getBoundingClientRect(); const items = [...menu.querySelectorAll('button')].filter(item => getComputedStyle(item).display !== 'none');
+      return menu.matches(':popover-open') && box.left >= 0 && box.right <= innerWidth + 1 && box.top >= button.bottom - 4 && Math.abs(box.right - button.right) < 14 && items.map(item => item.id).join() === 'menu-faq,menu-install,menu-support' && items.every(item => item.getBoundingClientRect().height >= 44); })()`, `menu opens under the button with FAQ, install and support at ${width}px`);
+    await check(`(() => { const item = document.querySelector('#menu-install'); const icons = [...item.querySelectorAll('.ms')].filter(node => getComputedStyle(node).display !== 'none'); return icons.length === 1 && icons[0].textContent === (${width >= 720} ? 'install_desktop' : 'install_mobile') && item.textContent.includes(item.querySelector('[data-i18n]').textContent); })()`, `menu install item shows its icon and label at ${width}px`);
+    await evaluate("document.getElementById('menu-install').hidden = window.installHidden");
+    await key('Escape');
+    await check("!document.querySelector('#top-menu').matches(':popover-open')", `Escape closes the menu at ${width}px`);
+    await click('#btn-menu');
+    await click('#menu-support');
+    await check("document.querySelector('#support-modal').classList.contains('open') && !document.querySelector('#top-menu').matches(':popover-open') && document.querySelector('#btn-support-next').textContent.trim() === document.querySelector('#btn-close-support').getAttribute('aria-label') && document.querySelectorAll('#support-modal .support-links a').length === 2", `support opens from the menu with a plain close button at ${width}px`);
+    await click('#btn-support-next');
+    await check("!document.querySelector('#support-modal').classList.contains('open') && !document.querySelector('#again-modal').classList.contains('open') && document.activeElement.id === 'btn-menu'", `closing support from the menu does not start the new-session question at ${width}px`);
+    await click('#btn-menu');
+    await click('#menu-faq');
     await check("(() => { const modal = document.querySelector('#faq-modal'); const card = modal.querySelector('.modal-card').getBoundingClientRect(); const items = [...modal.querySelectorAll('details')]; return modal.classList.contains('open') && items.length === 5 && card.right <= innerWidth + 1 && card.left >= -1 && items.every(item => item.querySelector('summary').getBoundingClientRect().height >= 44); })()", `FAQ popup opens with five tappable questions at ${width}px`);
+    await evaluate("document.querySelectorAll('#faq-modal details')[4].open = true");
     await evaluate("document.querySelectorAll('#faq-modal details')[4].open = true");
     await check("(() => { const modal = document.querySelector('#faq-modal .modal-body'); return document.documentElement.scrollWidth <= innerWidth && modal.scrollWidth <= modal.clientWidth + 1; })()", `FAQ answers fit without horizontal scrolling at ${width}px`);
     await key('Escape');
-    await check("!document.querySelector('#faq-modal').classList.contains('open') && document.activeElement.id === 'btn-faq'", `Escape closes the FAQ popup and returns focus to its icon at ${width}px`);
+    await check("!document.querySelector('#faq-modal').classList.contains('open') && document.activeElement.id === 'btn-menu'", `Escape closes the FAQ popup and returns focus to the menu button at ${width}px`);
     for (const theme of ['pastel', 'minimal', 'film']) {
       await click('#demo-theme-btn');
       await click(`#theme-grid [data-id=${theme}]`);
