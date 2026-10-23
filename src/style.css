@@ -1458,15 +1458,14 @@ body.dark-mode .season-now { background: #ff8fc0; color: #14121d; }
 #support-modal .modal-body > .btn { align-self: center; }
 .dark-mode #support-modal .again-text { color: #d8c8e8; }
 
-/* Hitungan pengunjung dan tombol pasang berdampingan di pojok kanan atas, di kiri ikon FAQ. */
-.top-extras { position: fixed; top: 11px; right: 108px; z-index: 5; display: flex; align-items: center; gap: 4px; }
-.top-extras .visitor-count { margin: 0; min-height: 44px; padding: 0 8px; white-space: nowrap; }
+/* Hitungan pengunjung tetap di pojok kiri atas, di kanan ikon bahasa. */
+.top-visitors { position: fixed; top: 11px; left: 56px; z-index: 5; margin: 0; min-height: 44px; padding: 0 8px; white-space: nowrap; }
 @media (max-width: 719px) {
-  .top-extras .top-visitors-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .top-visitors .top-visitors-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 /* Tombol pasang tetap di pojok kanan atas, di kiri ikon FAQ. Bentuk ikonnya sama dengan ikon FAQ
    (30px, merah muda, tanpa bingkai); di layar sempit hanya ikonnya yang tampil. */
-#btn-install-top { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 4px 8px;
+#btn-install-top { position: fixed; top: 11px; right: 108px; z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 4px 8px;
   background: none; border: none; color: #d63384; font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 body.dark-mode #btn-install-top { color: #ff8fc0; }
 #btn-install-top .ms { margin: 0; color: inherit; font-size: 30px; filter: drop-shadow(0 1px 2px rgba(35,35,58,.2)); }
