@@ -465,7 +465,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
         x.drawImage(st.canvas, -width / 2, -height / 2, width, height);
       } else if (st.type === 'text') {
         const fontSize = 28 * scale * sc;  // .text-inner in preview pixels
-        const stickerFont = st.font || 'Matcha Iced';
+        const stickerFont = st.font || 'Arial';
         x.font = '700 ' + fontSize + 'px "' + stickerFont + '", "Trebuchet MS", sans-serif';
         x.letterSpacing = (fontTracking(stickerFont) * fontSize) + 'px';
         x.textAlign = 'center';

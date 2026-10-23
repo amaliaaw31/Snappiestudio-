@@ -2332,7 +2332,7 @@ function renderUserStickers() {
     } else if (st.type === 'image') {
       innerContent = '<div class="image-inner"><img alt="" draggable="false"></div>';
     } else if (st.type === 'text') {
-      const fam = st.font || 'Matcha Iced';
+      const fam = st.font || 'Arial';
       const col = st.color || '#23233a';
       innerContent = '<div class="text-inner' + (st.outline === false ? '' : ' has-outline') +
         '" style="font-family:\'' + fam + '\', Quicksand, sans-serif;color:' + col +
@@ -2640,7 +2640,7 @@ function addTextSticker(text) {
   const fontSel = $('sticker-font'), outIn = $('sticker-outline');
   state.stickers.push({
     id, type: 'text', value,
-    font: (fontSel && fontSel.value) || 'Matcha Iced',
+    font: (fontSel && fontSel.value) || 'Arial',
     color: colorOf('sticker-color'),
     outline: outIn ? outIn.checked : true,
     x: 0.5 + offsetX, y: 0.45 + offsetY, scale: 1, rotation: 0,
@@ -2964,7 +2964,7 @@ function openTextEditor(st) {
   editingTextId = st.id;
   const input = $('text-edit-input');
   if (input) input.value = st.value;
-  if ($('edit-font')) $('edit-font').value = st.font || 'Matcha Iced';
+  if ($('edit-font')) $('edit-font').value = st.font || 'Arial';
   setColor('edit-color', st.color || '#23233a');
   if ($('edit-outline')) $('edit-outline').checked = st.outline !== false;
   openModal('text-edit-modal');
