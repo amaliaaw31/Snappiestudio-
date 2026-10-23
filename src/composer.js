@@ -263,6 +263,14 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     x.font = '42px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
     x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillText('🌙', 46, 46); x.fillText('✨', W - 46, 46);
+  } else if (t === 'halloween') {
+    const g = x.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, '#2b1840'); g.addColorStop(1, '#3d2257');
+    x.fillStyle = g; rr(x, 0, 0, W, H, 44); x.fill();
+    x.lineWidth = 10; x.strokeStyle = '#ff9a3c'; rr(x, 16, 16, W - 32, H - 32, 36); x.stroke();
+    x.font = '42px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('🎃', 46, 46); x.fillText('🦇', W - 46, 46);
   } else if (t === 'natal') {
     const g = x.createLinearGradient(0, 0, W, H);
     g.addColorStop(0, '#b7172b'); g.addColorStop(1, '#8f1123');
@@ -344,6 +352,7 @@ export async function compose(photos, layout, theme, stickers = [], showDate = f
     if (t === 'neon') slotStroke = '#00f0ff';
     else if (t === 'film' || t === 'minimal') slotStroke = '#111111';
     else if (t === 'lebaran') slotStroke = '#e6c766';
+    else if (t === 'halloween') slotStroke = '#ff9a3c';
     else if (t === 'custom' && customFrame) slotStroke = customFrame.slot || '#ffffff';
     x.lineWidth = (t === 'cream' || t === 'film' || t === 'minimal') ? 7 : 10;
     x.strokeStyle = slotStroke;

@@ -44,6 +44,7 @@ export const THEMES = [
   { id: 'natal',    name: 'Natal' },
   { id: 'valentine',name: 'Valentine' },
   { id: 'baby',     name: 'Baby Shower' },
+  { id: 'halloween',name: 'Halloween' },
 ];
 
 /* Original character stickers (classic-cartoon style, drawn as SVG).
@@ -57,7 +58,7 @@ export const CHARS = [
   'orangecat', 'esteh', 'bakso', 'peacehand', 'brokenheart', 'sleepypillow',
   'bubsalting', 'bubmager', 'bubgabut', 'bubbestie', 'bubwkwk', 'bubhealing', 'bubnocap', 'bubbucin',
   'laptopcapek', 'kopimelek', 'jamngantuk', 'skripsibuku', 'kalenderpanik', 'sandalsenang', 'bubbegadang', 'bubskripsi', 'bubdeadline', 'bubweekend', 'bubotw', 'bubsantuy', 'bubcapek', 'bubrebahan',
-  'pumpkin', 'ghost', 'bat', 'witchhat', 'ketupat', 'bedug', 'crescentstar', 'pelita', 'xmastree', 'santahat', 'candycane', 'snowman', 'firework', 'terompet', 'midnightclock', 'angpao', 'redlantern', 'mandarin',
+  'pumpkin', 'ghost', 'bat', 'witchhat', 'ketupat', 'bedug', 'crescentstar', 'pelita', 'xmastree', 'santahat', 'candycane', 'snowman', 'firework', 'terompet', 'midnightclock', 'angpao', 'redlantern', 'mandarin', 'benderaid', 'kerupuk', 'karung',
 ];
 
 export const CHAR_NAMES = {
@@ -74,7 +75,7 @@ export const CHAR_NAMES = {
   bear: 'Bear', bunny: 'Bunny', cat: 'Cat', frog: 'Frog', chick: 'Chick', star: 'Star',
   orangecat: 'Mager Kitty', esteh: 'Es Teh Salting', bakso: 'Bakso Melotot', peacehand: 'Peace Hand', brokenheart: 'Santai Heart', sleepypillow: 'Sleepy Pillow', bubsalting: 'Bubble salting!', bubmager: 'Bubble mager', bubgabut: 'Bubble gabut', bubbestie: 'Bubble bestie', bubwkwk: 'Bubble wkwk', bubhealing: 'Bubble healing', bubnocap: 'Bubble no cap', bubbucin: 'Bubble bucin',
   laptopcapek: 'Capek Laptop', kopimelek: 'Melek Coffee', jamngantuk: 'Ngantuk Alarm', skripsibuku: 'Stres Skripsi', kalenderpanik: 'Panik Deadline', sandalsenang: 'Weekend Sandal', bubbegadang: 'Bubble begadang', bubskripsi: 'Bubble skripsi', bubdeadline: 'Bubble deadline', bubweekend: 'Bubble weekend', bubotw: 'Bubble otw', bubsantuy: 'Bubble santuy', bubcapek: 'Bubble capek', bubrebahan: 'Bubble rebahan',
-  pumpkin: 'Pumpkin Pal', ghost: 'Boo Ghost', bat: 'Little Bat', witchhat: 'Witch Hat', ketupat: 'Ketupat', bedug: 'Bedug', crescentstar: 'Bulan Bintang', pelita: 'Pelita', xmastree: 'Christmas Tree', santahat: 'Santa Hat', candycane: 'Candy Cane', snowman: 'Snowman', firework: 'Firework', terompet: 'Terompet', midnightclock: 'Midnight Clock', angpao: 'Angpao', redlantern: 'Red Lantern', mandarin: 'Lucky Orange',
+  pumpkin: 'Pumpkin Pal', ghost: 'Boo Ghost', bat: 'Little Bat', witchhat: 'Witch Hat', ketupat: 'Ketupat', bedug: 'Bedug', crescentstar: 'Bulan Bintang', pelita: 'Pelita', xmastree: 'Christmas Tree', santahat: 'Santa Hat', candycane: 'Candy Cane', snowman: 'Snowman', firework: 'Firework', terompet: 'Terompet', midnightclock: 'Midnight Clock', angpao: 'Angpao', redlantern: 'Red Lantern', mandarin: 'Lucky Orange', benderaid: 'Merah Putih', kerupuk: 'Lomba Kerupuk', karung: 'Balap Karung',
 };
 
 // Transparent SVG artwork, shared by HTML and PNG without a white backing.
@@ -163,6 +164,9 @@ export const CHAR_SVG = {
   angpao: stickerArt('<rect x="11" y="5" width="26" height="38" rx="3" fill="#ff7a8a"/><path d="M11 9q13 12 26 0" fill="#ff5f78"/><circle cx="24" cy="18" r="5" fill="#ffd166"/><path d="M16 30h16M16 35h16" fill="none" stroke="#ffd166"/>'),
   redlantern: stickerArt('<path d="M24 2v5" fill="none"/><rect x="18" y="7" width="12" height="4" rx="1" fill="#ffd166"/><ellipse cx="24" cy="23" rx="15" ry="12" fill="#ff7a8a"/><path d="M24 11v24M17 12q-5 11 0 22m14-22q5 11 0 22" fill="none" stroke="#ffb5a8"/><rect x="18" y="34" width="12" height="4" rx="1" fill="#ffd166"/><path d="M22 38v7m4-7v7" fill="none" stroke="#ffd166" stroke-width="2.2"/>'),
   mandarin: stickerArt('<path d="M24 13q-1-5 3-8" fill="none"/><path d="M25 12q8-8 14-3-7 6-14 3z" fill="#a5ca98"/><circle cx="24" cy="28" r="15" fill="#ffb36b"/><path d="M19 27h.1m10 0h.1" stroke-width="3"/><path d="M21 32q3 3 6 0" fill="none"/><ellipse cx="15" cy="31" rx="3" ry="1.5" fill="#ff9aa8" stroke="none"/><ellipse cx="33" cy="31" rx="3" ry="1.5" fill="#ff9aa8" stroke="none"/>'),
+  benderaid: stickerArt('<path d="M10 44V5" fill="none" stroke="#c89e78" stroke-width="3"/><circle cx="10" cy="5" r="2.5" fill="#ffd166"/><path d="M11 8q9-3 16 0t15 0v10q-8 3-15 0t-16 0z" fill="#ff5f6d"/><path d="M11 18q9-3 16 0t15 0v10q-8 3-15 0t-16 0z" fill="#fff"/>'),
+  kerupuk: stickerArt('<path d="M6 6h36" fill="none" stroke="#c89e78" stroke-width="2.4"/><path d="M24 6v8" fill="none"/><circle cx="24" cy="27" r="13" fill="#fff0d6"/><path d="M24 14q4 6 0 13t0 13M11 27q6-4 13 0t13 0M15 18q5 5 9 9t9 9M33 18q-5 5-9 9t-9 9" fill="none" stroke="#f1c27d"/><circle cx="24" cy="27" r="13" fill="none"/>'),
+  karung: stickerArt('<circle cx="24" cy="9" r="6" fill="#ffd9b8"/><path d="M21.5 8.5h.1m5 0h.1" stroke-width="2.4"/><path d="M22 11.5q2 1.5 4 0" fill="none"/><path d="M17 20l-6-5m20 5 6-5" fill="none" stroke-width="2.6"/><path d="M14 18q10-4 20 0l3 22q-13 5-26 0z" fill="#d9b48a"/><path d="M14 18q10 4 20 0M18 26l1 3m9-4-1 4m-11 6 1 3m12-3-1 3" fill="none" stroke="#a98058"/>'),
 };
 
 /* Seasonal sticker groups; the picker lists active seasons first. */
@@ -175,15 +179,16 @@ const near = (date, list, before, after) => list.some(iso => {
 });
 const monthDay = date => (date.getMonth() + 1) * 100 + date.getDate();
 export const SEASONS = [
-  { id: 'halloween', chars: ['pumpkin', 'ghost', 'bat', 'witchhat'], active: d => monthDay(d) >= 1001 && monthDay(d) <= 1101 },
-  { id: 'lebaran', chars: ['ketupat', 'bedug', 'crescentstar', 'pelita'], active: d => near(d, LEBARAN_DATES, 30, 10) },
-  { id: 'natal', chars: ['xmastree', 'santahat', 'candycane', 'snowman'], active: d => monthDay(d) >= 1201 && monthDay(d) <= 1226 },
+  { id: 'halloween', theme: 'halloween', chars: ['pumpkin', 'ghost', 'bat', 'witchhat'], active: d => monthDay(d) >= 1001 && monthDay(d) <= 1101 },
+  { id: 'lebaran', theme: 'lebaran', chars: ['ketupat', 'bedug', 'crescentstar', 'pelita'], active: d => near(d, LEBARAN_DATES, 30, 10) },
+  { id: 'natal', theme: 'natal', chars: ['xmastree', 'santahat', 'candycane', 'snowman'], active: d => monthDay(d) >= 1201 && monthDay(d) <= 1226 },
   { id: 'newyear', chars: ['firework', 'terompet', 'midnightclock'], active: d => monthDay(d) >= 1227 || monthDay(d) <= 107 },
   { id: 'imlek', chars: ['angpao', 'redlantern', 'mandarin'], active: d => near(d, IMLEK_DATES, 14, 15) },
+  { id: 'merdeka', chars: ['benderaid', 'kerupuk', 'karung'], active: d => monthDay(d) >= 801 && monthDay(d) <= 831 },
 ];
 export function seasonsFor(date = new Date()) {
   return [...SEASONS].sort((a, b) => b.active(date) - a.active(date))
-    .map(season => ({ id: season.id, chars: season.chars, now: season.active(date) }));
+    .map(season => ({ id: season.id, theme: season.theme, chars: season.chars, now: season.active(date) }));
 }
 
 export function filterCss(id) {
@@ -200,6 +205,7 @@ export const DATE_COLORS = {
   aero: '#0a6bb0', doodle: '#23233a', minimal: '#111111',
   birthday: '#e0487b', wedding: '#9a7b4f', lebaran: '#f0d98a',
   natal: '#0f6b3a', valentine: '#d6336c', baby: '#5a8fc0',
+  halloween: '#ffb36b',
 };
 
 /* Jarak antar-huruf per font (dalam em) supaya spasi teks konsisten
@@ -324,5 +330,6 @@ export const CAPTIONS = {
   natal:    { main: 'Merry Christmas!', sub: '' },
   valentine:{ main: 'Be Mine ♡', sub: '' },
   baby:     { main: 'Hello Baby!', sub: '' },
+  halloween:{ main: 'Happy Halloween!', sub: '' },
 };
 

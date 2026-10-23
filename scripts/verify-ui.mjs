@@ -280,7 +280,7 @@ try {
     // Phones show the sample strip before the controls; wider layouts keep controls above it.
     await check(`(() => { const frame = document.querySelector('#demo-frame').getBoundingClientRect(); const themes = document.querySelector('.demo-themes').getBoundingClientRect(); const filter = document.querySelector('#demo-filter').getBoundingClientRect();
       return ${width < 720} ? frame.bottom <= filter.top && frame.bottom <= themes.top : themes.bottom <= frame.top && filter.bottom <= frame.top; })()`, `homepage frame order is correct at ${width}px`);
-    await check("document.querySelectorAll('.demo-theme-preview img').length === 9 && [...document.querySelectorAll('.demo-theme-preview img')].every(img => img.getBoundingClientRect().width >= 20)", 'each homepage theme has a visible photo thumbnail');
+    await check("document.querySelectorAll('.demo-theme-preview img').length === document.querySelectorAll('[data-demo-theme]').length * 3 && [...document.querySelectorAll('.demo-theme-preview img')].every(img => img.getBoundingClientRect().width >= 20)", 'each homepage theme has a visible photo thumbnail');
     await evaluate("window.themeButtonBounds = [...document.querySelectorAll('[data-demo-theme]')].map(button => { const box = button.getBoundingClientRect(); return [box.width, box.height]; })");
     for (const theme of ['pastel', 'minimal', 'film']) {
       await click(`[data-demo-theme=${theme}]`);
@@ -442,7 +442,7 @@ try {
   await waitFor("[...document.querySelectorAll('#theme-grid img')].every(img => img.complete && img.naturalWidth > 0)");
   await check("document.querySelector('#theme-grid img')?.src.startsWith('blob:')", 'theme thumbnails use local user-photo URLs');
   await evaluate("document.querySelector('#theme-category').value = 'occasion'; document.querySelector('#theme-category').dispatchEvent(new Event('change'))");
-  await check("[...document.querySelectorAll('#theme-grid .theme-option')].filter(el => !el.hidden).length === 6", 'theme category filters actual special-occasion themes');
+  await check("[...document.querySelectorAll('#theme-grid .theme-option')].filter(el => !el.hidden).length === 7", 'theme category filters actual special-occasion themes');
   await evaluate("document.querySelector('#theme-category').value = 'all'; document.querySelector('#theme-category').dispatchEvent(new Event('change'))");
   await click('#theme-grid [data-id=custom]');
   await click('#cf-bg');

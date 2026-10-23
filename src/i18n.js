@@ -4052,24 +4052,24 @@ const howMessages = {
 for (const [code, messages] of Object.entries(howMessages)) {
   howKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
 }
-const seasonKeys = ["st.seasonal", "st.now", "season.halloween", "season.lebaran", "season.natal", "season.newyear", "season.imlek"];
+const seasonKeys = ["st.seasonal", "st.now", "season.halloween", "season.lebaran", "season.natal", "season.newyear", "season.imlek", "season.merdeka", "theme.halloween"];
 const seasonMessages = {
-  "id": ["Musiman", "Sekarang", "Halloween", "Lebaran", "Natal", "Tahun Baru", "Imlek"],
-  "en": ["Seasonal", "Now", "Halloween", "Eid al-Fitr", "Christmas", "New Year", "Lunar New Year"],
-  "ms": ["Bermusim", "Sekarang", "Halloween", "Hari Raya Aidilfitri", "Krismas", "Tahun Baru", "Tahun Baru Cina"],
-  "ar": ["موسمية", "الآن", "الهالوين", "عيد الفطر", "عيد الميلاد", "رأس السنة", "رأس السنة القمرية"],
-  "es": ["De temporada", "Ahora", "Halloween", "Eid al-Fitr", "Navidad", "Año Nuevo", "Año Nuevo Lunar"],
-  "fr": ["Saisonniers", "En ce moment", "Halloween", "Aïd el-Fitr", "Noël", "Nouvel An", "Nouvel An lunaire"],
-  "de": ["Saisonal", "Jetzt", "Halloween", "Zuckerfest", "Weihnachten", "Neujahr", "Mondneujahr"],
-  "pt": ["Sazonais", "Agora", "Halloween", "Eid al-Fitr", "Natal", "Ano-Novo", "Ano-Novo Lunar"],
-  "ru": ["Сезонные", "Сейчас", "Хэллоуин", "Ураза-байрам", "Рождество", "Новый год", "Лунный Новый год"],
-  "ja": ["季節", "開催中", "ハロウィン", "イード・アル＝フィトル", "クリスマス", "新年", "旧正月"],
-  "ko": ["시즌", "지금", "핼러윈", "이드 알피트르", "크리스마스", "새해", "설날"],
-  "zh": ["节日", "当季", "万圣节", "开斋节", "圣诞节", "新年", "春节"],
-  "hi": ["मौसमी", "अभी", "हैलोवीन", "ईद-उल-फ़ित्र", "क्रिसमस", "नया साल", "चंद्र नव वर्ष"],
-  "vi": ["Theo mùa", "Đang diễn ra", "Halloween", "Lễ Eid al-Fitr", "Giáng sinh", "Năm mới", "Tết Nguyên đán"],
-  "th": ["ตามเทศกาล", "ตอนนี้", "ฮาโลวีน", "วันอีดิลฟิฏริ", "คริสต์มาส", "ปีใหม่", "ตรุษจีน"],
-  "tr": ["Mevsimlik", "Şimdi", "Cadılar Bayramı", "Ramazan Bayramı", "Noel", "Yılbaşı", "Ay Yeni Yılı"]
+  "id": ["Musiman", "Sekarang", "Halloween", "Lebaran", "Natal", "Tahun Baru", "Imlek", "17 Agustus", "Halloween"],
+  "en": ["Seasonal", "Now", "Halloween", "Eid al-Fitr", "Christmas", "New Year", "Lunar New Year", "Indonesian Independence Day", "Halloween"],
+  "ms": ["Bermusim", "Sekarang", "Halloween", "Hari Raya Aidilfitri", "Krismas", "Tahun Baru", "Tahun Baru Cina", "Hari Kemerdekaan Indonesia", "Halloween"],
+  "ar": ["موسمية", "الآن", "الهالوين", "عيد الفطر", "عيد الميلاد", "رأس السنة", "رأس السنة القمرية", "عيد استقلال إندونيسيا", "الهالوين"],
+  "es": ["De temporada", "Ahora", "Halloween", "Eid al-Fitr", "Navidad", "Año Nuevo", "Año Nuevo Lunar", "Independencia de Indonesia", "Halloween"],
+  "fr": ["Saisonniers", "En ce moment", "Halloween", "Aïd el-Fitr", "Noël", "Nouvel An", "Nouvel An lunaire", "Fête de l'indépendance indonésienne", "Halloween"],
+  "de": ["Saisonal", "Jetzt", "Halloween", "Zuckerfest", "Weihnachten", "Neujahr", "Mondneujahr", "Indonesischer Unabhängigkeitstag", "Halloween"],
+  "pt": ["Sazonais", "Agora", "Halloween", "Eid al-Fitr", "Natal", "Ano-Novo", "Ano-Novo Lunar", "Independência da Indonésia", "Halloween"],
+  "ru": ["Сезонные", "Сейчас", "Хэллоуин", "Ураза-байрам", "Рождество", "Новый год", "Лунный Новый год", "День независимости Индонезии", "Хэллоуин"],
+  "ja": ["季節", "開催中", "ハロウィン", "イード・アル＝フィトル", "クリスマス", "新年", "旧正月", "インドネシア独立記念日", "ハロウィン"],
+  "ko": ["시즌", "지금", "핼러윈", "이드 알피트르", "크리스마스", "새해", "설날", "인도네시아 독립기념일", "핼러윈"],
+  "zh": ["节日", "当季", "万圣节", "开斋节", "圣诞节", "新年", "春节", "印尼独立日", "万圣节"],
+  "hi": ["मौसमी", "अभी", "हैलोवीन", "ईद-उल-फ़ित्र", "क्रिसमस", "नया साल", "चंद्र नव वर्ष", "इंडोनेशिया स्वतंत्रता दिवस", "हैलोवीन"],
+  "vi": ["Theo mùa", "Đang diễn ra", "Halloween", "Lễ Eid al-Fitr", "Giáng sinh", "Năm mới", "Tết Nguyên đán", "Quốc khánh Indonesia", "Halloween"],
+  "th": ["ตามเทศกาล", "ตอนนี้", "ฮาโลวีน", "วันอีดิลฟิฏริ", "คริสต์มาส", "ปีใหม่", "ตรุษจีน", "วันประกาศอิสรภาพอินโดนีเซีย", "ฮาโลวีน"],
+  "tr": ["Mevsimlik", "Şimdi", "Cadılar Bayramı", "Ramazan Bayramı", "Noel", "Yılbaşı", "Ay Yeni Yılı", "Endonezya Bağımsızlık Günü", "Cadılar Bayramı"]
 };
 for (const [code, messages] of Object.entries(seasonMessages)) {
   seasonKeys.forEach((key, index) => { translations[code][key] = messages[index]; });

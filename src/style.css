@@ -688,6 +688,16 @@ body.dark-mode .theme-fab .ms { color: #9aa6e6;
 .th-lebaran .frame-outer::before { content: '🌙'; top: -13px; left: 16px; }
 .th-lebaran .frame-outer::after { content: '✨'; top: -13px; right: 16px; }
 
+/* Halloween */
+.th-halloween.frame-outer { background: linear-gradient(160deg,#2b1840,#3d2257); border: 4px solid #ff9a3c;
+  box-shadow: 0 10px 28px rgba(43,24,64,.5); }
+.th-halloween .frame { background: #2f1b47; border: 1px solid #ff9a3c; border-radius: 2px; }
+.th-halloween .slot { border: 4px solid #ff9a3c; border-radius: 2px; }
+.th-halloween .frame-date { color: #ffb36b; }
+.th-halloween .frame-outer::before, .th-halloween .frame-outer::after { position: absolute; font-size: 26px; line-height: 1; }
+.th-halloween .frame-outer::before { content: '🎃'; top: -13px; left: 16px; }
+.th-halloween .frame-outer::after { content: '🦇'; top: -13px; right: 16px; }
+
 /* Natal */
 .th-natal.frame-outer { background: linear-gradient(160deg,#b7172b,#8f1123); border: 4px solid #ffffff;
   outline: 2px solid #0f6b3a; box-shadow: 0 10px 28px rgba(150,20,35,.45); }
@@ -1467,3 +1477,4 @@ body.dark-mode .season-now { background: #ff8fc0; color: #14121d; }
   .start-demo > figcaption { order: -2; }
   #demo-frame { order: -1; }
 }
+.demo-themes .season-now { position: absolute; top: 6px; inset-inline-start: 6px; }

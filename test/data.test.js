@@ -90,3 +90,9 @@ test('seasonal stickers exist and the active season is listed first', () => {
   assert.deepEqual(now('2026-07-01'), []);
   assert.equal(seasonsFor(new Date('2026-12-20T12:00'))[0].id, 'natal');
 });
+
+test('Independence Day stickers show in August and seasonal themes exist', () => {
+  const themeIds = new Set(THEMES.map(t => t.id));
+  for (const season of SEASONS) if (season.theme) assert.ok(themeIds.has(season.theme), `season theme "${season.theme}" is missing`);
+  assert.deepEqual(seasonsFor(new Date('2026-08-17T12:00')).filter(s => s.now).map(s => s.id), ['merdeka']);
+});
