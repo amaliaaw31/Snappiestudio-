@@ -3912,117 +3912,85 @@ for (const [code, messages] of Object.entries(orderMessages)) {
   orderKeys.forEach((key, index) => { translations[code][key] = messages[index]; });
 }
 
-const galleryKeys = ["home.styles", "home.previousStyle", "home.nextStyle", "home.gallery", "home.actions"];
+const galleryKeys = ["home.styles", "home.gallery", "home.actions"];
 const galleryMessages = {
   "id": [
     "Gaya foto",
-    "Gaya sebelumnya",
-    "Gaya berikutnya",
     "Galeri",
     "Mulai sesi foto"
   ],
   "en": [
     "Photo styles",
-    "Previous style",
-    "Next style",
     "Gallery",
     "Start a photo session"
   ],
   "ms": [
     "Gaya foto",
-    "Gaya sebelumnya",
-    "Gaya seterusnya",
     "Galeri",
     "Mulakan sesi foto"
   ],
   "ar": [
     "أنماط الصور",
-    "النمط السابق",
-    "النمط التالي",
     "المعرض",
     "بدء جلسة تصوير"
   ],
   "es": [
     "Estilos de foto",
-    "Estilo anterior",
-    "Siguiente estilo",
     "Galería",
     "Iniciar una sesión de fotos"
   ],
   "fr": [
     "Styles photo",
-    "Style précédent",
-    "Style suivant",
     "Galerie",
     "Commencer une séance photo"
   ],
   "de": [
     "Fotostile",
-    "Vorheriger Stil",
-    "Nächster Stil",
     "Galerie",
     "Fotositzung starten"
   ],
   "pt": [
     "Estilos de foto",
-    "Estilo anterior",
-    "Próximo estilo",
     "Galeria",
     "Iniciar uma sessão de fotos"
   ],
   "ru": [
     "Стили фото",
-    "Предыдущий стиль",
-    "Следующий стиль",
     "Галерея",
     "Начать фотосессию"
   ],
   "ja": [
     "写真スタイル",
-    "前のスタイル",
-    "次のスタイル",
     "ギャラリー",
     "撮影を始める"
   ],
   "ko": [
     "사진 스타일",
-    "이전 스타일",
-    "다음 스타일",
     "갤러리",
     "사진 촬영 시작"
   ],
   "zh": [
     "照片风格",
-    "上一个风格",
-    "下一个风格",
     "相册",
     "开始拍照"
   ],
   "hi": [
     "फ़ोटो शैलियाँ",
-    "पिछली शैली",
-    "अगली शैली",
     "गैलरी",
     "फ़ोटो सत्र शुरू करें"
   ],
   "vi": [
     "Phong cách ảnh",
-    "Phong cách trước",
-    "Phong cách tiếp theo",
     "Thư viện",
     "Bắt đầu chụp ảnh"
   ],
   "th": [
     "สไตล์รูป",
-    "สไตล์ก่อนหน้า",
-    "สไตล์ถัดไป",
     "แกลเลอรี",
     "เริ่มถ่ายรูป"
   ],
   "tr": [
     "Fotoğraf stilleri",
-    "Önceki stil",
-    "Sonraki stil",
     "Galeri",
     "Fotoğraf oturumu başlat"
   ]

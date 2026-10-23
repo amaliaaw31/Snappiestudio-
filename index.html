@@ -107,23 +107,23 @@
   <button type="button" class="btn ghost small" id="btn-install" hidden><span class="ms" aria-hidden="true">install_mobile</span><span data-i18n="pwa.install">Pasang aplikasi</span></button>
   </div>
   <figure class="start-demo">
-    <figcaption data-i18n="start.example">Contoh bingkai dengan foto</figcaption>
-    <div class="demo-filter-label"><span id="demo-filter-label" data-i18n="start.tryFilter">Coba efek foto</span>
-      <button type="button" id="demo-filter" class="filter-select" aria-haspopup="dialog" aria-controls="filter-modal" aria-labelledby="demo-filter-label demo-filter"></button>
-    </div>
     <div class="demo-gallery">
-      <div class="demo-gallery-heading"><h2 id="demo-gallery-title" data-i18n="home.styles">Gaya foto</h2><div class="demo-gallery-nav"><button type="button" id="demo-prev" class="btn ghost small" data-i18n-aria="home.previousStyle" aria-label="Gaya sebelumnya"><span class="ms" aria-hidden="true">arrow_back</span></button><button type="button" id="demo-next" class="btn ghost small" data-i18n-aria="home.nextStyle" aria-label="Gaya berikutnya"><span class="ms" aria-hidden="true">arrow_forward</span></button></div></div>
-    <div class="demo-themes" role="group" aria-labelledby="demo-gallery-title">
-      <button type="button" data-demo-theme="pastel" data-demo-filter="normal" aria-pressed="true"><span data-i18n="theme.pastel">Princess Pastel</span><span class="demo-preset-effect" data-i18n="filter.normal"></span><span class="ms demo-selected" aria-hidden="true">check</span></button>
-      <button type="button" data-demo-theme="film" data-demo-filter="vintage" aria-pressed="false"><span data-i18n="theme.film">35mm Film</span><span class="demo-preset-effect" data-i18n="filter.vintage"></span><span class="ms demo-selected" aria-hidden="true">check</span></button>
-      <button type="button" data-demo-theme="minimal" data-demo-filter="bw" aria-pressed="false"><span data-i18n="theme.minimal">Seoul Minimal</span><span class="demo-preset-effect" data-i18n="filter.bw"></span><span class="ms demo-selected" aria-hidden="true">check</span></button>
-    </div>
+      <h2 id="demo-gallery-title" data-i18n="home.styles">Gaya foto</h2>
+      <div class="demo-themes" role="group" aria-labelledby="demo-gallery-title">
+        <button type="button" data-demo-theme="pastel" aria-pressed="true"><span data-i18n="theme.pastel">Princess Pastel</span><span class="ms demo-selected" aria-hidden="true">check</span></button>
+        <button type="button" data-demo-theme="film" aria-pressed="false"><span data-i18n="theme.film">35mm Film</span><span class="ms demo-selected" aria-hidden="true">check</span></button>
+        <button type="button" data-demo-theme="minimal" aria-pressed="false"><span data-i18n="theme.minimal">Seoul Minimal</span><span class="ms demo-selected" aria-hidden="true">check</span></button>
+      </div>
     </div>
     <div class="demo-play-actions">
       <button type="button" id="demo-shuffle" class="btn ghost"><span class="ms" aria-hidden="true">shuffle</span><span data-i18n="home.shuffle">Acak gaya</span></button>
       <p id="demo-style" class="demo-style" role="status" aria-live="polite" aria-atomic="true"></p>
     </div>
+    <p class="demo-caption" data-i18n="start.example">Contoh bingkai dengan foto</p>
     <div id="demo-frame" aria-hidden="true"></div>
+    <div class="demo-filter-label"><span id="demo-filter-label" data-i18n="start.tryFilter">Coba efek foto</span>
+      <button type="button" id="demo-filter" class="filter-select" aria-haspopup="dialog" aria-controls="filter-modal" aria-labelledby="demo-filter-label demo-filter"></button>
+    </div>
     <div class="demo-comparison">
       <label for="demo-compare" data-i18n="home.compare">Bandingkan efek</label>
       <div class="demo-compare-labels"><span data-i18n="home.original">Asli</span><output id="demo-compare-effect" for="demo-compare"></output></div>

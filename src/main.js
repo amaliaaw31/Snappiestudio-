@@ -478,21 +478,11 @@ function renderDemo() {
   $('demo-compare-hint').textContent = tr($('demo-compare-hint').dataset.i18n);
   updateDemoComparison();
   document.querySelectorAll('[data-demo-theme]').forEach(button => {
-    button.setAttribute('aria-pressed', String(button.dataset.demoTheme === demoTheme && button.dataset.demoFilter === state.filter));
+    button.setAttribute('aria-pressed', String(button.dataset.demoTheme === demoTheme));
   });
-  const cards = [...document.querySelectorAll('[data-demo-theme]')];
-  const index = cards.findIndex(button => button.dataset.demoTheme === demoTheme);
-  $('demo-prev').disabled = index <= 0;
-  $('demo-next').disabled = index >= cards.length - 1;
 }
 document.querySelectorAll('[data-demo-theme]').forEach(button => {
-  const thumbnail = document.createElement('span');
-  thumbnail.className = 'demo-theme-preview';
-  thumbnail.setAttribute('aria-hidden', 'true');
-  thumbnail.innerHTML = themeThumbHTML({ id: button.dataset.demoTheme });
-  thumbnail.querySelectorAll('img').forEach(image => { image.draggable = false; image.style.filter = filterCss(button.dataset.demoFilter); });
-  button.prepend(thumbnail);
-  button.onclick = () => { demoTheme = button.dataset.demoTheme; chooseFilter(button.dataset.demoFilter); };
+  button.onclick = () => { demoTheme = button.dataset.demoTheme; renderDemo(); printDemo(); };
   button.onkeydown = event => {
     const direction = document.documentElement.dir === 'rtl' ? -1 : 1;
     const step = { ArrowLeft: -direction, ArrowRight: direction }[event.key];
@@ -511,13 +501,6 @@ function selectDemoCard(index) {
   button.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
   button.click();
 }
-function stepDemoCard(step) {
-  const cards = [...document.querySelectorAll('[data-demo-theme]')];
-  const index = cards.findIndex(button => button.dataset.demoTheme === demoTheme);
-  selectDemoCard(Math.max(0, Math.min(cards.length - 1, index + step)));
-}
-$('demo-prev').onclick = () => stepDemoCard(-1);
-$('demo-next').onclick = () => stepDemoCard(1);
 makeDraggableScroll(document.querySelector('.demo-themes'), false);
 function printDemo() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
