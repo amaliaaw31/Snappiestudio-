@@ -316,6 +316,8 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 640, height: 900, deviceScaleFactor: 1, mobile: true });
   await evaluate("document.documentElement.style.zoom = '2'; window.dispatchEvent(new Event('resize')); window.scrollTo(0, document.scrollingElement.scrollHeight)");
   await waitFor("!document.querySelector('#home-actions').hidden");
+  await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+  await evaluate("window.scrollTo(0, document.scrollingElement.scrollHeight)");
   await check("(() => { const bar = document.querySelector('#home-actions').getBoundingClientRect(); return document.body.getBoundingClientRect().width <= innerWidth + 1 && bar.right <= innerWidth + 1 && document.querySelector('.visitor-count').getBoundingClientRect().bottom <= bar.top + 1; })()", '200 percent zoom preserves content and mobile actions');
   await evaluate("document.documentElement.style.zoom = ''; window.dispatchEvent(new Event('resize'))");
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });

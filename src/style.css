@@ -1433,10 +1433,8 @@ body.dark-mode { background: #14121d; color: #e8e5f2; }
 .home-actions .ms { flex-shrink: 0; font-size: 20px; margin: 0; }
 .home-actions .btn.ghost { border-color: var(--home-border); }
 .home-camera-status { grid-column: 1 / -1; color: var(--ui-text); font-size: 13px; text-align: start; }
-@media (max-width: 719px) {
-  body.on-start #scr-start { padding-bottom: calc(var(--home-action-height, 80px) + 24px); }
-  html.home-view { scroll-padding-bottom: calc(var(--home-action-height, 80px) + 16px); }
-}
+html.home-view #scr-start { padding-bottom: calc(var(--home-action-height, 80px) + 24px); }
+html.home-view { scroll-padding-bottom: calc(var(--home-action-height, 80px) + 16px); }
 
 body.on-start .btn.ghost, body.on-start .demo-filter-label .filter-select { border-color: var(--home-border); }
 

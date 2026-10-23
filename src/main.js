@@ -3583,7 +3583,9 @@ const homeActions = $('home-actions');
 const homeMobile = window.matchMedia('(max-width: 719px)');
 const visibleHomeButtons = new Set(['btn-start', 'btn-gallery-start']);
 const syncHomeActionVisibility = () => {
-  const visible = homeMobile.matches && currentScreen === 'scr-start' && window.scrollY > 0 && !visibleHomeButtons.size && !modalStack.length;
+  const mobileHome = homeMobile.matches && currentScreen === 'scr-start';
+  document.documentElement.classList.toggle('home-view', mobileHome);
+  const visible = mobileHome && window.scrollY > 0 && !visibleHomeButtons.size && !modalStack.length;
   if (homeActions.hidden === visible) homeActions.hidden = !visible;
 };
 window.addEventListener('scroll', syncHomeActionVisibility, { passive: true });
@@ -3599,7 +3601,6 @@ updateHomeActions = () => {
   const message = status.style.display === 'none' ? '' : status.textContent;
   $('home-camera-status').textContent = message;
   $('home-camera-status').hidden = !message;
-  document.documentElement.classList.toggle('home-view', homeMobile.matches && currentScreen === 'scr-start');
   syncHomeActionVisibility();
 };
 const homeActionObserver = new window.IntersectionObserver(entries => {
