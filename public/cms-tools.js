@@ -15,6 +15,18 @@ export function renderInsights(data, locations) {
   if (!data) return;
   $('new-browsers').textContent = number.format(data.newBrowsers);
   $('returning-browsers').textContent = number.format(data.returningBrowsers);
+  const total = data.newBrowsers + data.returningBrowsers;
+  const newShare = total ? data.newBrowsers / total * 100 : 0;
+  const returningShare = total ? 100 - newShare : 0;
+  const share = value => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(value) + '%';
+  $('donut-new').setAttribute('stroke-dasharray', `${newShare} ${100 - newShare}`);
+  $('donut-returning').setAttribute('stroke-dasharray', `${returningShare} ${100 - returningShare}`);
+  $('donut-returning').setAttribute('stroke-dashoffset', String(-newShare));
+  $('donut-total').textContent = number.format(total);
+  $('new-share').textContent = share(newShare);
+  $('returning-share').textContent = share(returningShare);
+  $('audience-donut-title').textContent = `${number.format(total)} browser: ${number.format(data.newBrowsers)} baru (${share(newShare)}), ${number.format(data.returningBrowsers)} kembali (${share(returningShare)}).`;
+  $('audience-empty').hidden = total > 0;
   $('audience-summary').textContent = `${data.from} s.d. ${data.to}, mengikuti filter. “Kembali” berarti pertama tercatat sebelum periode ini. Riwayat aktivitas tersedia sejak ${date(data.trackingSince.replace(' ', 'T') + 'Z')}; data lama bisa belum lengkap.`;
   $('audience-trend').replaceChildren(...data.trend.map(row => { const item = document.createElement('tr'); item.append(text('td', row.date), text('td', number.format(row.newBrowsers)), text('td', number.format(row.returningBrowsers))); return item; }));
   const calendar = $('visit-calendar'); calendar.replaceChildren();

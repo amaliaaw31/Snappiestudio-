@@ -23,6 +23,8 @@ let currentView = 'overview';
 const viewButtons = [...document.querySelectorAll('.dashboard-nav button')];
 const viewText = {
   overview: ['Statistik kunjungan', 'Lihat kapan browser berkunjung dan dari wilayah mana.'],
+  trends: ['Tren dan waktu', 'Telusuri perkembangan kunjungan, jam ramai, dan kalender harian.'],
+  regions: ['Wilayah kunjungan', 'Lihat persebaran provinsi dan bandingkan lokasi pengunjung.'],
   visits: ['Daftar kunjungan', 'Telusuri pengunjung dan unduh laporan sesuai filter.'],
   settings: ['Pengaturan CMS', 'Kelola akun, autentikator, dan status pemeliharaan.'],
 };
@@ -34,10 +36,26 @@ for (const button of viewButtons) button.addEventListener('click', () => {
     $(item.getAttribute('aria-controls')).hidden = !active;
   }
   for (const element of document.querySelectorAll('[data-report-control], #tracking-note')) element.hidden = currentView === 'settings';
+  for (const element of document.querySelectorAll('[data-overview-control]')) element.hidden = currentView !== 'overview';
   [$('view-heading').textContent, $('view-description').textContent] = viewText[currentView];
-  if (currentView === 'overview') drawCharts();
+  if (currentView === 'trends') drawCharts();
 });
 document.querySelector('.dashboard-nav').hidden = false;
+
+const settingsSections = [...$('settings-panel').querySelectorAll(':scope > details')];
+for (const [index, section] of settingsSections.entries()) {
+  $('settings-menu').add(new window.Option(section.querySelector('summary').textContent, String(index)));
+  section.hidden = index !== 0;
+}
+function showSetting() {
+  for (const [index, section] of settingsSections.entries()) {
+    const active = index === Number($('settings-menu').value);
+    section.hidden = !active;
+    section.open = active;
+  }
+}
+$('settings-menu').addEventListener('change', showSetting);
+document.querySelector('[data-view="settings"]').addEventListener('click', showSetting);
 
 function utcDate(value) {
   return new Date(`${value.replace(' ', 'T')}Z`);
@@ -366,6 +384,8 @@ function autoRefresh() {
 document.addEventListener('visibilitychange', () => { if (!document.hidden) autoRefresh(); });
 new window.ResizeObserver(drawCharts).observe($('trend-chart').parentElement);
 window.addEventListener('cms-theme-change', drawCharts);
+window.addEventListener('beforeprint', drawCharts);
+window.addEventListener('afterprint', drawCharts);
 $('logout').addEventListener('click', async () => {
   $('logout').disabled = true;
   requestController?.abort();

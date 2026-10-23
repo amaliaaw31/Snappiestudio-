@@ -22,13 +22,15 @@
     </div>
     <nav class="dashboard-nav" aria-label="Bagian dashboard" hidden>
       <button type="button" data-view="overview" aria-controls="overview-panel" aria-pressed="true">Ringkasan</button>
+      <button type="button" data-view="trends" aria-controls="trends-panel" aria-pressed="false">Tren dan waktu</button>
+      <button type="button" data-view="regions" aria-controls="regions-panel" aria-pressed="false">Wilayah</button>
       <button type="button" data-view="visits" aria-controls="visits-panel" aria-pressed="false">Kunjungan</button>
       <button type="button" data-view="settings" aria-controls="settings-panel" aria-pressed="false">Pengaturan</button>
     </nav>
     <div class="dashboard-content">
     <h1 id="view-heading">Statistik kunjungan</h1>
     <p class="sub" id="view-description">Lihat kapan browser berkunjung dan dari wilayah mana.</p>
-    <div class="dashboard-metrics" data-report-control>
+    <div class="dashboard-metrics" data-overview-control>
     <section class="metric" aria-live="polite">
       <span class="metric-label">Total browser unik</span>
       <strong id="total">…</strong>
@@ -42,6 +44,7 @@
     </section>
     </div>
     <div data-report-control>
+    <details class="filter-disclosure"><summary>Filter tanggal dan wilayah</summary>
     <form id="filters" class="filters">
       <div><label for="from">Dari tanggal (WIB)</label><input id="from" name="from" type="date" min="2000-01-01" max="2099-12-31"></div>
       <div><label for="to">Sampai tanggal (WIB)</label><input id="to" name="to" type="date" min="2000-01-01" max="2099-12-31"></div>
@@ -55,10 +58,12 @@
         <button type="button" data-period="month">Bulan ini</button>
       </div>
     </form>
+    </details>
     <p id="status" role="status"></p>
     <p id="filter-summary" class="note"></p>
     </div>
     <section id="overview-panel" aria-label="Ringkasan kunjungan">
+    <div class="overview-analysis">
     <section class="comparison" aria-labelledby="comparison-heading">
       <div class="section-heading"><h2 id="comparison-heading">Perbandingan kunjungan</h2><button id="print-overview" type="button">Cetak / PDF</button></div>
       <p id="comparison-note" class="chart-description">Memuat dua periode dengan jumlah hari yang sama.</p>
@@ -69,13 +74,29 @@
       <p id="comparison-change" class="note" aria-live="polite"></p>
     </section>
     <section class="insights-section" aria-labelledby="audience-heading">
-      <h2 id="audience-heading">Browser baru dan kembali</h2>
+      <h2 id="audience-heading">Berapa porsi browser baru dan kembali?</h2>
       <p id="audience-summary" class="chart-description">Memuat statistik periode.</p>
-      <div class="summary comparison-counts"><div><strong id="new-browsers">…</strong><span>Baru pada periode ini</span></div><div><strong id="returning-browsers">…</strong><span>Sudah tercatat sebelumnya</span></div></div>
+      <div class="audience-breakdown">
+        <svg id="audience-donut" class="audience-donut" viewBox="0 0 200 200" role="img" aria-labelledby="audience-donut-title">
+          <title id="audience-donut-title">Memuat porsi browser baru dan kembali</title>
+          <circle class="donut-track" cx="100" cy="100" r="76"/>
+          <circle id="donut-new" class="donut-new" cx="100" cy="100" r="76" pathLength="100" stroke-dasharray="0 100"/>
+          <circle id="donut-returning" class="donut-returning" cx="100" cy="100" r="76" pathLength="100" stroke-dasharray="0 100"/>
+          <text id="donut-total" x="100" y="98" class="donut-total">…</text>
+          <text x="100" y="120" class="donut-caption">browser</text>
+        </svg>
+        <div class="audience-legend">
+          <div><span class="legend-label"><i class="legend-new" aria-hidden="true"></i>Baru pada periode ini</span><strong id="new-browsers">…</strong><span id="new-share"></span></div>
+          <div><span class="legend-label"><i class="legend-returning" aria-hidden="true"></i>Sudah tercatat sebelumnya</span><strong id="returning-browsers">…</strong><span id="returning-share"></span></div>
+        </div>
+      </div>
+      <p id="audience-empty" class="note" hidden>Belum ada browser pada periode ini. Pilih periode lain atau Semua data.</p>
+    </section>
+    </div>
+    </section>
+    <section id="trends-panel" aria-label="Tren dan waktu kunjungan" hidden>
       <details><summary>Tren browser baru dan kembali</summary><p class="note">Mengikuti rentang grafik. Pada setiap baris, browser baru dihitung saat pertama tercatat dalam interval tersebut; browser yang sama dapat kembali pada interval berikutnya.</p><div class="table-wrap"><table><thead><tr><th>Periode (WIB)</th><th>Baru</th><th>Kembali</th></tr></thead><tbody id="audience-trend"></tbody></table></div></details>
       <details><summary>Kalender kunjungan</summary><p id="calendar-month" class="note"></p><p class="note">Angka menunjukkan browser unik per hari. Kalender mengikuti bulan tanggal akhir, atau bulan ini.</p><div id="visit-calendar" class="visit-calendar" aria-label="Browser unik per hari"></div></details>
-      <details><summary>Bandingkan wilayah</summary><p class="note">Pilih dua wilayah dari data sesuai filter. Setiap browser mengikuti lokasi kunjungan pertamanya.</p><div class="region-comparison-controls"><label>Wilayah pertama<select id="region-first"></select></label><label>Wilayah kedua<select id="region-second"></select></label></div><p id="region-comparison-result" role="status" class="note"></p></details>
-    </section>
     <section class="charts" aria-label="Grafik pengunjung">
       <div class="chart-card trend-card">
         <h2>Kunjungan per hari</h2>
@@ -91,6 +112,8 @@
         <p class="chart-description">*Satu browser dihitung sekali per jam, dijumlahkan sepanjang periode grafik.</p>
       </div>
     </section>
+    </section>
+    <section id="regions-panel" aria-label="Wilayah kunjungan" hidden>
     <section class="region-section" aria-labelledby="province-heading">
       <div class="section-heading"><h2 id="province-heading">Kunjungan per provinsi</h2></div>
       <p id="province-summary" class="chart-description">Memuat jumlah browser per provinsi sesuai filter.</p>
@@ -103,6 +126,7 @@
       <div><strong id="cities">…</strong><span>Kota</span></div>
       <div><strong id="unknown">…</strong><span>Lokasi tidak diketahui</span></div>
     </section>
+      <details><summary>Bandingkan wilayah</summary><p class="note">Pilih dua wilayah dari data sesuai filter. Setiap browser mengikuti lokasi kunjungan pertamanya.</p><div class="region-comparison-controls"><label>Wilayah pertama<select id="region-first"></select></label><label>Wilayah kedua<select id="region-second"></select></label></div><p id="region-comparison-result" role="status" class="note"></p></details>
     </section>
     <section id="visits-panel" aria-label="Daftar kunjungan" hidden>
     <div class="section-heading"><h2>Daftar pengunjung</h2><button id="print-report" type="button">Cetak / PDF</button><button id="export" type="button" title="Unduh semua halaman sesuai filter">Unduh CSV</button></div>
@@ -137,11 +161,12 @@
     <div class="actions">
       <button id="refresh" type="button">Muat ulang</button>
       <label class="auto-refresh"><input id="auto-refresh" type="checkbox" checked> Otomatis setiap 30 detik</label>
-      <button id="reset" type="button">Reset hitungan</button>
     </div>
     </div>
     <section id="settings-panel" class="settings-section" aria-labelledby="settings-heading" hidden>
       <h2 id="settings-heading">Pengaturan CMS</h2>
+      <label for="settings-menu" class="settings-menu-label">Pilih pengaturan</label>
+      <select id="settings-menu" aria-label="Pilih pengaturan CMS"></select>
       <details id="account-settings">
         <summary>Akun dan keamanan</summary>
         <p id="account-info" class="note">Buka bagian ini untuk memuat status akun.</p>
@@ -191,6 +216,7 @@
           <div class="settings-actions"><button id="download-recovery" type="button">Unduh kode pemulihan</button><button id="hide-recovery" type="button">Sembunyikan kode</button></div>
         </div>
       </details>
+      <details id="reset-settings"><summary>Reset data kunjungan</summary><p class="note">Hapus seluruh data kunjungan dan aktivitas. Riwayat admin dan pengecualian browser tetap disimpan.</p><button id="reset" type="button">Reset hitungan</button></details>
       <details id="discord-settings"><summary>Bot Discord dan jadwal migrasi</summary><p class="note">Gunakan /pengumuman untuk mengatur pengumuman manual. Gunakan /migrasi jadwalkan untuk pengingat dan pengumuman otomatis dalam WIB. Bot tidak memindahkan data server.</p><p id="discord-bot-status" class="note" role="status"></p><ol id="discord-jobs" class="audit-list"></ol><button id="refresh-discord" type="button">Muat status bot</button></details>
       <details id="content-settings"><summary>Pengumuman situs</summary>
         <form id="content-form" class="account-form"><label class="auto-refresh"><input id="notice-enabled" type="checkbox"> Tampilkan pengumuman</label><label for="notice-title">Judul</label><input id="notice-title" maxlength="80"><label for="notice-message">Pesan</label><textarea id="notice-message" maxlength="500" rows="4"></textarea><button type="submit">Simpan pengumuman</button></form><p id="content-status" class="note" role="status"></p>
