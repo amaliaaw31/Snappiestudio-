@@ -1465,6 +1465,18 @@ body.dark-mode .season-now { background: #ff8fc0; color: #14121d; }
 
 #btn-install { margin-top: 12px; }
 #btn-install[hidden] { display: none; }
+/* Tablet/PC: tombol pasang di kiri ikon FAQ; ponsel memakai tombol di bawah intro. */
+#btn-install-top { display: none; }
+@media (min-width: 720px) {
+  #btn-install { display: none; }
+  #btn-install-top { position: fixed; top: 11px; right: 108px; z-index: 5; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px;
+    border: 2px solid var(--ui-accent, #b1266b); border-radius: 999px; background: var(--ui-surface, #fff); color: var(--ui-accent, #b1266b);
+    font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  #btn-install-top .ms { font-size: 20px; }
+  #btn-install-top:hover { background: var(--page-bg); }
+  #btn-install-top:active { transform: scale(.96); }
+  #btn-install-top[hidden] { display: none; }
+}
 /* Ikon FAQ di kiri tombol mode gelap; isinya tampil sebagai popup. */
 .faq-fab { position: fixed; top: 11px; right: 56px; z-index: 5; display: inline-flex; align-items: center; justify-content: center;
   min-width: 44px; min-height: 44px; padding: 4px; background: none; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }

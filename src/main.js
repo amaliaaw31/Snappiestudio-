@@ -124,14 +124,16 @@ updateVisitorCount();
 /* ============ PWA: pemasangan ke layar utama dan pemakaian tanpa internet ============ */
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', event => {
-  event.preventDefault(); installPrompt = event; $('btn-install').hidden = false;
+  event.preventDefault(); installPrompt = event; setInstallVisible(true);
 });
-window.addEventListener('appinstalled', () => { installPrompt = null; $('btn-install').hidden = true; });
-$('btn-install').onclick = async () => {
+window.addEventListener('appinstalled', () => { installPrompt = null; setInstallVisible(false); });
+/* Dua tombol: di ponsel di bawah intro, di tablet/PC di samping ikon FAQ (CSS memilih yang tampil). */
+const setInstallVisible = visible => { for (const id of ['btn-install', 'btn-install-top']) $(id).hidden = !visible; };
+for (const id of ['btn-install', 'btn-install-top']) $(id).onclick = async () => {
   if (!installPrompt) return;
   installPrompt.prompt();
   await installPrompt.userChoice;
-  installPrompt = null; $('btn-install').hidden = true;
+  installPrompt = null; setInstallVisible(false);
 };
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
