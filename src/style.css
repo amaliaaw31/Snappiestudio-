@@ -1456,6 +1456,7 @@ body.dark-mode .season-now { background: #ff8fc0; color: #14121d; }
 [dir="rtl"] .support-links .btn .ms { margin-right: 0; margin-left: .35em; }
 #support-modal .modal-body { display: flex; flex-direction: column; gap: 14px; }
 #support-modal .modal-body > .btn { align-self: center; }
+#support-modal .modal-body > .btn[hidden] { display: none; }
 .dark-mode #support-modal .again-text { color: #d8c8e8; }
 
 /* Hitungan pengunjung tetap di pojok kiri atas, di kanan ikon bahasa. */

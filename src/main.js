@@ -3295,9 +3295,7 @@ function showSupport(afterDownload) {
     $(id).hidden = !url;
   }
   supportAfterDownload = afterDownload;
-  const next = $('btn-support-next');
-  next.dataset.i18n = afterDownload ? 'support.next' : 'ui.close';
-  next.textContent = tr(next.dataset.i18n);
+  $('btn-support-next').hidden = !afterDownload; // dari menu hanya tombol ×
   track('support_shown');
   openModal('support-modal');
 }

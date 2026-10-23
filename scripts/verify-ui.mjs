@@ -315,8 +315,8 @@ try {
     await check("!document.querySelector('#top-menu').matches(':popover-open')", `Escape closes the menu at ${width}px`);
     await click('#btn-menu');
     await click('#menu-support');
-    await check("document.querySelector('#support-modal').classList.contains('open') && !document.querySelector('#top-menu').matches(':popover-open') && document.querySelector('#btn-support-next').textContent.trim() === document.querySelector('#btn-close-support').getAttribute('aria-label') && document.querySelectorAll('#support-modal .support-links a').length === 2", `support opens from the menu with a plain close button at ${width}px`);
-    await click('#btn-support-next');
+    await check("document.querySelector('#support-modal').classList.contains('open') && !document.querySelector('#top-menu').matches(':popover-open') && getComputedStyle(document.querySelector('#btn-support-next')).display === 'none' && document.querySelector('#btn-close-support').getClientRects().length > 0 && document.querySelectorAll('#support-modal .support-links a').length === 2", `support opens from the menu with only the x button at ${width}px`);
+    await click('#btn-close-support');
     await check("!document.querySelector('#support-modal').classList.contains('open') && !document.querySelector('#again-modal').classList.contains('open') && document.activeElement.id === 'btn-menu'", `closing support from the menu does not start the new-session question at ${width}px`);
     await click('#btn-menu');
     await click('#menu-faq');
