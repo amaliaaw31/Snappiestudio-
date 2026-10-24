@@ -1487,3 +1487,14 @@ body.dark-mode .menu-fab .ms { color: #ff8fc0; filter: drop-shadow(0 0 6px rgba(
 .faq-list summary::after { content: 'expand_more'; flex-shrink: 0; font-family: 'Material Symbols Rounded'; font-size: 22px; font-weight: normal; line-height: 1; color: var(--ui-muted); }
 .faq-list details[open] summary::after { transform: rotate(180deg); }
 .faq-list p { margin: 0; padding: 0 14px 14px; color: var(--ui-muted); font-size: 14px; line-height: 1.6; }
+
+/* header kaca transparan di halaman utama; tombol di atasnya tetap fixed (z-index 5) */
+.top-header { position: fixed; inset: 0 0 auto 0; z-index: 4; height: 58px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(255,255,255,.38); -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5);
+  border-bottom: 1px solid rgba(255,255,255,.55); box-shadow: 0 4px 18px rgba(177,38,107,.08); pointer-events: none; }
+.top-header img { width: 28px; height: 28px; border-radius: 8px; }
+.top-header span { font-weight: 800; font-size: 17px; color: var(--ui-accent, #b1266b); }
+body.dark-mode .top-header { background: rgba(28,24,48,.42); border-bottom-color: rgba(255,255,255,.12); box-shadow: 0 4px 18px rgba(0,0,0,.25); }
+body.dark-mode .top-header span { color: #ffd1e6; }
+@media (max-width: 639px) { .top-header img, .top-header span { display: none; } }
+@media (prefers-reduced-transparency: reduce) { .top-header { background: var(--page-bg, #fdf3ff); -webkit-backdrop-filter: none; backdrop-filter: none; } }
