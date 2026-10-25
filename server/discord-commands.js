@@ -56,6 +56,7 @@ const definition = command => JSON.stringify({ type: command.type || 1, name: co
   options: (command.options || []).map(optionDefinition) });
 export const phaseOneCommands = ['status', 'website', 'server', 'ssl', 'logs', 'uptime'];
 export const phaseTwoCommands = ['backup', 'alert'];
+export const phaseThreeCommands = ['pengunjung', 'penggunaan'];
 
 export async function registerDiscordCommands(configuration, token, fetchImpl = fetch, { names = discordCommands.map(command => command.name), dryRun = false } = {}) {
   const config = validateBotConfig(configuration);

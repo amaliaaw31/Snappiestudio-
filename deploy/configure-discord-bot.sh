@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd -- "$(dirname -- "$0")/.."
-if [[ $EUID != 0 || $# -gt 1 || ( $# == 1 && $1 != --plan-phase1 && $1 != --register-phase1 && $1 != --plan-phase2 && $1 != --register-phase2 ) ]]; then
-  echo 'Usage: sudo bash deploy/configure-discord-bot.sh [--plan-phase1|--register-phase1|--plan-phase2|--register-phase2]' >&2
+if [[ $EUID != 0 || $# -gt 1 || ( $# == 1 && $1 != --plan-phase1 && $1 != --register-phase1 && $1 != --plan-phase2 && $1 != --register-phase2 && $1 != --plan-phase3 && $1 != --register-phase3 ) ]]; then
+  echo 'Usage: sudo bash deploy/configure-discord-bot.sh [--plan-phase1|--register-phase1|--plan-phase2|--register-phase2|--plan-phase3|--register-phase3]' >&2
   exit 64
 fi
 if [[ $# == 1 ]]; then
