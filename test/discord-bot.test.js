@@ -133,7 +133,7 @@ test('command registration upserts named commands without deleting existing comm
     assert.equal(body.default_member_permissions, '0'); assert.ok(!options.body.includes('test-bot-token'));
     return Response.json({ ...body, id: '100000000000000010', application_id: api.config.applicationId });
   });
-  assert.deepEqual(commands.map(command => command.name), ['status', 'website', 'server', 'ssl', 'logs', 'uptime', 'backup', 'alert', 'pengumuman', 'migrasi']);
+  assert.deepEqual(commands.map(command => command.name), ['status', 'website', 'server', 'ssl', 'logs', 'uptime', 'pengunjung', 'penggunaan', 'backup', 'alert', 'pengumuman', 'migrasi']);
 });
 
 
@@ -228,4 +228,14 @@ test('backup and alert authorize callers before verification or sending notifica
     const result = await (await api.send(command)).json(); assert.equal(result.type, 4);
     assert.deepEqual(await (await api.send(command)).json(), result); assert.equal(calls, before + 1);
   }
+});
+
+test('pengunjung and penggunaan commands read the same statistics as the CMS', async t => {
+  const api = await app(t);
+  const text = async value => (await (await api.send(value)).json()).data.content;
+  assert.match(await text(api.payload('pengunjung', 'ringkasan')), /Total: 0/);
+  assert.match(await text(api.payload('pengunjung', 'tren')), /2026-10-22: 0/);
+  assert.match(await text(api.payload('pengunjung', 'wilayah')), /Belum ada data wilayah/);
+  const usage = await (await api.send({ ...api.payload('penggunaan', 'x'), data: { name: 'penggunaan', options: [{ type: 4, name: 'hari', value: 7 }] } })).json();
+  assert.match(usage.data.content, /PNG diunduh: 0/);
 });

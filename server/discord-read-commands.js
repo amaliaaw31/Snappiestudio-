@@ -2,6 +2,7 @@ import { createWebsiteStatus } from './discord-status.js';
 import { hostStatus, sslStatus, uptimeStatus } from './discord-host.js';
 import { readState } from './cms-operations.js';
 import { createBackupCommands } from './discord-backup.js';
+import { createStatsCommands } from './discord-stats-commands.js';
 
 export async function errorSummary(db, directory, now = Date.now) {
   const since = new Date(now() - 86400000).toISOString();
@@ -34,5 +35,6 @@ export function createReadCommands({ db, directory, fetchImpl = fetch, now = Dat
     logs: () => errorSummary(db, directory, now),
     uptime: () => uptimeStatus(),
     ...createBackupCommands({ directory, now }),
+    ...createStatsCommands({ db, now }),
   };
 }

@@ -10,6 +10,13 @@ export const discordCommands = [
     ['logs', 'Ringkasan aman catatan error yang diizinkan'],
     ['uptime', 'Lama host dan layanan aktif'],
   ].map(([name, description]) => ({ name, description, type: 1, default_member_permissions: '0' })),
+  { name: 'pengunjung', description: 'Lihat statistik kunjungan seperti di CMS', type: 1, default_member_permissions: '0', options: [
+    sub('ringkasan', 'Total, hari ini, minggu ini, dan perbandingan 7 hari'), sub('tren', 'Browser aktif 7 hari terakhir dan jam tersibuk'),
+    sub('wilayah', 'Sepuluh wilayah dengan browser terbanyak'),
+  ] },
+  { name: 'penggunaan', description: 'Lihat penggunaan fitur seperti di CMS', type: 1, default_member_permissions: '0', options: [
+    { type: 4, name: 'hari', description: 'Jumlah hari terakhir; bawaan 7', min_value: 1, max_value: 90 },
+  ] },
   { name: 'backup', description: 'Periksa snapshot backup lokal tanpa restore', type: 1, default_member_permissions: '0', options: [
     sub('status', 'Lihat hasil dan waktu backup terakhir'), sub('history', 'Lihat sepuluh snapshot terbaru'),
     sub('verify', 'Periksa integritas snapshot tanpa mengubah sumber', [string('snapshot', 'ID dari backup history; bawaan snapshot terbaru', false, 32)]),
